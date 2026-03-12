@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Studium &mdash; Dashboard</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+      referrerpolicy="no-referrer"
+    />
+  </head>
+  <body data-view="dashboard" class="nav-mode">
+    <!-- Fullscreen video background -->
+    <div class="bg">
+      <video
+        class="bg__video bg__video--active"
+        id="bgVideoA"
+        src="./bg/blue - dashboard.mp4"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+      ></video>
+      <video class="bg__video" id="bgVideoB" autoplay muted loop playsinline preload="auto"></video>
+      <div class="bg__veil" aria-hidden="true"></div>
+    </div>
+
+    <div class="bootOverlay" id="bootOverlay" aria-hidden="true">
+      <div class="bootLogo" id="bootLogo">
+        <div class="bootLogo__title">STUDIUM</div>
+        <div class="bootLogo__tag">Study like a game, finish like a pro.</div>
+      </div>
+    </div>
+
+    <!-- Main 4 DIV layout on top of video -->
+    <div class="shell">
+      <div class="header">
+        <!-- DIV 1: header content goes here later -->
+        <button class="leftUserMenu headerAction" id="userMenuBtn" type="button" aria-label="Profile and quick settings">
+          <div class="userAvatar" aria-hidden="true">
+            <img class="userAvatar__img" src="./pfp.png" alt="" />
+          </div>
+          <div class="userMeta">
+            <div class="userName">Abyasa Wedha</div>
+            <div class="userXp">
+              <span class="bolt" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M13 2L3 14h8l-1 8 11-14h-8l0-6z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </span>
+              <span class="userXp__value">1350 XP</span>
+            </div>
+          </div>
+        </button>
+
+        <div class="rightClockMenu" aria-label="Clock">
+          <button class="viewLabel headerAction" id="viewLabel" type="button" aria-label="Page info">Dashboard</button>
+          <span class="clock" id="clock">--:--</span>
+          <div class="viewInfo" id="viewInfo" hidden>
+            <div class="viewInfo__title" id="viewInfoTitle">Dashboard</div>
+            <div class="viewInfo__desc" id="viewInfoDesc">Your daily snapshot: routine, quests, streaks, and widgets.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pages">
+        <div class="page active" id="dashboard" role="tabpanel" aria-label="Dashboard">
+          <div class="gridContainer">
+            <div class="gridContainerLeft">
+              <div
+                class="gridContainerLeftTop gridCard"
+                id="grid-leftTop"
+                tabindex="0"
+                role="button"
+                aria-label="Greetings and stats"
+              ></div>
+              <div class="gridContainerLeftBottom">
+                <div
+                  class="gridContainerLeftBottomLeft gridCard"
+                  id="grid-streak"
+                  tabindex="0"
+                  role="button"
+                  aria-label="Streak info"
+                ></div>
+                <div
+                  class="gridContainerLeftBottomRight gridCard"
+                  id="grid-quick"
+                  tabindex="0"
+                  role="button"
+                  aria-label="Quick actions"
+                ></div>
+              </div>
+            </div>
+
+            <div class="gridContainerRight">
+              <div class="gridContainerRightLeft">
+                <div
+                  class="gridContainerRightLeftOne gridCard"
+                  id="grid-quest1"
+                  tabindex="0"
+                  role="button"
+                  aria-label="Quest 1"
+                ></div>
+                <div
+                  class="gridContainerRightLeftTwo gridCard"
+                  id="grid-quest2"
+                  tabindex="0"
+                  role="button"
+                  aria-label="Quest 2"
+                ></div>
+                <div
+                  class="gridContainerRightLeftThree gridCard"
+                  id="grid-quest3"
+                  tabindex="0"
+                  role="button"
+                  aria-label="Quest 3"
+                ></div>
+                <div
+                  class="gridContainerRightLeftFour gridCard"
+                  id="grid-quest4"
+                  tabindex="0"
+                  role="button"
+                  aria-label="Quest 4"
+                ></div>
+              </div>
+
+              <div
+                class="gridContainerRightRight gridCard"
+                id="grid-widget"
+                tabindex="0"
+                role="button"
+                aria-label="Selected widget panel"
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="page" id="routine" role="tabpanel" aria-label="Daily Routine">
+          <div class="pageShell pageFocus" tabindex="0" aria-label="Daily Routine page">
+            <h1 class="pageTitle">Daily Routine</h1>
+            <p class="pageDesc">Now / Next / Later &mdash; turn deadlines into concrete steps.</p>
+          </div>
+        </div>
+
+        <div class="page" id="quest" role="tabpanel" aria-label="Quest">
+          <div class="pageShell pageFocus" tabindex="0" aria-label="Quest page">
+            <h1 class="pageTitle">Quest</h1>
+            <p class="pageDesc">Pick quests, set difficulty, earn XP & streaks.</p>
+          </div>
+        </div>
+
+        <div class="page" id="schedules" role="tabpanel" aria-label="Schedules">
+          <div class="pageShell pageFocus" tabindex="0" aria-label="Schedules page">
+            <h1 class="pageTitle">Schedules</h1>
+            <p class="pageDesc">Agenda + deadlines that feed your routine.</p>
+          </div>
+        </div>
+
+        <div class="page" id="notes" role="tabpanel" aria-label="Notes">
+          <div class="pageShell pageFocus" tabindex="0" aria-label="Notes page">
+            <h1 class="pageTitle">Notes</h1>
+            <p class="pageDesc">Fast capture after study sessions.</p>
+          </div>
+        </div>
+
+        <div class="page" id="study" role="tabpanel" aria-label="Study">
+          <div class="pageShell pageFocus" tabindex="0" aria-label="Study page">
+            <h1 class="pageTitle">Study</h1>
+            <p class="pageDesc">Focus, review, and group sessions.</p>
+          </div>
+        </div>
+
+        <div class="page" id="pomodoro" role="tabpanel" aria-label="Pomodoro">
+          <div class="pageShell pageFocus" tabindex="0" aria-label="Pomodoro page">
+            <h1 class="pageTitle">Pomodoro</h1>
+            <p class="pageDesc">Timer focus linked to tasks and co-op rooms.</p>
+          </div>
+        </div>
+
+        <div class="page" id="battle" role="tabpanel" aria-label="Battle">
+          <div class="pageShell pageFocus" tabindex="0" aria-label="Battle page">
+            <h1 class="pageTitle">Battle</h1>
+            <p class="pageDesc">1v1 quizzes and competitive practice.</p>
+          </div>
+        </div>
+
+        <div class="page" id="guild" role="tabpanel" aria-label="Guild">
+          <div class="pageShell pageFocus" tabindex="0" aria-label="Guild page">
+            <h1 class="pageTitle">Guild</h1>
+            <p class="pageDesc">Co-focus, chat, and accountability nudges.</p>
+          </div>
+        </div>
+
+        <div class="page" id="match" role="tabpanel" aria-label="Match">
+          <div class="pageShell pageFocus" tabindex="0" aria-label="Match page">
+            <h1 class="pageTitle">Match</h1>
+            <p class="pageDesc">Ranked modes, events, and guild-vs-guild.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="navbar">
+        <div class="carousel" id="carousel" role="tablist" aria-label="Main menu">
+          <button class="navItem active" type="button" data-page="dashboard" role="tab" aria-selected="true">
+            <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+            <span>Dashboard</span>
+          </button>
+
+          <button class="navItem" type="button" data-page="routine" role="tab" aria-selected="false">
+            <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+            <span>Routine</span>
+          </button>
+
+          <button class="navItem" type="button" data-page="quest" role="tab" aria-selected="false">
+            <i class="fa-solid fa-scroll" aria-hidden="true"></i>
+            <span>Quest</span>
+          </button>
+
+          <button class="navItem" type="button" data-page="schedules" role="tab" aria-selected="false">
+            <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
+            <span>Schedules</span>
+          </button>
+
+          <button class="navItem" type="button" data-page="notes" role="tab" aria-selected="false">
+            <i class="fa-solid fa-note-sticky" aria-hidden="true"></i>
+            <span>Notes</span>
+          </button>
+
+          <button class="navItem" type="button" data-page="study" role="tab" aria-selected="false">
+            <i class="fa-solid fa-book-open" aria-hidden="true"></i>
+            <span>Study</span>
+          </button>
+
+          <button class="navItem" type="button" data-page="pomodoro" role="tab" aria-selected="false">
+            <i class="fa-solid fa-stopwatch" aria-hidden="true"></i>
+            <span>Pomodoro</span>
+          </button>
+
+          <button class="navItem" type="button" data-page="battle" role="tab" aria-selected="false">
+            <i class="fa-solid fa-crosshairs" aria-hidden="true"></i>
+            <span>Battle</span>
+          </button>
+
+          <button class="navItem" type="button" data-page="guild" role="tab" aria-selected="false">
+            <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+            <span>Guild</span>
+          </button>
+
+          <button class="navItem" type="button" data-page="match" role="tab" aria-selected="false">
+            <i class="fa-solid fa-trophy" aria-hidden="true"></i>
+            <span>Match</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="footerHUD">
+        <!-- DIV 4: footer / HUD goes here later -->
+        <div class="appver">
+          <div class="userName">Studium v1.0.0</div>
+        </div>
+        <div class="hud">
+          <div class="hudBar" aria-label="Controls">
+            <div class="hudGroup" aria-label="Navigate">
+              <div class="hudKeys" aria-hidden="true">
+                <span class="hudKey"><i class="fa-solid fa-arrow-left"></i></span>
+                <span class="hudKey"><i class="fa-solid fa-arrow-up"></i></span>
+                <span class="hudKey"><i class="fa-solid fa-arrow-down"></i></span>
+                <span class="hudKey"><i class="fa-solid fa-arrow-right"></i></span>
+              </div>
+              <div class="hudLabel">Navigate</div>
+            </div>
+
+            <div class="hudGroup hudGroup--right" aria-label="Scroll Menu">
+              <div class="hudKeys" aria-hidden="true">
+                <span class="hudKey hudKey--mouse">
+                  <i class="fa-solid fa-computer-mouse"></i>
+                  <i class="fa-solid fa-arrows-up-down hudMouseScroll"></i>
+                </span>
+              </div>
+              <div class="hudLabel">Scroll Menu</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="drawerOverlay" id="profileOverlay" hidden></div>
+    <aside class="drawer" id="profileDrawer" hidden aria-hidden="true" aria-label="Profile and quick settings">
+      <div class="drawerTop">
+        <div class="drawerTitle">Profile</div>
+        <button class="drawerClose headerAction" id="profileCloseBtn" type="button" aria-label="Close profile">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="drawerBody">
+        <div class="drawerCard">
+          <div class="drawerUser">
+            <div class="drawerAvatar" aria-hidden="true">
+              <img class="drawerAvatar__img" src="./pfp.png" alt="" />
+            </div>
+            <div class="drawerUserMeta">
+              <div class="drawerUserName">Abyasa Wedha</div>
+              <div class="drawerUserSub">1350 XP • LVL 12</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="drawerCard">
+          <div class="drawerSectionTitle">Quick Settings</div>
+          <button class="drawerToggle headerAction" id="toggleSfxBtn" type="button" aria-label="Toggle sound effects">
+            SFX: On
+          </button>
+          <button class="drawerToggle headerAction" type="button" aria-label="Open profile page (placeholder)">
+            Open Profile (Soon)
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
