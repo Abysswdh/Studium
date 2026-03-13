@@ -748,9 +748,20 @@ const SFX = (() => {
   };
 
   const applySfxVolume = (value) => {
-    const n = Math.max(0, Math.min(100, Number(value) || 0));
+    const raw = Number(value);
+    if (!Number.isFinite(raw)) return;
+    const n = Math.max(0, Math.min(100, raw));
     const v = n / 100;
     if (typeof SFX?.setVolume === "function") SFX.setVolume(v);
+    if (qsSfxVolumeVal) qsSfxVolumeVal.textContent = String(Math.round(n));
+  };
+
+  const setSfxVolumeUi = (value) => {
+    if (!qsSfxVolume) return;
+    const raw = Number(value);
+    if (!Number.isFinite(raw)) return;
+    const n = Math.max(0, Math.min(100, raw));
+    qsSfxVolume.value = String(n);
     if (qsSfxVolumeVal) qsSfxVolumeVal.textContent = String(Math.round(n));
   };
 
@@ -785,8 +796,7 @@ const SFX = (() => {
     if (qsSfxVolume) {
       const saved = Number(safeLocalGet(LS_SFXVOL));
       const val = Number.isFinite(saved) ? saved : Math.round((typeof SFX?.getVolume === "function" ? SFX.getVolume() : 0.55) * 100);
-      qsSfxVolume.value = String(Math.max(0, Math.min(100, val)));
-      applySfxVolume(qsSfxVolume.value);
+      setSfxVolumeUi(val);
     }
 
     if (qsFullscreen) {
@@ -978,6 +988,16 @@ const SFX = (() => {
       safeLocalSet(LS_SFXVOL, String(Math.round(Number(qsSfxVolume.value) || 0)));
     });
   }
+
+  // Initialize SFX volume once on load. Avoid changing it again on drawer open
+  // so opening Quick Settings doesn't unexpectedly mute SFX.
+  (() => {
+    if (!qsSfxVolume) return;
+    const saved = Number(safeLocalGet(LS_SFXVOL));
+    const initial = Number.isFinite(saved) ? saved : Number(qsSfxVolume.value || 55);
+    setSfxVolumeUi(initial);
+    applySfxVolume(initial);
+  })();
 
   if (qsFullscreen) {
     qsFullscreen.addEventListener("change", () => {
@@ -1525,6 +1545,13 @@ const SFX = (() => {
         e.stopPropagation();
 
         if (key === "Escape") {
+          if (document.body.classList.contains("quest-detail") && window.questDetailApi?.back) {
+            if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+            try {
+              window.questDetailApi.back();
+            } catch {}
+            return;
+          }
           if (window.studiumViewInfoApi?.isOpen?.()) {
             if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
             window.studiumViewInfoApi?.close?.();
@@ -1560,6 +1587,13 @@ const SFX = (() => {
         e.stopPropagation();
 
         if (key === "Escape") {
+          if (document.body.classList.contains("quest-detail") && window.questDetailApi?.back) {
+            if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+            try {
+              window.questDetailApi.back();
+            } catch {}
+            return;
+          }
           if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
           focusNav();
           return;
@@ -1568,6 +1602,7 @@ const SFX = (() => {
         if (key === "ArrowDown") {
           const moved = moveInGrid("down");
           if (!moved) {
+            if (document.body.classList.contains("quest-detail")) return;
             if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
             focusNav();
           }
