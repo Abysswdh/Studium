@@ -2,6 +2,7 @@
   "name": "studium",
   "private": true,
   "scripts": {
+    "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true});\"",
     "dev": "next dev",
     "build": "next build",
     "start": "next start"
@@ -21,4 +22,3 @@
     "typescript": "^5.6.3"
   }
 }
-
