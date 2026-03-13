@@ -1,21 +1,26 @@
 /* Responsive + modern sizing overrides (keep legacy CSS untouched). */
 
+html {
+  /* Prevent subtle left/right jumps when scrollbars appear/disappear on desktop. */
+  scrollbar-gutter: stable both-edges;
+}
+
 :root {
   --shell-gap: clamp(10px, 1.8vw, 16px);
   --shell-pad-y: clamp(12px, 2.6vw, 24px);
   --shell-pad-x: clamp(14px, 4.2vw, 40px);
   --shell-maxw: 1440px;
+  /* Use the larger safe-area inset on both sides so padding stays symmetric. */
+  --safe-inline: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
 }
 
 .shell {
   width: min(100%, var(--shell-maxw));
   margin-inline: auto;
   gap: var(--shell-gap);
-  padding: var(--shell-pad-y) var(--shell-pad-x);
+  padding: var(--shell-pad-y) calc(var(--shell-pad-x) + var(--safe-inline));
   padding-top: calc(var(--shell-pad-y) + env(safe-area-inset-top, 0px));
-  padding-right: calc(var(--shell-pad-x) + env(safe-area-inset-right, 0px));
   padding-bottom: calc(var(--shell-pad-y) + env(safe-area-inset-bottom, 0px));
-  padding-left: calc(var(--shell-pad-x) + env(safe-area-inset-left, 0px));
 }
 
 .header {
@@ -71,6 +76,18 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+@media (max-width: 1024px) {
+  /* iPad/tablet: prevent widget columns from overlapping due to fixed 50% widths + gaps. */
+  .gridContainerLeftBottomLeft,
+  .gridContainerLeftBottomRight,
+  .gridContainerRightLeft,
+  .gridContainerRightRight {
+    width: auto;
+    flex: 1 1 0;
+    min-width: 0;
+  }
 }
 
 @media (max-width: 900px) {
@@ -161,16 +178,6 @@
     min-height: 0;
     height: auto;
     aspect-ratio: 21 / 10;
-  }
-
-  /* Prevent horizontal overflow caused by 50% widths + gaps. */
-  .gridContainerLeftBottomLeft,
-  .gridContainerLeftBottomRight,
-  .gridContainerRightLeft,
-  .gridContainerRightRight {
-    width: auto;
-    flex: 1 1 0;
-    min-width: 0;
   }
 
   .footerHUD {
