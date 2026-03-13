@@ -173,10 +173,10 @@ export default function MusicPlayer({ tracks }: Props) {
       if (analyser && arr && orb) {
         analyser.getByteFrequencyData(arr as any);
 
-        // Weighted energy: bass + some mid. Designed to feel alive even on steady tracks.
-        const bassBins = Math.min(14, arr.length);
+        // Weighted energy: bass + some mid. Keep a stable baseline so the orb doesn't "die" after a second.
+        const bassBins = Math.min(24, arr.length);
         const midStart = bassBins;
-        const midEnd = Math.min(midStart + 28, arr.length);
+        const midEnd = Math.min(midStart + 48, arr.length);
 
         let bass = 0;
         for (let i = 0; i < bassBins; i++) bass += arr[i];
@@ -186,18 +186,16 @@ export default function MusicPlayer({ tracks }: Props) {
         for (let i = midStart; i < midEnd; i++) mid += arr[i];
         mid = (mid / Math.max(1, midEnd - midStart)) / 255;
 
-        const energy = bass * 0.78 + mid * 0.22;
+        const energy = bass * 0.72 + mid * 0.28; // 0..1 (usually small)
 
         const s = beatRef.current;
-        s.avg = s.avg * 0.96 + energy * 0.04;
+        s.avg = s.avg * 0.94 + energy * 0.06;
         const delta = energy - s.avg;
-        const hit = clamp(delta * 7.5, 0, 1);
+        const hit = clamp(delta * 6.2, 0, 1);
+        s.pulse = Math.max(s.pulse * 0.84, hit);
 
-        // Maintain a small "breathing" motion, while peaks punch harder.
-        const floor = clamp((energy - 0.02) * 0.55, 0, 0.22);
-        s.pulse = Math.max(s.pulse * 0.86, hit);
-
-        const beat = clamp(floor + s.pulse, 0, 1);
+        // Baseline follows energy, peaks punch via `pulse`.
+        const beat = clamp(energy * 1.7 + s.pulse * 0.85, 0, 1);
         orb.style.setProperty("--beat", beat.toFixed(3));
       } else if (orb) {
         orb.style.setProperty("--beat", "0");
@@ -324,7 +322,7 @@ export default function MusicPlayer({ tracks }: Props) {
   return (
     <div
       ref={panelRef}
-      className="panelItem mx-3 flex w-[360px] max-w-[32vw] flex-col gap-2 rounded-2xl px-3 py-2"
+      className="panelItem mx-3 flex w-[320px] max-w-[92vw] flex-col gap-2 rounded-2xl px-3 py-2"
       aria-label="Music player"
     >
       <audio ref={audioRef} preload="metadata" />
@@ -335,7 +333,7 @@ export default function MusicPlayer({ tracks }: Props) {
           className="relative grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-black/25"
           aria-hidden="true"
           style={{
-            transform: "scale(calc(1 + var(--beat, 0) * 0.16))",
+            transform: "scale(calc(1 + var(--beat, 0) * 0.26))",
             transition: "transform 70ms ease-out",
             boxShadow: "0 10px 45px rgba(0,0,0,0.35)",
           }}

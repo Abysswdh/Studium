@@ -10,6 +10,14 @@ body {
   height: 100%;
 }
 
+img,
+video,
+iframe {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
 :root {
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Space Grotesk", "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -135,5 +143,46 @@ body.booting .bg__veil {
   opacity: 0;
   backdrop-filter: blur(0px);
   -webkit-backdrop-filter: blur(0px);
+}
+
+/* Responsive sizing (console shell) */
+@media (max-width: 900px) {
+  body {
+    --nav-bar-minh: 132px;
+    --carousel-width: 100%;
+    --carousel-pad-y: 12px;
+
+    --nav-item-w: 112px;
+    --nav-item-h: 100px;
+    --nav-radius: 18px;
+    --nav-icon-size: 26px;
+  }
+
+  body.grid-mode {
+    --nav-bar-minh: 92px;
+    --carousel-width: 100%;
+    --carousel-pad-y: 10px;
+
+    --nav-item-w: 66px;
+    --nav-item-h: 66px;
+    --nav-radius: 16px;
+    --nav-icon-size: 22px;
+  }
+}
+
+@media (max-width: 520px) {
+  body {
+    --nav-bar-minh: 118px;
+    --nav-item-w: 100px;
+    --nav-item-h: 92px;
+    --nav-icon-size: 24px;
+  }
+
+  body.grid-mode {
+    --nav-bar-minh: 86px;
+    --nav-item-w: 62px;
+    --nav-item-h: 62px;
+    --nav-icon-size: 21px;
+  }
 }
 

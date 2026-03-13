@@ -28,13 +28,18 @@
 /* Main 4-div shell */
 .shell {
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 24px 40px;
   display: grid;
-  grid-template-rows: auto 1fr auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   gap: 16px;
   opacity: 1;
   transform: translateY(0);
   transition: opacity 650ms ease, transform 650ms ease;
+}
+
+#routeOutlet {
+  min-height: 0;
 }
 
 body.booting .shell {
@@ -49,6 +54,11 @@ body.booting .shell {
   gap: 16px;
   width: 100%;
   height: 100%;
+}
+
+.gridContainer > * {
+  /* allow flex children to shrink below their content width */
+  min-width: 0;
 }
 
 .gridContainerLeft {
@@ -648,5 +658,155 @@ body[data-view="guild"] .gridContainerRightLeft{ width: 42%; }
   color: var(--text);
   font-size: 13px;
   line-height: 1.35;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .shell {
+    padding: 18px 22px;
+  }
+}
+
+@media (max-width: 900px) {
+  .shell {
+    padding: 16px 16px 18px;
+  }
+
+  #routeOutlet {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+  }
+
+  .header {
+    padding: 8px 10px;
+  }
+
+  .userAvatar {
+    width: 46px;
+    height: 46px;
+  }
+  .userName {
+    font-size: 16px;
+  }
+  .userXp {
+    font-size: 12px;
+  }
+
+  .viewInfo {
+    top: 78px;
+  }
+
+  .gridContainer {
+    min-height: 0;
+    height: auto;
+    flex-direction: column;
+  }
+
+  .gridContainerLeft,
+  .gridContainerRight {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .gridContainerLeftTop {
+    flex: 0 0 auto;
+    min-height: 180px;
+  }
+
+  .gridContainerLeftBottom {
+    flex: 0 0 auto;
+    min-height: 180px;
+  }
+
+  .gridContainerRight {
+    flex-direction: column;
+  }
+
+  .gridContainerRightLeft,
+  .gridContainerRightRight {
+    width: 100%;
+    height: auto;
+  }
+
+  .gridContainerRightLeft {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .gridContainerRightLeftOne,
+  .gridContainerRightLeftTwo,
+  .gridContainerRightLeftThree,
+  .gridContainerRightLeftFour {
+    height: auto;
+    min-height: 120px;
+  }
+
+  .gridContainerRightRight {
+    min-height: 240px;
+  }
+
+  .footerHUD {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .hudBar {
+    padding: 14px 14px;
+    gap: 18px;
+  }
+}
+
+@media (max-width: 520px) {
+  .leftUserMenu {
+    gap: 10px;
+    padding: 3px 4px;
+    border-radius: 16px;
+  }
+
+  .userMeta {
+    gap: 4px;
+  }
+  .userXp {
+    display: none;
+  }
+
+  .rightClockMenu {
+    padding: 4px 8px;
+    gap: 8px;
+  }
+
+  .viewLabel {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .clock {
+    font-size: 14px;
+  }
+
+  .gridContainerLeftBottom {
+    flex-direction: column;
+  }
+
+  .gridContainerLeftBottomLeft,
+  .gridContainerLeftBottomRight {
+    width: 100%;
+  }
+
+  .gridContainerRightLeft {
+    grid-template-columns: 1fr;
+  }
+
+  .hudLabel {
+    display: none;
+  }
+
+  .hudKey {
+    width: 26px;
+    height: 26px;
+  }
 }
 
