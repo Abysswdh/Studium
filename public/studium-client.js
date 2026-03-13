@@ -486,13 +486,19 @@ const SFX = (() => {
     }, 340);
 
     if (focusProfile && userBtn) {
-      setTimeout(() => {
+      const focusProfileBtn = () => {
         try {
           userBtn.focus({ preventScroll: true });
         } catch {
           userBtn.focus();
         }
-      }, 30);
+      };
+
+      // Some browsers keep focus on the closing drawer button; force a few times.
+      focusProfileBtn();
+      requestAnimationFrame(focusProfileBtn);
+      setTimeout(focusProfileBtn, 60);
+      setTimeout(focusProfileBtn, 380);
     }
   };
 
