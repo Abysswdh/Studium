@@ -32,7 +32,11 @@ function safeLocalSet(key: string, value: string) {
 }
 
 export default function MusicPlayer({ tracks }: Props) {
-  const list = useMemo(() => (tracks?.length ? tracks : []), [tracks]);
+  const [remoteTracks, setRemoteTracks] = useState<PlaylistTrack[] | null>(null);
+  const list = useMemo(() => {
+    if (tracks?.length) return tracks;
+    return remoteTracks ?? [];
+  }, [tracks, remoteTracks]);
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [enabled, setEnabled] = useState(true);
@@ -51,6 +55,25 @@ export default function MusicPlayer({ tracks }: Props) {
   const beatRef = useRef({ ema: 0, pulse: 0 });
 
   const current = list[index] ?? null;
+
+  useEffect(() => {
+    if (tracks?.length) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/sound/playlist/manifest.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const json = (await res.json()) as { tracks?: PlaylistTrack[] };
+        const next = Array.isArray(json?.tracks) ? json.tracks.filter((t) => t && typeof t.src === "string") : [];
+        if (!cancelled) setRemoteTracks(next);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tracks?.length]);
 
   useEffect(() => {
     const v = Number(safeLocalGet(LS_KEY_VOL));
@@ -123,14 +146,20 @@ export default function MusicPlayer({ tracks }: Props) {
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
     const onEnded = () => next();
+    const onError = () => {
+      // Skip missing/failed tracks (common on deploy if audio files aren't included).
+      if (list.length > 1) next();
+    };
 
     audio.addEventListener("play", onPlay);
     audio.addEventListener("pause", onPause);
     audio.addEventListener("ended", onEnded);
+    audio.addEventListener("error", onError);
     return () => {
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("error", onError);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, list.length]);
@@ -350,6 +379,13 @@ export default function MusicPlayer({ tracks }: Props) {
           aria-hidden="true"
         />
       </div>
+
+      {!list.length ? (
+        <div className="text-xs font-[800] text-white/55">
+          No tracks found. Add audio files to <span className="text-white/75">public/sound/playlist</span> (deploy requires they exist on Vercel), or edit{" "}
+          <span className="text-white/75">/sound/playlist/manifest.json</span>.
+        </div>
+      ) : null}
     </div>
   );
 }
