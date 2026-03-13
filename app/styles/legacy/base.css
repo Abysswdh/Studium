@@ -91,7 +91,7 @@ body[data-view="study"] { --glass-tint: 255 170 90; }
 body[data-view="pomodoro"] { --glass-tint: 195 140 255; }
 body[data-view="battle"] { --glass-tint: 255 110 110; }
 body[data-view="guild"] { --glass-tint: 255 220 120; }
-body[data-view="match"] { --glass-tint: 255 110 110; }
+body[data-view="match"] { --glass-tint: 255 255 255; }
 
 .clock {
   font-weight: 800;
