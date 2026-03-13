@@ -715,6 +715,36 @@ const SFX = (() => {
     }
   }
 
+  function switchRelative(dir, { preserveMode = true } = {}) {
+    if (document.body.classList.contains("booting")) return;
+    const nextIndex = clamp(activeIndex + dir, 0, items.length - 1);
+    if (nextIndex === activeIndex) return;
+
+    // Keep keyboard index in sync even if we don't focus the navbar.
+    focusedIndex = nextIndex;
+
+    // Update active + route.
+    setActive(nextIndex, { navigate: true });
+
+    // Always keep the active item visible in the carousel.
+    try {
+      items[nextIndex].scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    } catch {
+      // ignore
+    }
+
+    // If user is in grid mode (nav minimized), preserve the mode and don't steal focus.
+    if (preserveMode && document.body.classList.contains("grid-mode")) {
+      items.forEach((i) => i.classList.remove("focused"));
+      items[nextIndex].classList.add("focused");
+      return;
+    }
+
+    // Default behavior: focus the navbar item.
+    setMode("nav");
+    setFocused(nextIndex, { focus: true, scroll: true });
+  }
+
   window.navApi = {
     focus: (idx) => {
       setMode("nav");
@@ -726,6 +756,7 @@ const SFX = (() => {
       setFocused(focusedIndex + dir, { focus: true, scroll: true });
       setActive(focusedIndex, { navigate: true });
     },
+    switchRelative,
     focusCurrent: () => setFocused(focusedIndex ?? activeIndex, { focus: true, scroll: true }),
   };
 
@@ -1124,4 +1155,85 @@ const SFX = (() => {
     },
     true
   );
+})();
+
+(function initSwipeNav() {
+  const outlet = document.getElementById("routeOutlet");
+  if (!outlet) return;
+
+  const shouldIgnoreTarget = (target) => {
+    const el = target?.closest?.(
+      "#carousel, .navbar, .footerHUD, .hud, #profileDrawer, #profileOverlay, .drawer, .drawerOverlay"
+    );
+    if (el) return true;
+
+    const t = target?.tagName ? String(target.tagName).toLowerCase() : "";
+    if (t === "input" || t === "textarea" || t === "select" || t === "button") return true;
+    if (target?.closest?.('input[type="range"]')) return true;
+    return false;
+  };
+
+  let tracking = false;
+  let sx = 0;
+  let sy = 0;
+  let st = 0;
+
+  const reset = () => {
+    tracking = false;
+    sx = 0;
+    sy = 0;
+    st = 0;
+  };
+
+  outlet.addEventListener(
+    "touchstart",
+    (e) => {
+      if (document.body.classList.contains("booting")) return;
+      if (document.body.classList.contains("drawer-open")) return;
+      if (e.touches.length !== 1) return;
+      if (shouldIgnoreTarget(e.target)) return;
+
+      const t = e.touches[0];
+      tracking = true;
+      sx = t.clientX;
+      sy = t.clientY;
+      st = Date.now();
+    },
+    { passive: true }
+  );
+
+  outlet.addEventListener(
+    "touchend",
+    (e) => {
+      if (!tracking) return;
+      if (e.changedTouches.length !== 1) return reset();
+
+      const t = e.changedTouches[0];
+      const dx = t.clientX - sx;
+      const dy = t.clientY - sy;
+      const dt = Date.now() - st;
+      reset();
+
+      // Horizontal swipe only (avoid vertical scroll).
+      if (Math.abs(dx) < 60) return;
+      if (Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      if (dt > 900) return; // too slow: likely scroll/drag
+
+      const dir = dx < 0 ? 1 : -1; // swipe left -> next
+      const preserveMode = document.body.classList.contains("grid-mode");
+
+      if (window.navApi?.switchRelative) {
+        window.navApi.switchRelative(dir, { preserveMode });
+        return;
+      }
+
+      if (window.navApi?.move) {
+        // Fallback: this will enter nav mode.
+        window.navApi.move(dir);
+      }
+    },
+    { passive: true }
+  );
+
+  outlet.addEventListener("touchcancel", reset, { passive: true });
 })();
