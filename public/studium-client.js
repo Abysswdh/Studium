@@ -397,6 +397,9 @@ const SFX = (() => {
   const closeBtn = document.getElementById("profileCloseBtn");
   const toggleSfxBtn = document.getElementById("toggleSfxBtn");
   const backToLandingBtn = document.getElementById("backToLandingBtn");
+  const signInBtn = document.getElementById("signInBtn");
+  const registerBtn = document.getElementById("registerBtn");
+  const signOutBtn = document.getElementById("signOutBtn");
 
   if (!viewBtn && !userBtn) return;
 
@@ -544,6 +547,17 @@ const SFX = (() => {
       }, 110);
     });
   }
+
+  const navAfterSfx = (href) => {
+    if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+    setTimeout(() => {
+      window.location.href = href;
+    }, 110);
+  };
+
+  if (signInBtn) signInBtn.addEventListener("click", () => navAfterSfx("/sign-in"));
+  if (registerBtn) registerBtn.addEventListener("click", () => navAfterSfx("/register"));
+  if (signOutBtn) signOutBtn.addEventListener("click", () => navAfterSfx("/sign-out"));
 
   if (userBtn) {
     userBtn.addEventListener("click", openDrawer);

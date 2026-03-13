@@ -1,12 +1,13 @@
 import RouteBridge from "../../components/route-bridge";
-import { getMockUser } from "../../lib/mock-user";
+import { getCurrentUser } from "../../lib/auth/current-user";
+import { guestUser } from "../../lib/mock-user";
 import Script from "next/script";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export default async function ShellLayout({ children }: { children: React.ReactNode }) {
-  const user = await getMockUser();
+  const user = (await getCurrentUser()) ?? guestUser();
 
   return (
     <main>
@@ -184,6 +185,26 @@ export default async function ShellLayout({ children }: { children: React.ReactN
             >
               Back to Landing
             </button>
+            {user.id === 0 ? (
+              <>
+                <button className="drawerToggle headerAction" id="signInBtn" data-focus="drawer.signin" type="button" aria-label="Sign in">
+                  Sign In
+                </button>
+                <button
+                  className="drawerToggle headerAction"
+                  id="registerBtn"
+                  data-focus="drawer.register"
+                  type="button"
+                  aria-label="Create an account"
+                >
+                  Register
+                </button>
+              </>
+            ) : (
+              <button className="drawerToggle headerAction" id="signOutBtn" data-focus="drawer.signout" type="button" aria-label="Sign out">
+                Sign Out
+              </button>
+            )}
             <button className="drawerToggle headerAction" data-focus="drawer.profile" type="button" aria-label="Open profile page (placeholder)">
               Open Profile (Soon)
             </button>

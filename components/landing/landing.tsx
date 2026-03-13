@@ -106,15 +106,20 @@ export default function Landing() {
             >
               FAQ
             </a>
+            <Link
+              href="/sign-in"
+              className="rounded-lg px-3 py-2 text-sm font-[800] text-white/70 transition hover:bg-white/5 hover:text-white/90 focus:outline-none focus:ring-2 focus:ring-white/35"
+            >
+              Sign in
+            </Link>
           </nav>
 
           <div className="flex items-center gap-2">
             <Link
-              href="/dashboard"
-              prefetch
-              className="hidden rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-[800] text-white/85 transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/45 md:inline-flex"
+              href="/register"
+              className="hidden rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-[900] text-white/85 transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/45 md:inline-flex"
             >
-              Preview
+              Register
             </Link>
             <button
               type="button"
