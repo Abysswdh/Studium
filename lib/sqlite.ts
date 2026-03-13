@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
@@ -29,12 +30,21 @@ function init(db: DatabaseSync) {
 export function getDb(): DatabaseSync {
   if (db) return db;
 
-  const dataDir = path.join(process.cwd(), "data");
-  fs.mkdirSync(dataDir, { recursive: true });
+  const desiredDir = path.join(process.cwd(), "data");
+  let dataDir = desiredDir;
+
+  try {
+    fs.mkdirSync(desiredDir, { recursive: true });
+    fs.accessSync(desiredDir, fs.constants.W_OK);
+  } catch {
+    // Serverless/readonly filesystems (e.g. Vercel) typically only allow writes in /tmp.
+    dataDir = path.join(os.tmpdir(), "studium");
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+
   const dbPath = path.join(dataDir, "studium.db");
 
   db = new DatabaseSync(dbPath);
   init(db);
   return db;
 }
-

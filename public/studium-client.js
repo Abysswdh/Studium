@@ -322,17 +322,18 @@ const SFX = (() => {
   const logo = document.getElementById("bootLogo");
   if (!overlay || !logo) return;
 
-  document.body.classList.add("booting");
-  SFX.playBoot();
-
-  requestAnimationFrame(() => overlay.classList.add("bootOverlay--reveal"));
-
-  // After 1s reveal, show the title for ~5s
-  setTimeout(() => logo.classList.add("bootLogo--show"), 1000);
-
-  setTimeout(() => {
-    overlay.classList.add("bootOverlay--hide");
-    document.body.classList.remove("booting");
+  const cleanup = () => {
+    try {
+      overlay.classList.add("bootOverlay--hide");
+    } catch {
+      // ignore
+    }
+    try {
+      document.body.classList.remove("booting");
+      document.documentElement.classList.remove("booting");
+    } catch {
+      // ignore
+    }
 
     // Default highlight/focus starts on the active nav item.
     setTimeout(() => {
@@ -349,7 +350,23 @@ const SFX = (() => {
         // ignore
       }
     }, 650);
-  }, 6000);
+  };
+
+  try {
+    document.body.classList.add("booting");
+    document.documentElement.classList.add("booting");
+    SFX.playBoot();
+
+    requestAnimationFrame(() => overlay.classList.add("bootOverlay--reveal"));
+
+    // After 1s reveal, show the title for ~5s
+    setTimeout(() => logo.classList.add("bootLogo--show"), 1000);
+
+    setTimeout(cleanup, 6000);
+  } catch (err) {
+    console.error("[Studium] Boot sequence failed:", err);
+    cleanup();
+  }
 })();
 
 (function initClock() {
