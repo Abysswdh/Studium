@@ -1,5 +1,6 @@
 import RouteBridge from "../../components/route-bridge";
 import { getMockUser } from "../../lib/mock-user";
+import Script from "next/script";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -193,6 +194,8 @@ export default async function ShellLayout({ children }: { children: React.ReactN
           <div className="bootLogo__tag">Study like a game, finish like a pro.</div>
         </div>
       </div>
+
+      <Script src="/studium-client.js" strategy="afterInteractive" />
     </main>
   );
 }

@@ -3,7 +3,6 @@ import "./styles/legacy/base.css";
 import "./styles/legacy/boot.css";
 import "./styles/legacy/ui.css";
 import "./styles/legacy/drawer.css";
-import Script from "next/script";
 
 export const metadata = {
   title: "Studium",
@@ -30,7 +29,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="nav-mode" data-view="dashboard">
         {children}
-        <Script src="/studium-client.js" strategy="afterInteractive" />
       </body>
     </html>
   );
