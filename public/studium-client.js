@@ -396,6 +396,7 @@ const SFX = (() => {
   const drawer = document.getElementById("profileDrawer");
   const closeBtn = document.getElementById("profileCloseBtn");
   const toggleSfxBtn = document.getElementById("toggleSfxBtn");
+  const backToLandingBtn = document.getElementById("backToLandingBtn");
 
   if (!viewBtn && !userBtn) return;
 
@@ -532,6 +533,15 @@ const SFX = (() => {
       if (typeof SFX?.isMuted !== "function" || typeof SFX?.setMuted !== "function") return;
       SFX.setMuted(!SFX.isMuted());
       syncSfxLabel();
+    });
+  }
+
+  if (backToLandingBtn) {
+    backToLandingBtn.addEventListener("click", () => {
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 110);
     });
   }
 

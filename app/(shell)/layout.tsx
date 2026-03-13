@@ -175,6 +175,15 @@ export default async function ShellLayout({ children }: { children: React.ReactN
             >
               SFX: On
             </button>
+            <button
+              className="drawerToggle headerAction"
+              id="backToLandingBtn"
+              data-focus="drawer.landing"
+              type="button"
+              aria-label="Back to landing page"
+            >
+              Back to Landing
+            </button>
             <button className="drawerToggle headerAction" data-focus="drawer.profile" type="button" aria-label="Open profile page (placeholder)">
               Open Profile (Soon)
             </button>
