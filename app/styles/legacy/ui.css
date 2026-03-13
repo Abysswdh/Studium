@@ -349,16 +349,18 @@ body.nav-mode .navItem.focused {
   letter-spacing: 0.1px;
 }
 
-/* Per-page grid layout tweaks */
-body[data-view="notes"] .gridContainerLeft{ flex: 0 0 32%; }
-body[data-view="notes"] .gridContainerRight{ flex: 0 0 68%; }
-body[data-view="notes"] .gridContainerRightRight{ width: 56%; }
-body[data-view="notes"] .gridContainerRightLeft{ width: 44%; }
+/* Per-page grid layout tweaks (desktop only) */
+@media (min-width: 901px) {
+  body[data-view="notes"] .gridContainerLeft { flex: 0 0 32%; }
+  body[data-view="notes"] .gridContainerRight { flex: 0 0 68%; }
+  body[data-view="notes"] .gridContainerRightRight { width: 56%; }
+  body[data-view="notes"] .gridContainerRightLeft { width: 44%; }
 
-body[data-view="guild"] .gridContainerLeft{ flex: 0 0 36%; }
-body[data-view="guild"] .gridContainerRight{ flex: 0 0 64%; }
-body[data-view="guild"] .gridContainerRightRight{ width: 58%; }
-body[data-view="guild"] .gridContainerRightLeft{ width: 42%; }
+  body[data-view="guild"] .gridContainerLeft { flex: 0 0 36%; }
+  body[data-view="guild"] .gridContainerRight { flex: 0 0 64%; }
+  body[data-view="guild"] .gridContainerRightRight { width: 58%; }
+  body[data-view="guild"] .gridContainerRightLeft { width: 42%; }
+}
 
 /* Page focus (non-dashboard pages) */
 .pageFocus {
@@ -761,6 +763,27 @@ body[data-view="guild"] .gridContainerRightLeft{ width: 42%; }
 }
 
 @media (max-width: 520px) {
+  .header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .leftUserMenu {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .userName {
+    max-width: min(52vw, 260px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .rightClockMenu {
+    margin-left: auto;
+  }
+
   .leftUserMenu {
     gap: 10px;
     padding: 3px 4px;
