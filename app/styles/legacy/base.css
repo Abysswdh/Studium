@@ -1,0 +1,139 @@
+﻿/* Legacy prototype styles (ported during migration). */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+}
+
+:root {
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk", "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+  background: #000;
+  /* only hide horizontal overflow so vertical scrolling still works */
+  overflow-x: hidden;
+
+  --bg-hue: 0deg;
+  --glass-tint: 255 255 255;
+  --glass-alpha: 0.28;
+  --glass-alpha-strong: 0.36;
+  --glass-border-alpha: 0.32;
+  --glass-blur: 16px;
+
+  --text-strong: rgba(194, 194, 194, 0.92);
+  --text: rgba(255, 255, 255, 0.78);
+  --text-muted: rgba(151, 151, 151, 0.62);
+
+  /* Nav sizing (nav-mode default) */
+  --nav-bar-minh: 160px;
+  --carousel-width: 900px;
+  --carousel-pad-y: 16px;
+
+  --nav-item-w: 128px;
+  --nav-item-h: 112px;
+  --nav-radius: 20px;
+  --nav-base-scale: 0.86;
+  --nav-active-scale: 1.12;
+  --nav-icon-size: 30px;
+
+  --nav-label-opacity: 1;
+  --nav-label-maxh: 20px;
+  --nav-label-mt: 6px;
+  --nav-label-shift: 0px;
+}
+
+body.grid-mode {
+  --nav-bar-minh: 104px;
+  --carousel-width: 760px;
+  --carousel-pad-y: 10px;
+
+  --nav-item-w: 74px;
+  --nav-item-h: 74px;
+  --nav-radius: 18px;
+  --nav-base-scale: 0.92;
+  --nav-active-scale: 1.08;
+  --nav-icon-size: 26px;
+
+  --nav-label-opacity: 0;
+  --nav-label-maxh: 0px;
+  --nav-label-mt: 0px;
+  --nav-label-shift: -6px;
+}
+
+body[data-view="dashboard"] { --glass-tint: 90 155 255; }
+body[data-view="routine"] { --glass-tint: 184 130 82; }
+body[data-view="quest"] { --glass-tint: 90 220 150; }
+body[data-view="schedules"] { --glass-tint: 95 230 255; }
+body[data-view="notes"] { --glass-tint: 255 255 255; }
+body[data-view="study"] { --glass-tint: 255 170 90; }
+body[data-view="pomodoro"] { --glass-tint: 195 140 255; }
+body[data-view="battle"] { --glass-tint: 255 110 110; }
+body[data-view="guild"] { --glass-tint: 255 220 120; }
+body[data-view="match"] { --glass-tint: 220 220 220; }
+
+.clock {
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.4px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+}
+
+.bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.bg__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+
+  opacity: 0;
+  transition: opacity 320ms ease;
+  filter: saturate(1.15) contrast(1.05) hue-rotate(var(--bg-hue));
+}
+
+.bg__video--active {
+  opacity: 1;
+}
+
+body.no-video .bg__video {
+  opacity: 0 !important;
+}
+.bg__veil {
+  position: absolute;
+  inset: 0;
+  /* background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0.28)
+  ); */
+  opacity: 1;
+  transition: opacity 2000ms ease;
+}
+
+body.booting .bg__veil {
+  opacity: 0;
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+}
+

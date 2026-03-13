@@ -1,14 +1,21 @@
-function updatePage(pageName) {
-  const pages = Array.from(document.querySelectorAll(".page"));
-  if (pages.length === 0) return;
-
-  pages.forEach((p) => p.classList.remove("active"));
-
-  const target = document.getElementById(pageName) || document.getElementById("dashboard");
-  if (target) target.classList.add("active");
-
-  if (pageName) document.body.dataset.view = pageName;
+function readViewMarker() {
+  const marker = document.querySelector('[data-view-marker="1"]');
+  if (!marker) return null;
+  const view = marker.getAttribute("data-view");
+  const label = marker.getAttribute("data-label");
+  const desc = marker.getAttribute("data-desc");
+  return { view, label, desc };
 }
+
+function setView(view) {
+  if (!view) return;
+  document.body.dataset.view = view;
+}
+
+(function syncInitialView() {
+  const m = readViewMarker();
+  if (m?.view) setView(m.view);
+})();
 
 function isTypingTarget(el) {
   if (!el) return false;
@@ -30,16 +37,16 @@ function setMode(mode) {
   const USE_HUE_ROTATE = false;
 
   const wallpaperByView = {
-    dashboard: "./bg/blue - dashboard.mp4",
-    routine: "./bg/brown -.mp4",
-    quest: "./bg/green - .mp4",
-    schedules: "./bg/aqua - .mp4",
-    notes: "./bg/white - notes.mp4",
-    study: "./bg/orange -.mp4",
-    pomodoro: "./bg/purple - focus.mp4",
-    battle: "./bg/red - Battle.mp4",
-    guild: "./bg/yellow - guild.mp4",
-    match: "./bg/black - settings.mp4",
+    dashboard: "/bg/blue - dashboard.mp4",
+    routine: "/bg/brown -.mp4",
+    quest: "/bg/green - .mp4",
+    schedules: "/bg/aqua - .mp4",
+    notes: "/bg/white - notes.mp4",
+    study: "/bg/orange -.mp4",
+    pomodoro: "/bg/purple - focus.mp4",
+    battle: "/bg/red - Battle.mp4",
+    guild: "/bg/yellow - guild.mp4",
+    match: "/bg/black - settings.mp4",
   };
 
   const hueByView = {
@@ -56,12 +63,12 @@ function setMode(mode) {
   };
 
   const fallbackSrcs = [
-    "./bg/blue - dashboard.mp4",
-    "./bg/purple - focus.mp4",
-    "./bg/red - Battle.mp4",
-    "./bg.mp4",
-    "./bg2.mp4",
-    "./bg3.mp4",
+    "/bg/blue - dashboard.mp4",
+    "/bg/purple - focus.mp4",
+    "/bg/red - Battle.mp4",
+    "/bg.mp4",
+    "/bg2.mp4",
+    "/bg3.mp4",
   ].filter(Boolean);
 
   let active = videoA;
@@ -211,10 +218,10 @@ function setMode(mode) {
 })();
 
 const SFX = (() => {
-  const boot = new Audio("./sound/boot.mp3");
-  const sw = new Audio("./sound/switch.mp3");
-  const grid = new Audio("./sound/switch.mp3");
-  const header = new Audio("./sound/switch.mp3");
+  const boot = new Audio("/sound/boot.mp3");
+  const sw = new Audio("/sound/switch.mp3");
+  const grid = new Audio("/sound/switch.mp3");
+  const header = new Audio("/sound/switch.mp3");
 
   const BOOT_VOL = 0.7;
   const SW_VOL = 0.55;
@@ -364,11 +371,6 @@ const SFX = (() => {
 
   const userBtn = document.getElementById("userMenuBtn");
   const dashboardTopCard = () => document.getElementById("grid-leftTop");
-  const pageShellOfCurrentView = () => {
-    const view = document.body.dataset.view || "dashboard";
-    const page = document.getElementById(view);
-    return page?.querySelector?.(".pageFocus") || null;
-  };
   const overlay = document.getElementById("profileOverlay");
   const drawer = document.getElementById("profileDrawer");
   const closeBtn = document.getElementById("profileCloseBtn");
@@ -378,15 +380,15 @@ const SFX = (() => {
 
   const defaultDesc = {
     dashboard: "Your daily snapshot: routine, quests, streaks, and widgets.",
-    routine: "Now / Next / Later — turn deadlines into concrete steps.",
+    routine: "Now / Next / Later \u2014 turn deadlines into concrete steps.",
     quest: "Pick quests, set difficulty, earn XP & streaks.",
     schedules: "Agenda + deadlines that feed your routine.",
-    notes: "Fast capture after study sessions.",
-    study: "Focus, review, and group sessions.",
-    pomodoro: "Timer focus linked to tasks and co-op rooms.",
-    battle: "1v1 quizzes and competitive practice.",
-    guild: "Co-focus, chat, and accountability nudges.",
-    match: "Ranked modes, events, and guild-vs-guild.",
+    notes: "Capture quick notes tied to your quests and sessions.",
+    study: "Start a session: focus, review, and capture.",
+    pomodoro: "Timer + co-op focus sessions linked to tasks.",
+    battle: "1v1 quizzes from a question bank. Win, rank up, repeat.",
+    guild: "Group study rooms, co-focus, chat, accountability.",
+    match: "Modes like guild vs guild, tournaments, and events.",
   };
 
   const enterHeaderMode = () => {
@@ -399,11 +401,7 @@ const SFX = (() => {
   };
 
   const focusGridTop = () => {
-    const view = document.body.dataset.view || "dashboard";
-    const target =
-      view === "dashboard"
-        ? document.getElementById("grid-streak") || dashboardTopCard()
-        : pageShellOfCurrentView();
+    const target = document.getElementById("grid-streak") || dashboardTopCard() || document.querySelector(".gridCard");
     if (!target) return;
     try {
       target.focus({ preventScroll: true });
@@ -429,8 +427,8 @@ const SFX = (() => {
     enterHeaderMode();
 
     const view = document.body.dataset.view || "dashboard";
-    const page = document.getElementById(view);
-    const desc = page?.querySelector(".pageDesc")?.textContent?.trim();
+    const m = readViewMarker();
+    const desc = m?.desc;
 
     viewInfoTitle.textContent = viewBtn.textContent?.trim() || "Info";
     viewInfoDesc.textContent = desc || defaultDesc[view] || " ";
@@ -561,10 +559,11 @@ const SFX = (() => {
     }
   };
 
-  let activeIndex = items.findIndex((i) => i.classList.contains("active"));
+  const initialView = document.body.dataset.view || "dashboard";
+  let activeIndex = items.findIndex((i) => i.dataset.page === initialView);
   if (activeIndex < 0) activeIndex = 0;
   let focusedIndex = activeIndex;
-  let lastSfxView = null;
+  let lastSfxView = initialView;
 
   function setFocused(nextIndex, { focus = true, scroll = true } = {}) {
     focusedIndex = clamp(nextIndex, 0, items.length - 1);
@@ -579,7 +578,7 @@ const SFX = (() => {
     if (focus) safeFocus(el);
   }
 
-  function setActive(nextIndex) {
+  function setActive(nextIndex, { navigate = true } = {}) {
     activeIndex = clamp(nextIndex, 0, items.length - 1);
 
     items.forEach((i) => {
@@ -592,7 +591,7 @@ const SFX = (() => {
     el.setAttribute("aria-selected", "true");
 
     const pageName = el.dataset.page;
-    if (pageName) updatePage(pageName);
+    if (pageName) setView(pageName);
 
     if (!document.body.classList.contains("booting") && pageName && lastSfxView && pageName !== lastSfxView) {
       SFX.playSwitch();
@@ -602,9 +601,6 @@ const SFX = (() => {
     const label = el.querySelector("span")?.textContent?.trim();
     if (label) document.title = `Studium \u2014 ${label}`;
 
-    const viewLabel = document.getElementById("viewLabel");
-    if (viewLabel && label) viewLabel.textContent = label;
-
     const viewInfo = document.getElementById("viewInfo");
     if (viewInfo) {
       viewInfo.classList.remove("viewInfo--show");
@@ -612,18 +608,23 @@ const SFX = (() => {
     }
 
     if (pageName && typeof window.setWallpaperForView === "function") window.setWallpaperForView(pageName);
+
+    if (navigate && pageName) {
+      if (typeof window.studiumRoutePush === "function") window.studiumRoutePush(pageName);
+      else window.location.assign(`/${pageName}`);
+    }
   }
 
   window.navApi = {
     focus: (idx) => {
       setMode("nav");
       setFocused(idx, { focus: true, scroll: true });
-      setActive(focusedIndex);
+      setActive(focusedIndex, { navigate: true });
     },
     move: (dir) => {
       setMode("nav");
       setFocused(focusedIndex + dir, { focus: true, scroll: true });
-      setActive(focusedIndex);
+      setActive(focusedIndex, { navigate: true });
     },
     focusCurrent: () => setFocused(focusedIndex ?? activeIndex, { focus: true, scroll: true }),
   };
@@ -633,7 +634,7 @@ const SFX = (() => {
       if (document.body.classList.contains("booting")) return;
       setMode("nav");
       setFocused(idx, { focus: true, scroll: true });
-      setActive(idx);
+      setActive(idx, { navigate: true });
     });
     item.addEventListener("focus", () => setFocused(idx, { focus: false, scroll: true }));
   });
@@ -647,7 +648,7 @@ const SFX = (() => {
 
       const dir = e.deltaY !== 0 ? Math.sign(e.deltaY) : Math.sign(e.deltaX);
       setFocused(focusedIndex + dir, { focus: true, scroll: true });
-      setActive(focusedIndex);
+      setActive(focusedIndex, { navigate: true });
     },
     { passive: false }
   );
@@ -660,70 +661,11 @@ const SFX = (() => {
     setFocused(focusedIndex ?? activeIndex, { focus: true, scroll: true });
   };
 
-  setActive(activeIndex);
+  setActive(activeIndex, { navigate: false });
   setFocused(activeIndex, { focus: false, scroll: true });
 })();
 
-(function initDashboardGridKeys() {
-  const ids = [
-    "grid-leftTop",
-    "grid-streak",
-    "grid-quick",
-    "grid-quest1",
-    "grid-quest2",
-    "grid-quest3",
-    "grid-quest4",
-    "grid-widget",
-  ];
-
-  const items = ids.map((id) => document.getElementById(id)).filter(Boolean);
-  if (items.length === 0) return;
-
-  const isDashboardActive = () => {
-    const dash = document.getElementById("dashboard");
-    return !!dash?.classList?.contains("active");
-  };
-
-  const enterGridMode = () => {
-    setMode("grid");
-    if (typeof window.clearNavFocus === "function") window.clearNavFocus();
-  };
-
-  let lastGridId = items.find((el) => el.id === "grid-streak")?.id || items[0].id;
-
-  items.forEach((el) => {
-    el.addEventListener("focus", () => {
-      lastGridId = el.id;
-      enterGridMode();
-    });
-    el.addEventListener("pointerdown", () => {
-      if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
-      enterGridMode();
-    });
-  });
-
-  const focusGrid = (id) => {
-    if (!isDashboardActive()) return false;
-    const el = document.getElementById(id) || document.getElementById(lastGridId) || items[0];
-    if (!el) return false;
-    enterGridMode();
-    el.focus();
-    return true;
-  };
-
-  window.focusDashboardGrid = () => focusGrid(lastGridId);
-  window.focusDashboardGridEntry = () => focusGrid("grid-streak");
-
-  const focusNav = () => {
-    if (typeof window.focusNavMenu === "function") {
-      window.focusNavMenu();
-      return;
-    }
-    setMode("nav");
-    const nav = document.querySelector(".navItem.active");
-    if (nav) nav.focus();
-  };
-
+(function initContentBindings() {
   const nextByKey = {
     "grid-leftTop": { up: "userMenuBtn", down: "grid-streak", right: "grid-quest1" },
     "grid-streak": { up: "userMenuBtn", right: "grid-quick" },
@@ -735,45 +677,99 @@ const SFX = (() => {
     "grid-widget": { up: "viewLabel", left: "grid-quest1" },
   };
 
-  window.dashboardGridApi = {
-    focus: focusGrid,
-    focusEntry: () => focusGrid("grid-streak"),
-    map: nextByKey,
-  };
-})();
-
-(function initPageFocusKeys() {
-  const shells = Array.from(document.querySelectorAll(".pageFocus"));
-  if (shells.length === 0) return;
+  const ids = Object.keys(nextByKey);
+  let lastGridId = "grid-streak";
 
   const enterContentMode = () => {
     setMode("grid");
     if (typeof window.clearNavFocus === "function") window.clearNavFocus();
   };
 
-  shells.forEach((el) => {
-    el.addEventListener("focus", () => {
-      enterContentMode();
-    });
-    el.addEventListener("pointerdown", () => {
-      if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
-      enterContentMode();
-    });
-  });
+  function bindGrid(items) {
+    if (items.length === 0) {
+      window.dashboardGridApi = null;
+      return;
+    }
 
-  window.pageFocusApi = {
-    focusCurrent: () => {
-      const shell = document.querySelector(".page.active .pageFocus");
-      if (!shell) return false;
+    if (!items.some((el) => el.id === lastGridId)) {
+      lastGridId = items.find((el) => el.id === "grid-streak")?.id || items[0].id;
+    }
+
+    items.forEach((el) => {
+      if (el.dataset.studiumBound === "grid") return;
+      el.dataset.studiumBound = "grid";
+
+      el.addEventListener("focus", () => {
+        lastGridId = el.id;
+        enterContentMode();
+      });
+      el.addEventListener("pointerdown", () => {
+        if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
+        enterContentMode();
+      });
+    });
+
+    const focusGrid = (id) => {
+      const el = document.getElementById(id) || document.getElementById(lastGridId) || items[0];
+      if (!el) return false;
       enterContentMode();
       try {
-        shell.focus({ preventScroll: true });
+        el.focus({ preventScroll: true });
       } catch {
-        shell.focus();
+        el.focus();
       }
       return true;
-    },
+    };
+
+    window.dashboardGridApi = {
+      focus: focusGrid,
+      focusEntry: () => focusGrid("grid-streak"),
+      map: nextByKey,
+    };
+  }
+
+  function bindPageFocus(shells) {
+    if (shells.length === 0) {
+      window.pageFocusApi = null;
+      return;
+    }
+
+    shells.forEach((el) => {
+      if (el.dataset.studiumBound === "pageFocus") return;
+      el.dataset.studiumBound = "pageFocus";
+
+      el.addEventListener("focus", () => {
+        enterContentMode();
+      });
+      el.addEventListener("pointerdown", () => {
+        if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
+        enterContentMode();
+      });
+    });
+
+    window.pageFocusApi = {
+      focusCurrent: () => {
+        const shell = document.querySelector(".pageFocus");
+        if (!shell) return false;
+        enterContentMode();
+        try {
+          shell.focus({ preventScroll: true });
+        } catch {
+          shell.focus();
+        }
+        return true;
+      },
+    };
+  }
+
+  window.studiumReinitContent = () => {
+    const gridItems = ids.map((id) => document.getElementById(id)).filter(Boolean);
+    bindGrid(gridItems);
+    const shells = Array.from(document.querySelectorAll(".pageFocus"));
+    bindPageFocus(shells);
   };
+
+  window.studiumReinitContent();
 })();
 
 (function initKeyboardRouterV2() {
@@ -796,17 +792,11 @@ const SFX = (() => {
   };
 
   const focusContentEntry = () => {
-    const view = document.body.dataset.view || "dashboard";
-    if (view === "dashboard") {
-      const api = window.dashboardGridApi;
-      if (api?.focusEntry) return api.focusEntry();
-      if (typeof window.focusDashboardGridEntry === "function") return window.focusDashboardGridEntry();
-      if (typeof window.focusDashboardGrid === "function") return window.focusDashboardGrid();
-      return false;
-    }
+    const api = window.dashboardGridApi;
+    if (api?.focusEntry) return api.focusEntry();
 
     if (window.pageFocusApi?.focusCurrent) return window.pageFocusApi.focusCurrent();
-    const shell = document.querySelector(".page.active .pageFocus");
+    const shell = document.querySelector(".pageFocus");
     if (!shell) return false;
     setMode("grid");
     if (typeof window.clearNavFocus === "function") window.clearNavFocus();
