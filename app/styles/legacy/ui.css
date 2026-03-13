@@ -26,9 +26,16 @@
 }
 
 /* Main 4-div shell */
-.shell {
+.shellRoot {
   min-height: 100vh;
   min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.shell {
+  height: 100%;
   padding: 24px 40px;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
@@ -679,6 +686,7 @@ body.nav-mode .navItem.focused {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 6px;
+    overscroll-behavior: contain;
   }
 
   .header {
@@ -759,6 +767,7 @@ body.nav-mode .navItem.focused {
   .hudBar {
     padding: 14px 14px;
     gap: 18px;
+    max-width: min(94vw, 560px);
   }
 }
 
@@ -822,6 +831,19 @@ body.nav-mode .navItem.focused {
 
   .gridContainerRightLeft {
     grid-template-columns: 1fr;
+  }
+
+  .cardInner {
+    padding: 14px 14px 12px;
+    gap: 5px;
+  }
+
+  .cardTitle {
+    font-size: 17px;
+  }
+
+  .cardMeta {
+    font-size: 11px;
   }
 
   .hudLabel {

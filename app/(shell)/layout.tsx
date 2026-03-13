@@ -13,7 +13,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
   const tracks = getPlaylistTracks();
 
   return (
-    <main>
+    <main className="shellRoot">
       <RouteBridge />
 
       <div className="shell">
