@@ -263,3 +263,112 @@
     aspect-ratio: 16 / 10;
   }
 }
+
+@media (max-height: 760px) and (min-width: 521px) {
+  :root {
+    --shell-pad-y: clamp(8px, 1.8vh, 16px);
+    --shell-gap: clamp(8px, 1.2vh, 12px);
+  }
+
+  .shell {
+    padding-bottom: calc(clamp(6px, 1.2vh, 12px) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .header {
+    min-height: clamp(52px, 7vh, 64px);
+  }
+
+  /* Allow the main grid to shrink on shorter laptop viewports. */
+  .gridContainer {
+    min-height: 0;
+  }
+
+  /* Reduce navbar bloat so it doesn't collide with the outlet. */
+  body {
+    --nav-bar-minh: clamp(96px, 16vh, 132px);
+    --carousel-pad-y: clamp(10px, 1.6vh, 14px);
+    --nav-item-h: clamp(76px, 12vh, 96px);
+    --nav-icon-size: clamp(20px, 2.2vw, 26px);
+  }
+
+  body.grid-mode {
+    --nav-bar-minh: clamp(70px, 12vh, 96px);
+    --carousel-pad-y: clamp(8px, 1.2vh, 12px);
+    --nav-item-h: clamp(58px, 9vh, 74px);
+    --nav-icon-size: clamp(18px, 2vw, 24px);
+  }
+
+  /* HUD: smaller + a bit closer to the bottom edge. */
+  .footerHUD {
+    padding-bottom: 2px;
+  }
+
+  .hudBar {
+    padding: 12px 14px;
+    gap: 16px;
+    border-radius: 16px;
+  }
+
+  .hudGroup {
+    gap: 14px;
+  }
+
+  .hudKey {
+    width: 26px;
+    height: 26px;
+    border-radius: 14px;
+  }
+
+  .hudKey i {
+    font-size: 13px;
+  }
+
+  .hudLabel {
+    font-size: 13px;
+  }
+
+  /* Profile (header + drawer): slightly smaller. */
+  .leftUserMenu {
+    gap: 10px;
+    padding: 3px 4px;
+    border-radius: 16px;
+  }
+
+  .userAvatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .userMeta {
+    gap: 4px;
+  }
+
+  .drawer {
+    top: 12px;
+    left: 12px;
+    bottom: 12px;
+    width: min(340px, calc(100vw - 24px));
+    padding: 12px;
+    border-radius: 20px;
+  }
+
+  .drawerClose {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+
+  .drawerAvatar {
+    width: 46px;
+    height: 46px;
+  }
+
+  .drawerCard {
+    padding: 10px;
+  }
+
+  .drawerToggle {
+    padding: 9px 10px;
+    border-radius: 12px;
+  }
+}
