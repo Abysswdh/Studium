@@ -12,6 +12,10 @@ function setView(view) {
   document.body.dataset.view = view;
 }
 
+function getView() {
+  return document.body.dataset.view || "dashboard";
+}
+
 (function syncInitialView() {
   const m = readViewMarker();
   if (m?.view) setView(m.view);
@@ -666,41 +670,51 @@ const SFX = (() => {
 })();
 
 (function initContentBindings() {
-  const nextByKey = {
-    "grid-leftTop": { up: "userMenuBtn", down: "grid-streak", right: "grid-quest1" },
-    "grid-streak": { up: "userMenuBtn", right: "grid-quick" },
-    "grid-quick": { up: "userMenuBtn", left: "grid-streak", right: "grid-quest3" },
-    "grid-quest1": { up: "userMenuBtn", left: "grid-leftTop", right: "grid-widget", down: "grid-quest2" },
-    "grid-quest2": { up: "userMenuBtn", left: "grid-quick", right: "grid-widget", down: "grid-quest3" },
-    "grid-quest3": { up: "userMenuBtn", left: "grid-quick", right: "grid-widget", down: "grid-quest4" },
-    "grid-quest4": { up: "userMenuBtn", left: "grid-quick", right: "grid-widget" },
-    "grid-widget": { up: "viewLabel", left: "grid-quest1" },
-  };
-
-  const ids = Object.keys(nextByKey);
-  let lastGridId = "grid-streak";
-
   const enterContentMode = () => {
     setMode("grid");
     if (typeof window.clearNavFocus === "function") window.clearNavFocus();
   };
 
-  function bindGrid(items) {
-    if (items.length === 0) {
-      window.dashboardGridApi = null;
-      return;
-    }
+  const lastByView = Object.create(null);
 
-    if (!items.some((el) => el.id === lastGridId)) {
-      lastGridId = items.find((el) => el.id === "grid-streak")?.id || items[0].id;
-    }
+  const isFocusable = (el) => {
+    if (!el) return false;
+    if (el.hasAttribute("disabled")) return false;
+    if (el.hidden) return false;
+    if (el.getAttribute("aria-hidden") === "true") return false;
+    const style = getComputedStyle(el);
+    if (style.display === "none" || style.visibility === "hidden") return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
 
-    items.forEach((el) => {
+  const gridItems = () => Array.from(document.querySelectorAll("#routeOutlet [data-focus]")).filter(isFocusable);
+
+  const focusEl = (el) => {
+    if (!el) return false;
+    enterContentMode();
+    try {
+      el.focus({ preventScroll: true });
+    } catch {
+      el.focus();
+    }
+    return true;
+  };
+
+  const focusByKey = (key) => {
+    if (!key) return false;
+    const esc = typeof CSS !== "undefined" && CSS.escape ? CSS.escape(key) : key.replace(/"/g, '\\"');
+    return focusEl(document.querySelector(`[data-focus="${esc}"]`));
+  };
+
+  const bindGrid = () => {
+    gridItems().forEach((el) => {
       if (el.dataset.studiumBound === "grid") return;
       el.dataset.studiumBound = "grid";
 
       el.addEventListener("focus", () => {
-        lastGridId = el.id;
+        const view = getView();
+        lastByView[view] = el.getAttribute("data-focus") || "";
         enterContentMode();
       });
       el.addEventListener("pointerdown", () => {
@@ -708,71 +722,43 @@ const SFX = (() => {
         enterContentMode();
       });
     });
-
-    const focusGrid = (id) => {
-      const el = document.getElementById(id) || document.getElementById(lastGridId) || items[0];
-      if (!el) return false;
-      enterContentMode();
-      try {
-        el.focus({ preventScroll: true });
-      } catch {
-        el.focus();
-      }
-      return true;
-    };
-
-    window.dashboardGridApi = {
-      focus: focusGrid,
-      focusEntry: () => focusGrid("grid-streak"),
-      map: nextByKey,
-    };
-  }
-
-  function bindPageFocus(shells) {
-    if (shells.length === 0) {
-      window.pageFocusApi = null;
-      return;
-    }
-
-    shells.forEach((el) => {
-      if (el.dataset.studiumBound === "pageFocus") return;
-      el.dataset.studiumBound = "pageFocus";
-
-      el.addEventListener("focus", () => {
-        enterContentMode();
-      });
-      el.addEventListener("pointerdown", () => {
-        if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
-        enterContentMode();
-      });
-    });
-
-    window.pageFocusApi = {
-      focusCurrent: () => {
-        const shell = document.querySelector(".pageFocus");
-        if (!shell) return false;
-        enterContentMode();
-        try {
-          shell.focus({ preventScroll: true });
-        } catch {
-          shell.focus();
-        }
-        return true;
-      },
-    };
-  }
-
-  window.studiumReinitContent = () => {
-    const gridItems = ids.map((id) => document.getElementById(id)).filter(Boolean);
-    bindGrid(gridItems);
-    const shells = Array.from(document.querySelectorAll(".pageFocus"));
-    bindPageFocus(shells);
   };
 
-  window.studiumReinitContent();
+  window.studiumGridApi = {
+    list: gridItems,
+    lastKey: (view) => lastByView[view || getView()] || "",
+    setLastKey: (view, key) => {
+      lastByView[view || getView()] = key || "";
+    },
+    focusByKey,
+    focusFirst: () => focusEl(gridItems()[0]),
+  };
+
+  window.studiumReinitContent = () => bindGrid();
+  bindGrid();
 })();
 
-(function initKeyboardRouterV2() {
+(function initKeyboardRouterHybrid() {
+  const entryByView = {
+    dashboard: "dashboard.streak",
+    routine: "routine.now",
+    quest: "quest.slot1",
+    schedules: "schedules.agenda",
+    notes: "notes.inbox",
+    study: "study.launcher",
+    pomodoro: "pomodoro.timer",
+    battle: "battle.lobby",
+    guild: "guild.overview",
+    match: "match.events",
+  };
+
+  const overrideByView = {
+    notes: {
+      "notes.inbox:right": "notes.preview",
+      "notes.preview:left": "notes.recent1",
+    },
+  };
+
   const focusEl = (el) => {
     if (!el) return false;
     try {
@@ -785,6 +771,14 @@ const SFX = (() => {
 
   const focusById = (id) => focusEl(document.getElementById(id));
 
+  const focusByKey = (key) => {
+    if (window.studiumGridApi?.focusByKey) return window.studiumGridApi.focusByKey(key);
+    const esc = typeof CSS !== "undefined" && CSS.escape ? CSS.escape(key) : key.replace(/"/g, '\\"');
+    const el = document.querySelector(`[data-focus="${esc}"]`);
+    if (!el) return false;
+    return focusEl(el);
+  };
+
   const focusNav = () => {
     setMode("nav");
     if (typeof window.focusNavMenu === "function") return window.focusNavMenu();
@@ -792,15 +786,11 @@ const SFX = (() => {
   };
 
   const focusContentEntry = () => {
-    const api = window.dashboardGridApi;
-    if (api?.focusEntry) return api.focusEntry();
-
-    if (window.pageFocusApi?.focusCurrent) return window.pageFocusApi.focusCurrent();
-    const shell = document.querySelector(".pageFocus");
-    if (!shell) return false;
-    setMode("grid");
-    if (typeof window.clearNavFocus === "function") window.clearNavFocus();
-    return focusEl(shell);
+    const view = getView();
+    const key = entryByView[view];
+    if (key && focusByKey(key)) return true;
+    if (window.studiumGridApi?.focusFirst) return window.studiumGridApi.focusFirst();
+    return false;
   };
 
   const navMove = (dir) => {
@@ -820,8 +810,8 @@ const SFX = (() => {
     const ae = document.activeElement;
     if (ae?.closest?.("#profileDrawer")) return "drawer";
     if (ae?.id === "userMenuBtn" || ae?.id === "viewLabel") return "header";
+    if (ae?.closest?.("#routeOutlet") && ae?.getAttribute?.("data-focus")) return "grid";
     if (ae?.classList?.contains("gridCard")) return "grid";
-    if (ae?.classList?.contains("pageFocus")) return "page";
     return "nav";
   };
 
@@ -835,24 +825,92 @@ const SFX = (() => {
     focusEl(focusables[next]);
   };
 
-  const gridMove = (key) => {
-    const api = window.dashboardGridApi;
-    const map = api?.map;
-    const id = document.activeElement?.id;
-    if (!map || !id || !id.startsWith("grid-")) return false;
+  const isVisible = (el) => {
+    if (!el) return false;
+    if (el.hasAttribute("disabled")) return false;
+    if (el.hidden) return false;
+    if (el.getAttribute("aria-hidden") === "true") return false;
+    const style = getComputedStyle(el);
+    if (style.display === "none" || style.visibility === "hidden") return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
 
-    const next = map[id]?.[key];
-    if (!next) return false;
+  const centerOf = (rect) => ({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
 
-    if (next === "userMenuBtn" || next === "viewLabel") {
-      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
-      setMode("grid");
-      if (typeof window.clearNavFocus === "function") window.clearNavFocus();
-      return focusById(next);
+  const overlap1d = (a1, a2, b1, b2) => Math.max(0, Math.min(a2, b2) - Math.max(a1, b1));
+
+  const spatialNext = (current, dir, candidates) => {
+    if (!current) return null;
+    const curRect = current.getBoundingClientRect();
+    const cur = centerOf(curRect);
+
+    let best = null;
+    let bestScore = Infinity;
+
+    for (const el of candidates) {
+      if (!el || el === current) continue;
+      const r = el.getBoundingClientRect();
+      const c = centerOf(r);
+      const dx = c.x - cur.x;
+      const dy = c.y - cur.y;
+
+      if (dir === "left" && dx >= -6) continue;
+      if (dir === "right" && dx <= 6) continue;
+      if (dir === "up" && dy >= -6) continue;
+      if (dir === "down" && dy <= 6) continue;
+
+      const primary = dir === "left" || dir === "right" ? Math.abs(dx) : Math.abs(dy);
+      const secondary = dir === "left" || dir === "right" ? Math.abs(dy) : Math.abs(dx);
+      let score = primary * primary + secondary * secondary * 2.2;
+
+      const overlap =
+        dir === "left" || dir === "right"
+          ? overlap1d(curRect.top, curRect.bottom, r.top, r.bottom)
+          : overlap1d(curRect.left, curRect.right, r.left, r.right);
+      if (overlap > 0) score *= 0.62;
+
+      if (score < bestScore) {
+        bestScore = score;
+        best = el;
+      }
     }
 
-    if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
-    return api.focus(next);
+    return best;
+  };
+
+  const gridCandidates = () =>
+    (window.studiumGridApi?.list ? window.studiumGridApi.list() : Array.from(document.querySelectorAll("#routeOutlet [data-focus]"))).filter(
+      isVisible
+    );
+
+  const moveInGrid = (dir) => {
+    const view = getView();
+    const cur = document.activeElement;
+    const fromKey = cur?.getAttribute?.("data-focus") || "";
+    const override = overrideByView?.[view]?.[`${fromKey}:${dir}`];
+    if (override) {
+      const moved = focusByKey(override);
+      if (moved && typeof SFX?.playGridMove === "function") SFX.playGridMove();
+      return moved;
+    }
+
+    const next = spatialNext(cur, dir, gridCandidates());
+    if (!next) return false;
+    const moved = focusEl(next);
+    if (moved && typeof SFX?.playGridMove === "function") SFX.playGridMove();
+    return moved;
+  };
+
+  const focusHeaderFromGrid = () => {
+    const cur = document.activeElement;
+    const rect = cur?.getBoundingClientRect?.();
+    const useProfile = rect ? rect.left + rect.width / 2 < window.innerWidth * 0.5 : true;
+    if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+    setMode("grid");
+    if (typeof window.clearNavFocus === "function") window.clearNavFocus();
+    if (useProfile) focusById("userMenuBtn");
+    else focusById("viewLabel");
   };
 
   document.addEventListener(
@@ -863,8 +921,7 @@ const SFX = (() => {
       if (isTypingTarget(document.activeElement)) return;
 
       const key = e.key;
-      const isArrow =
-        key === "ArrowLeft" || key === "ArrowRight" || key === "ArrowUp" || key === "ArrowDown" || key === "Escape";
+      const isArrow = key === "ArrowLeft" || key === "ArrowRight" || key === "ArrowUp" || key === "ArrowDown" || key === "Escape";
       if (!isArrow) return;
 
       const zone = getZone();
@@ -915,7 +972,7 @@ const SFX = (() => {
         return;
       }
 
-      // Dashboard grid
+      // Grid (any view)
       if (zone === "grid") {
         e.preventDefault();
         e.stopPropagation();
@@ -927,7 +984,7 @@ const SFX = (() => {
         }
 
         if (key === "ArrowDown") {
-          const moved = gridMove("down");
+          const moved = moveInGrid("down");
           if (!moved) {
             if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
             focusNav();
@@ -935,29 +992,13 @@ const SFX = (() => {
           return;
         }
 
-        if (key === "ArrowUp") return void gridMove("up");
-        if (key === "ArrowLeft") return void gridMove("left");
-        if (key === "ArrowRight") return void gridMove("right");
-        return;
-      }
-
-      // Page content (non-dashboard)
-      if (zone === "page") {
-        e.preventDefault();
-        e.stopPropagation();
-
         if (key === "ArrowUp") {
-          if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
-          focusById("userMenuBtn");
+          const moved = moveInGrid("up");
+          if (!moved) focusHeaderFromGrid();
           return;
         }
-
-        if (key === "ArrowDown" || key === "Escape") {
-          if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
-          focusNav();
-          return;
-        }
-
+        if (key === "ArrowLeft") return void moveInGrid("left");
+        if (key === "ArrowRight") return void moveInGrid("right");
         return;
       }
 

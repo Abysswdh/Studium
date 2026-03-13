@@ -13,7 +13,13 @@ export default async function ShellLayout({ children }: { children: React.ReactN
 
       <div className="shell">
         <div className="header">
-          <button className="leftUserMenu headerAction" id="userMenuBtn" type="button" aria-label="Profile and quick settings">
+          <button
+            className="leftUserMenu headerAction"
+            id="userMenuBtn"
+            data-focus="header.profile"
+            type="button"
+            aria-label="Profile and quick settings"
+          >
             <div className="userAvatar" aria-hidden="true">
               <img className="userAvatar__img" src={user.avatarUrl} alt="" />
             </div>
@@ -31,7 +37,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
           </button>
 
           <div className="rightClockMenu" aria-label="Clock">
-            <button className="viewLabel headerAction" id="viewLabel" type="button" aria-label="Page info">
+            <button className="viewLabel headerAction" id="viewLabel" data-focus="header.pageInfo" type="button" aria-label="Page info">
               Dashboard
             </button>
             <span className="clock" id="clock">
@@ -52,43 +58,43 @@ export default async function ShellLayout({ children }: { children: React.ReactN
 
         <div className="navbar" aria-label="Main navigation">
           <div className="carousel" id="carousel" role="tablist" aria-label="Menu switcher">
-            <button className="navItem" type="button" data-page="dashboard" role="tab" aria-selected="false">
+            <button className="navItem" type="button" data-page="dashboard" data-focus="nav.dashboard" role="tab" aria-selected="false">
               <i className="fa-solid fa-gauge" aria-hidden="true"></i>
               <span>Dashboard</span>
             </button>
-            <button className="navItem" type="button" data-page="routine" role="tab" aria-selected="false">
+            <button className="navItem" type="button" data-page="routine" data-focus="nav.routine" role="tab" aria-selected="false">
               <i className="fa-solid fa-list-check" aria-hidden="true"></i>
               <span>Routine</span>
             </button>
-            <button className="navItem" type="button" data-page="quest" role="tab" aria-selected="false">
+            <button className="navItem" type="button" data-page="quest" data-focus="nav.quest" role="tab" aria-selected="false">
               <i className="fa-solid fa-map" aria-hidden="true"></i>
               <span>Quest</span>
             </button>
-            <button className="navItem" type="button" data-page="schedules" role="tab" aria-selected="false">
+            <button className="navItem" type="button" data-page="schedules" data-focus="nav.schedules" role="tab" aria-selected="false">
               <i className="fa-solid fa-calendar-days" aria-hidden="true"></i>
               <span>Schedules</span>
             </button>
-            <button className="navItem" type="button" data-page="notes" role="tab" aria-selected="false">
+            <button className="navItem" type="button" data-page="notes" data-focus="nav.notes" role="tab" aria-selected="false">
               <i className="fa-solid fa-note-sticky" aria-hidden="true"></i>
               <span>Notes</span>
             </button>
-            <button className="navItem" type="button" data-page="study" role="tab" aria-selected="false">
+            <button className="navItem" type="button" data-page="study" data-focus="nav.study" role="tab" aria-selected="false">
               <i className="fa-solid fa-book-open" aria-hidden="true"></i>
               <span>Study</span>
             </button>
-            <button className="navItem" type="button" data-page="pomodoro" role="tab" aria-selected="false">
+            <button className="navItem" type="button" data-page="pomodoro" data-focus="nav.pomodoro" role="tab" aria-selected="false">
               <i className="fa-solid fa-stopwatch" aria-hidden="true"></i>
               <span>Pomodoro</span>
             </button>
-            <button className="navItem" type="button" data-page="battle" role="tab" aria-selected="false">
+            <button className="navItem" type="button" data-page="battle" data-focus="nav.battle" role="tab" aria-selected="false">
               <i className="fa-solid fa-crosshairs" aria-hidden="true"></i>
               <span>Battle</span>
             </button>
-            <button className="navItem" type="button" data-page="guild" role="tab" aria-selected="false">
+            <button className="navItem" type="button" data-page="guild" data-focus="nav.guild" role="tab" aria-selected="false">
               <i className="fa-solid fa-people-group" aria-hidden="true"></i>
               <span>Guild</span>
             </button>
-            <button className="navItem" type="button" data-page="match" role="tab" aria-selected="false">
+            <button className="navItem" type="button" data-page="match" data-focus="nav.match" role="tab" aria-selected="false">
               <i className="fa-solid fa-trophy" aria-hidden="true"></i>
               <span>Match</span>
             </button>
@@ -137,7 +143,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
       <aside className="drawer" id="profileDrawer" hidden aria-hidden="true" aria-label="Profile and quick settings">
         <div className="drawerTop">
           <div className="drawerTitle">Profile</div>
-          <button className="drawerClose headerAction" id="profileCloseBtn" type="button" aria-label="Close profile">
+          <button className="drawerClose headerAction" id="profileCloseBtn" data-focus="drawer.close" type="button" aria-label="Close profile">
             <i className="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
         </div>
@@ -159,10 +165,16 @@ export default async function ShellLayout({ children }: { children: React.ReactN
 
           <div className="drawerCard">
             <div className="drawerSectionTitle">Quick Settings</div>
-            <button className="drawerToggle headerAction" id="toggleSfxBtn" type="button" aria-label="Toggle sound effects">
+            <button
+              className="drawerToggle headerAction"
+              id="toggleSfxBtn"
+              data-focus="drawer.sfx"
+              type="button"
+              aria-label="Toggle sound effects"
+            >
               SFX: On
             </button>
-            <button className="drawerToggle headerAction" type="button" aria-label="Open profile page (placeholder)">
+            <button className="drawerToggle headerAction" data-focus="drawer.profile" type="button" aria-label="Open profile page (placeholder)">
               Open Profile (Soon)
             </button>
           </div>
