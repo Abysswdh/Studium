@@ -91,7 +91,7 @@ body[data-view="study"] { --glass-tint: 255 170 90; }
 body[data-view="pomodoro"] { --glass-tint: 195 140 255; }
 body[data-view="battle"] { --glass-tint: 255 110 110; }
 body[data-view="guild"] { --glass-tint: 255 220 120; }
-body[data-view="match"] { --glass-tint: 220 220 220; }
+body[data-view="match"] { --glass-tint: 255 255 255; }
 
 .clock {
   font-weight: 800;
@@ -106,6 +106,7 @@ body[data-view="match"] { --glass-tint: 220 220 220; }
   inset: 0;
   z-index: -1;
   overflow: hidden;
+  transition: filter 180ms ease;
 }
 
 .bg__floating-lines {
@@ -118,6 +119,22 @@ body[data-view="match"] { --glass-tint: 220 220 220; }
 
 .bg__floating-lines canvas {
   filter: brightness(0.9);
+}
+
+.bg__pixel-blast {
+  position: absolute;
+  inset: 0;
+  opacity: 0.9;
+  filter: saturate(0.95) brightness(0.9);
+  pointer-events: none;
+}
+
+.bg__pixel-blast canvas {
+  filter: brightness(0.86) saturate(0.9);
+}
+
+body.quest-detail .bg__pixel-blast canvas {
+  filter: brightness(0.78) saturate(0.85);
 }
 
 .bg__video {
@@ -157,6 +174,11 @@ body.booting .bg__veil {
   opacity: 0;
   backdrop-filter: blur(0px);
   -webkit-backdrop-filter: blur(0px);
+}
+
+/* When a popup is open, dim the background (not the shell UI). */
+body.modal-open .bg {
+  filter: brightness(0.68) saturate(0.9);
 }
 
 /* Responsive sizing (console shell) */

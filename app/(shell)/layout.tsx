@@ -81,9 +81,9 @@ export default async function ShellLayout({ children }: { children: React.ReactN
               <i className="fa-solid fa-book-open" aria-hidden="true"></i>
               <span>Study Room</span>
             </button>
-            <button className="navItem" type="button" data-page="guild" data-focus="nav.guild" role="tab" aria-selected="false">
-              <i className="fa-solid fa-people-group" aria-hidden="true"></i>
-              <span>Guild</span>
+            <button className="navItem" type="button" data-page="battle" data-focus="nav.battle" role="tab" aria-selected="false">
+              <i className="fa-solid fa-fire" aria-hidden="true"></i>
+              <span>Battle</span>
             </button>
             <button className="navItem" type="button" data-page="match" data-focus="nav.match" role="tab" aria-selected="false">
               <i className="fa-solid fa-gear" aria-hidden="true"></i>
@@ -165,47 +165,222 @@ export default async function ShellLayout({ children }: { children: React.ReactN
 
           <div className="drawerCard">
             <div className="drawerSectionTitle">Quick Settings</div>
-            <button
-              className="drawerToggle headerAction"
-              id="toggleSfxBtn"
-              data-focus="drawer.sfx"
-              type="button"
-              aria-label="Toggle sound effects"
-            >
-              SFX: On
-            </button>
-            <button
-              className="drawerToggle headerAction"
-              id="backToLandingBtn"
-              data-focus="drawer.landing"
-              type="button"
-              aria-label="Back to landing page"
-            >
-              Back to Landing
-            </button>
-            {user.id === 0 ? (
-              <>
-                <button className="drawerToggle headerAction" id="signInBtn" data-focus="drawer.signin" type="button" aria-label="Sign in">
-                  Sign In
-                </button>
-                <button
-                  className="drawerToggle headerAction"
-                  id="registerBtn"
-                  data-focus="drawer.register"
-                  type="button"
-                  aria-label="Create an account"
-                >
-                  Register
-                </button>
-              </>
-            ) : (
-              <button className="drawerToggle headerAction" id="signOutBtn" data-focus="drawer.signout" type="button" aria-label="Sign out">
-                Sign Out
+
+            <div className="qsMenu" aria-label="Quick shortcuts">
+              <button className="qsMenuBtn headerAction" id="qsNotifBtn" data-focus="drawer.notif" type="button" aria-label="Toggle notifications">
+                <span className="qsMenuIcon" aria-hidden="true">
+                  <i className="fa-solid fa-bell"></i>
+                </span>
+                <span className="qsMenuText">Notification</span>
+                <span className="qsMenuPill" id="qsNotifPill" aria-hidden="true">
+                  On
+                </span>
               </button>
-            )}
-            <button className="drawerToggle headerAction" data-focus="drawer.profile" type="button" aria-label="Open profile page (placeholder)">
-              Open Profile (Soon)
-            </button>
+
+              <button className="qsMenuBtn headerAction" id="qsQuestBtn" data-focus="drawer.shortcutQuest" type="button" aria-label="Go to Quest">
+                <span className="qsMenuIcon" aria-hidden="true">
+                  <i className="fa-solid fa-map"></i>
+                </span>
+                <span className="qsMenuText">Quest</span>
+                <span className="qsMenuChevron" aria-hidden="true">
+                  <i className="fa-solid fa-chevron-right"></i>
+                </span>
+              </button>
+
+              <button className="qsMenuBtn headerAction" id="qsBattleBtn" data-focus="drawer.shortcutBattle" type="button" aria-label="Go to Battle">
+                <span className="qsMenuIcon" aria-hidden="true">
+                  <i className="fa-solid fa-fire"></i>
+                </span>
+                <span className="qsMenuText">Battle</span>
+                <span className="qsMenuChevron" aria-hidden="true">
+                  <i className="fa-solid fa-chevron-right"></i>
+                </span>
+              </button>
+
+              <button className="qsMenuBtn headerAction" id="qsNotesBtn" data-focus="drawer.shortcutNotes" type="button" aria-label="Go to Notes">
+                <span className="qsMenuIcon" aria-hidden="true">
+                  <i className="fa-solid fa-note-sticky"></i>
+                </span>
+                <span className="qsMenuText">Notes</span>
+                <span className="qsMenuChevron" aria-hidden="true">
+                  <i className="fa-solid fa-chevron-right"></i>
+                </span>
+              </button>
+            </div>
+
+            <div className="qsBottomRow" aria-label="Quick actions">
+              <button className="qsSquareBtn headerAction" id="qsHomeBtn" data-focus="drawer.home" type="button" aria-label="Go to Dashboard">
+                <i className="fa-solid fa-table-cells-large" aria-hidden="true"></i>
+              </button>
+              <button
+                className="qsSquareBtn headerAction"
+                id="qsSettingsBtn"
+                data-focus="drawer.settings"
+                type="button"
+                aria-label="Toggle advanced settings"
+                aria-expanded="false"
+              >
+                <i className="fa-solid fa-gear" aria-hidden="true"></i>
+              </button>
+              <button className="qsExitBtn headerAction" id="backToLandingBtn" data-focus="drawer.landing" type="button" aria-label="Exit to landing page">
+                <div className="qsExitText">Exit To Landing</div>
+                <div className="qsExitIcon" aria-hidden="true">
+                  <i className="fa-solid fa-right-to-bracket"></i>
+                </div>
+              </button>
+            </div>
+
+            <div className="qsAdvanced" id="qsAdvanced" hidden aria-label="Advanced settings">
+              <div className="qsSection" aria-label="Brightness settings">
+                <div className="qsCaption">BRIGHTNESS</div>
+                <div className="qsRow">
+                  <div className="qsIcon" aria-hidden="true">
+                    <i className="fa-solid fa-sun"></i>
+                  </div>
+                  <input
+                    className="qsRange"
+                    id="qsBrightness"
+                    data-focus="drawer.brightness"
+                    tabIndex={0}
+                    type="range"
+                    min={0}
+                    max={100}
+                    defaultValue={78}
+                    aria-label="Brightness"
+                  />
+                  <div className="qsValue" id="qsBrightnessVal" aria-hidden="true">
+                    78
+                  </div>
+                </div>
+              </div>
+
+              <div className="qsSection" aria-label="Sound effects volume">
+                <div className="qsCaption">SFX VOLUME</div>
+                <div className="qsRow">
+                  <div className="qsIcon" aria-hidden="true">
+                    <i className="fa-solid fa-volume-low"></i>
+                  </div>
+                  <input
+                    className="qsRange"
+                    id="qsSfxVolume"
+                    data-focus="drawer.sfxVolume"
+                    tabIndex={0}
+                    type="range"
+                    min={0}
+                    max={100}
+                    defaultValue={55}
+                    aria-label="Sound effects volume"
+                  />
+                  <div className="qsValue" id="qsSfxVolumeVal" aria-hidden="true">
+                    55
+                  </div>
+                </div>
+              </div>
+
+              <div className="qsSection" aria-label="Other settings">
+                <div className="qsCaption">OTHER</div>
+                <label className="qsToggleRow" htmlFor="qsFullscreen">
+                  <span className="qsIcon" aria-hidden="true">
+                    <i className="fa-solid fa-expand"></i>
+                  </span>
+                  <span className="qsToggleLabel">Fullscreen</span>
+                  <input
+                    id="qsFullscreen"
+                    data-focus="drawer.fullscreen"
+                    tabIndex={0}
+                    className="qsToggleInput"
+                    type="checkbox"
+                    aria-label="Toggle fullscreen preference"
+                  />
+                  <span className="qsSwitch" aria-hidden="true"></span>
+                </label>
+
+                <label className="qsToggleRow" htmlFor="qsWallpapers">
+                  <span className="qsIcon" aria-hidden="true">
+                    <i className="fa-solid fa-film"></i>
+                  </span>
+                  <span className="qsToggleLabel">Wallpapers</span>
+                  <input
+                    id="qsWallpapers"
+                    data-focus="drawer.wallpapers"
+                    tabIndex={0}
+                    className="qsToggleInput"
+                    type="checkbox"
+                    aria-label="Toggle wallpapers"
+                    defaultChecked
+                  />
+                  <span className="qsSwitch" aria-hidden="true"></span>
+                </label>
+              </div>
+
+              <div className="qsSection" aria-label="Account actions">
+                <div className="qsCaption">ACCOUNT</div>
+                {user.id === 0 ? (
+                  <div className="qsAccountRow" aria-label="Sign in or register">
+                    <button className="drawerToggle headerAction" id="signInBtn" data-focus="drawer.signin" type="button" aria-label="Sign in">
+                      Sign In
+                    </button>
+                    <button
+                      className="drawerToggle headerAction"
+                      id="registerBtn"
+                      data-focus="drawer.register"
+                      type="button"
+                      aria-label="Create an account"
+                    >
+                      Register
+                    </button>
+                  </div>
+                ) : (
+                  <button className="drawerToggle headerAction" id="signOutBtn" data-focus="drawer.signout" type="button" aria-label="Sign out">
+                    Sign Out
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="qsAudioBar" aria-label="Audio controls">
+              <audio id="qsMusicAudio" preload="metadata" />
+
+              <div className="qsPlayer" aria-label="Music player">
+                <div className="qsMusicIcon" id="qsMusicIcon" aria-hidden="true">
+                  <i className="fa-solid fa-music"></i>
+                </div>
+
+                <div className="qsPlayerMain">
+                  <div className="qsTrack">
+                    <div className="qsTrackTitle" id="qsTrackTitle">
+                      No playlist
+                    </div>
+                    <div className="qsTrackSub" id="qsTrackSub">
+                      No tracks loaded
+                    </div>
+                  </div>
+
+                  <div className="qsPlayerControls" aria-label="Music controls">
+                    <button
+                      className="qsCtl headerAction"
+                      id="qsMusicPrevBtn"
+                      data-focus="drawer.musicPrev"
+                      type="button"
+                      aria-label="Previous track"
+                    >
+                      <i className="fa-solid fa-backward-step" aria-hidden="true"></i>
+                    </button>
+                    <button className="qsCtl headerAction" id="qsMusicPlayBtn" data-focus="drawer.musicPlay" type="button" aria-label="Play or pause">
+                      <i className="fa-solid fa-play" aria-hidden="true"></i>
+                    </button>
+                    <button className="qsCtl headerAction" id="qsMusicNextBtn" data-focus="drawer.musicNext" type="button" aria-label="Next track">
+                      <i className="fa-solid fa-forward-step" aria-hidden="true"></i>
+                    </button>
+                    <button className="qsCtl headerAction" id="qsMuteBtn" data-focus="drawer.mute" type="button" aria-label="Mute audio">
+                      <i className="fa-solid fa-volume-high" aria-hidden="true"></i>
+                    </button>
+                  </div>
+
+                  <input className="qsSeek" id="qsMusicSeek" data-focus="drawer.musicSeek" tabIndex={0} type="range" min={0} max={1000} defaultValue={0} aria-label="Track position" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </aside>

@@ -35,6 +35,8 @@ export default function RouteBridge() {
     const meta = VIEW_META[view];
 
     document.body.dataset.view = view;
+    if (typeof (window as any).applyStudiumDensity === "function") (window as any).applyStudiumDensity();
+    if (typeof (window as any).applyViewTint === "function") (window as any).applyViewTint(view);
 
     const viewLabel = document.getElementById("viewLabel");
     if (viewLabel) viewLabel.textContent = meta.label;

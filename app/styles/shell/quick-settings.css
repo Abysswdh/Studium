@@ -1,0 +1,476 @@
+/* Quick Settings UI inside the profile drawer (console-like). */
+
+.drawer {
+  width: min(420px, calc(100vw - 36px));
+}
+
+.drawerBody {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge legacy */
+  padding-right: 0;
+}
+
+.drawerBody::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.qsAccountRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.qsMenu {
+  display: grid;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.qsMenuBtn {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 46px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.qsMenuBtn:hover {
+  filter: brightness(1.06);
+}
+
+.qsMenuIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.qsMenuIcon i {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.qsMenuText {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.qsMenuPill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 0.1px;
+  color: rgba(255, 255, 255, 0.90);
+  background: rgba(105, 175, 255, 0.24);
+  border: 1px solid rgba(105, 175, 255, 0.42);
+}
+
+.qsMenuPill--off {
+  background: rgba(255, 86, 86, 0.22);
+  border-color: rgba(255, 160, 140, 0.48);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.qsMenuChevron {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.qsBottomRow {
+  display: grid;
+  grid-template-columns: 74px 74px 1fr;
+  gap: 12px;
+  align-items: stretch;
+  margin-top: 14px;
+}
+
+.qsSquareBtn {
+  width: 100%;
+  height: 74px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(0, 0, 0, 0.18);
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.qsSquareBtn i {
+  font-size: 20px;
+}
+
+.qsExitBtn {
+  width: 100%;
+  height: 74px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(135deg, rgba(255, 86, 86, 0.75), rgba(255, 140, 120, 0.58));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  color: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+}
+
+.qsExitText {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: 0.15px;
+  line-height: 1.05;
+}
+
+.qsExitIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.20);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.qsExitIcon i {
+  font-size: 18px;
+}
+
+.qsAdvanced {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.qsSection + .qsSection {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.qsCaption {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 10px;
+}
+
+.qsRow {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.qsIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.qsIcon i {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.qsValue {
+  min-width: 34px;
+  text-align: right;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.62);
+  font-variant-numeric: tabular-nums;
+}
+
+.qsRange {
+  width: 100%;
+  height: 18px;
+  accent-color: rgba(105, 175, 255, 0.92);
+}
+
+.qsToggleRow {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 8px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.qsToggleRow + .qsToggleRow {
+  margin-top: 10px;
+}
+
+.qsToggleLabel {
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.qsToggleInput {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.qsSwitch {
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  position: relative;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.qsSwitch::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.86);
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.qsToggleRow:has(.qsToggleInput:checked) .qsSwitch {
+  background: rgba(105, 175, 255, 0.38);
+  border-color: rgba(105, 175, 255, 0.55);
+}
+
+.qsToggleRow:has(.qsToggleInput:checked) .qsSwitch::after {
+  transform: translate(18px, -50%);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.qsAudioBar {
+  margin-top: 14px;
+  border-radius: 24px;
+  padding: 16px 16px;
+  /* "Vertical ramp" like the reference: brighter top, darker bottom. */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+}
+
+.qsPlayer {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 14px;
+  align-items: center;
+}
+
+.qsMusicIcon {
+  width: 70px;
+  height: 70px;
+  border-radius: 22px;
+  background: rgba(120, 220, 255, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.92);
+  flex: 0 0 auto;
+  transform: scale(calc(1 + var(--qs-beat, 0) * 0.22));
+  transition: transform 70ms ease-out;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  position: relative;
+}
+
+.qsMusicIcon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.13), 0 0 40px rgba(255, 255, 255, 0.10);
+  opacity: calc(0.55 + var(--qs-beat, 0) * 0.55);
+  transition: opacity 120ms ease-out;
+}
+
+.qsMusicIcon i {
+  font-size: 26px;
+  position: relative;
+  z-index: 1;
+}
+
+.qsTrack {
+  min-width: 0;
+}
+
+.qsTrackTitle {
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qsTrackSub {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 800;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qsPlayerMain {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: 10px;
+}
+
+.qsPlayerControls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.qsCtl {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.qsCtl i {
+  font-size: 16px;
+}
+
+.qsSeek {
+  width: 100%;
+  height: 16px;
+  accent-color: rgba(255, 255, 255, 0.92);
+  background: transparent;
+}
+
+.qsSeek::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.qsSeek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  margin-top: -3px;
+}
+
+.qsSeek::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.qsSeek::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+/* Background adjustments driven by quick settings vars. */
+.bg__video {
+  filter: brightness(var(--qs-bg-brightness, 1)) saturate(1.15) contrast(1.05) hue-rotate(var(--bg-hue));
+}
+
+.bg__veil {
+  opacity: var(--qs-veil-opacity, 1);
+}
+
+@media (max-width: 520px) {
+  .qsCaption {
+    font-size: 10px;
+  }
+  .qsMenuBtn {
+    grid-template-columns: 44px 1fr auto;
+    padding: 12px 12px;
+    border-radius: 16px;
+  }
+  .qsMenuIcon {
+    width: 36px;
+    height: 36px;
+    border-radius: 14px;
+  }
+  .qsMenuIcon i {
+    font-size: 16px;
+  }
+  .qsBottomRow {
+    grid-template-columns: 64px 64px 1fr;
+  }
+  .qsSquareBtn,
+  .qsExitBtn {
+    height: 64px;
+    border-radius: 16px;
+  }
+  .qsExitIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+  }
+  .qsRow {
+    grid-template-columns: 32px 1fr auto;
+  }
+  .qsIcon {
+    width: 32px;
+    height: 32px;
+    border-radius: 12px;
+  }
+  .qsToggleRow {
+    padding: 10px 8px;
+  }
+  .qsAudioBar {
+    border-radius: 18px;
+    padding: 12px;
+  }
+  .qsMusicIcon {
+    width: 58px;
+    height: 58px;
+    border-radius: 20px;
+  }
+  .qsCtl {
+    width: 38px;
+    height: 38px;
+    border-radius: 14px;
+  }
+}
+

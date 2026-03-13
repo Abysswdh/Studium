@@ -16,6 +16,43 @@ function getView() {
   return document.body.dataset.view || "dashboard";
 }
 
+(function initViewTint() {
+  const safeLocalGet = (k) => {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  };
+
+  function applyStudiumDensity() {
+    const mode = safeLocalGet("studium:ui_density");
+    const root = document.documentElement;
+    if (mode === "compact") {
+      root.style.setProperty("--shell-gap", "10px");
+      root.style.setProperty("--shell-pad-y", "14px");
+      root.style.setProperty("--shell-pad-x", "18px");
+      return;
+    }
+    root.style.removeProperty("--shell-gap");
+    root.style.removeProperty("--shell-pad-y");
+    root.style.removeProperty("--shell-pad-x");
+  }
+
+  function applyViewTint(view) {
+    const v = view || getView();
+    const key = `studium:view_tint:${v}`;
+    const tint = safeLocalGet(key);
+    if (tint) document.body.style.setProperty("--glass-tint", String(tint));
+    else document.body.style.removeProperty("--glass-tint");
+  }
+
+  window.applyStudiumDensity = applyStudiumDensity;
+  window.applyViewTint = applyViewTint;
+  applyStudiumDensity();
+  applyViewTint(getView());
+})();
+
 (function syncInitialView() {
   const m = readViewMarker();
   if (m?.view) setView(m.view);
@@ -24,7 +61,14 @@ function getView() {
 function isTypingTarget(el) {
   if (!el) return false;
   const tag = String(el.tagName || "").toLowerCase();
-  return tag === "input" || tag === "textarea" || el.isContentEditable;
+  if (tag === "textarea" || el.isContentEditable) return true;
+  if (tag === "input") {
+    const t = String(el.getAttribute("type") || "text").toLowerCase();
+    // Range/checkbox should still allow arrow-key navigation handling in our router.
+    if (t === "range" || t === "checkbox" || t === "radio") return false;
+    return true;
+  }
+  return tag === "select";
 }
 
 function setMode(mode) {
@@ -231,6 +275,7 @@ const SFX = (() => {
   const SW_VOL = 0.55;
   const GRID_VOL = 0.55;
   const HEADER_VOL = 0.55;
+  const clamp01 = (n) => Math.max(0, Math.min(1, n));
 
   boot.preload = "auto";
   sw.preload = "auto";
@@ -254,14 +299,15 @@ const SFX = (() => {
   let pendingBoot = false;
   let lastBootAt = 0;
   let muted = false;
+  let vol = 1;
   let fullscreenAttempted = false;
 
   const applyMute = () => {
     const m = muted ? 0 : 1;
     boot.volume = BOOT_VOL * m;
-    sw.volume = SW_VOL * m;
-    grid.volume = GRID_VOL * m;
-    header.volume = HEADER_VOL * m;
+    sw.volume = SW_VOL * vol * m;
+    grid.volume = GRID_VOL * vol * m;
+    header.volume = HEADER_VOL * vol * m;
   };
   applyMute();
 
@@ -319,6 +365,11 @@ const SFX = (() => {
       muted = !!next;
       applyMute();
     },
+    getVolume: () => vol,
+    setVolume: (next) => {
+      vol = clamp01(Number(next));
+      applyMute();
+    },
     playBoot: () => {
       if (!unlocked) pendingBoot = true;
       lastBootAt = Date.now();
@@ -337,6 +388,67 @@ const SFX = (() => {
       tryPlay(header);
     },
   };
+})();
+
+try {
+  window.SFX = SFX;
+} catch {
+  // ignore
+}
+
+(function initProfileOverrides() {
+  const LS_PROFILE = "studium:profile_override";
+  const safeLocalGet = (k) => {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  };
+
+  const apply = () => {
+    let parsed = null;
+    try {
+      const raw = safeLocalGet(LS_PROFILE);
+      parsed = raw ? JSON.parse(raw) : null;
+    } catch {
+      parsed = null;
+    }
+
+    const displayName = parsed && typeof parsed.displayName === "string" ? parsed.displayName.trim() : "";
+    const avatarUrl = parsed && typeof parsed.avatarUrl === "string" ? parsed.avatarUrl.trim() : "";
+
+    const headerName = document.querySelector("#userMenuBtn .userName");
+    if (headerName) {
+      if (!headerName.dataset.defaultText) headerName.dataset.defaultText = headerName.textContent || "";
+      headerName.textContent = displayName || headerName.dataset.defaultText || "";
+    }
+
+    const headerAvatar = document.querySelector("#userMenuBtn .userAvatar__img");
+    if (headerAvatar) {
+      if (!headerAvatar.dataset.defaultSrc) headerAvatar.dataset.defaultSrc = headerAvatar.getAttribute("src") || "";
+      headerAvatar.setAttribute("src", avatarUrl || headerAvatar.dataset.defaultSrc || "");
+    }
+
+    const drawerName = document.querySelector("#profileDrawer .drawerUserName");
+    if (drawerName) {
+      if (!drawerName.dataset.defaultText) drawerName.dataset.defaultText = drawerName.textContent || "";
+      drawerName.textContent = displayName || drawerName.dataset.defaultText || "";
+    }
+
+    const drawerAvatar = document.querySelector("#profileDrawer .drawerAvatar__img");
+    if (drawerAvatar) {
+      if (!drawerAvatar.dataset.defaultSrc) drawerAvatar.dataset.defaultSrc = drawerAvatar.getAttribute("src") || "";
+      drawerAvatar.setAttribute("src", avatarUrl || drawerAvatar.dataset.defaultSrc || "");
+    }
+  };
+
+  window.applyStudiumProfileOverride = apply;
+  apply();
+
+  window.addEventListener("storage", (e) => {
+    if (e && e.key === LS_PROFILE) apply();
+  });
 })();
 
 (function initBootSequence() {
@@ -417,7 +529,33 @@ const SFX = (() => {
   const overlay = document.getElementById("profileOverlay");
   const drawer = document.getElementById("profileDrawer");
   const closeBtn = document.getElementById("profileCloseBtn");
+  const qsNotifBtn = document.getElementById("qsNotifBtn");
+  const qsNotifPill = document.getElementById("qsNotifPill");
+  const qsQuestBtn = document.getElementById("qsQuestBtn");
+  const qsBattleBtn = document.getElementById("qsBattleBtn");
+  const qsNotesBtn = document.getElementById("qsNotesBtn");
+  const qsHomeBtn = document.getElementById("qsHomeBtn");
+  const qsSettingsBtn = document.getElementById("qsSettingsBtn");
+  const qsAdvanced = document.getElementById("qsAdvanced");
   const toggleSfxBtn = document.getElementById("toggleSfxBtn");
+  const toggleMusicBtn = document.getElementById("toggleMusicBtn");
+  const qsBrightness = document.getElementById("qsBrightness");
+  const qsBrightnessVal = document.getElementById("qsBrightnessVal");
+  const qsSfxVolume = document.getElementById("qsSfxVolume");
+  const qsSfxVolumeVal = document.getElementById("qsSfxVolumeVal");
+  const qsFullscreen = document.getElementById("qsFullscreen");
+  const qsWallpapers = document.getElementById("qsWallpapers");
+  const qsMusicAudio = document.getElementById("qsMusicAudio");
+  const qsMusicIcon = document.getElementById("qsMusicIcon");
+  const qsTrackTitle = document.getElementById("qsTrackTitle");
+  const qsTrackSub = document.getElementById("qsTrackSub");
+  const qsMusicPrevBtn = document.getElementById("qsMusicPrevBtn");
+  const qsMusicPlayBtn = document.getElementById("qsMusicPlayBtn");
+  const qsMusicNextBtn = document.getElementById("qsMusicNextBtn");
+  const qsMusicVolume = document.getElementById("qsMusicVolume");
+  const qsMusicVolumeVal = document.getElementById("qsMusicVolumeVal");
+  const qsMuteBtn = document.getElementById("qsMuteBtn");
+  const qsMusicSeek = document.getElementById("qsMusicSeek");
   const backToLandingBtn = document.getElementById("backToLandingBtn");
   const signInBtn = document.getElementById("signInBtn");
   const registerBtn = document.getElementById("registerBtn");
@@ -434,8 +572,7 @@ const SFX = (() => {
     study: "Start a session: focus, review, and capture.",
     pomodoro: "Timer + co-op focus sessions linked to tasks.",
     battle: "1v1 quizzes from a question bank. Win, rank up, repeat.",
-    guild: "Group study rooms, co-focus, chat, accountability.",
-    match: "Modes like guild vs guild, tournaments, and events.",
+    match: "Settings, preferences, and app options.",
   };
 
   const enterHeaderMode = () => {
@@ -491,7 +628,393 @@ const SFX = (() => {
   const syncSfxLabel = () => {
     if (!toggleSfxBtn) return;
     const on = typeof SFX?.isMuted === "function" ? !SFX.isMuted() : true;
-    toggleSfxBtn.textContent = `SFX: ${on ? "On" : "Off"}`;
+    toggleSfxBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    const icon = toggleSfxBtn.querySelector("i");
+    if (icon) icon.className = on ? "fa-solid fa-volume-high" : "fa-solid fa-volume-xmark";
+  };
+
+  const safeLocalGet = (k) => {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  };
+  const safeLocalSet = (k, v) => {
+    try {
+      localStorage.setItem(k, v);
+    } catch {
+      // ignore
+    }
+  };
+
+  const readStoredNumber = (k) => {
+    const raw = safeLocalGet(k);
+    if (raw === null) return Number.NaN;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : Number.NaN;
+  };
+
+  const LS_BRIGHT = "studium:qs_brightness";
+  const LS_SFXVOL = "studium:qs_sfx_volume";
+  const LS_FS = "studium:pref_fullscreen";
+  const LS_WALL = "studium:qs_wallpapers";
+  const LS_NOTIF = "studium:qs_notifications";
+  const LS_MUTE_ALL = "studium:qs_mute_all";
+  const LS_MUSIC_ON = "studium:qs_music_on";
+  const LS_MUSIC_VOL = "studium:qs_music_volume";
+  const LS_MUSIC_IDX = "studium:qs_music_index";
+  const LS_QS_ADV = "studium:qs_advanced_open";
+
+  const setAdvancedOpen = (open, { persist = false, focusFirst = false } = {}) => {
+    if (!qsAdvanced || !qsSettingsBtn) return;
+    qsAdvanced.hidden = !open;
+    qsSettingsBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (persist) safeLocalSet(LS_QS_ADV, open ? "1" : "0");
+
+    if (open && focusFirst) {
+      const first = qsAdvanced.querySelector("input,button,select,textarea,[tabindex='0']");
+      if (first) {
+        requestAnimationFrame(() => {
+          try {
+            first.focus({ preventScroll: true });
+          } catch {
+            first.focus();
+          }
+        });
+      }
+    }
+  };
+
+  const syncNotifUi = () => {
+    if (!qsNotifBtn) return;
+    const on = safeLocalGet(LS_NOTIF) !== "0";
+    qsNotifBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    if (qsNotifPill) {
+      qsNotifPill.textContent = on ? "On" : "Off";
+      qsNotifPill.classList.toggle("qsMenuPill--off", !on);
+    }
+  };
+
+  const clamp01 = (n) => Math.max(0, Math.min(1, n));
+  let muteAll = safeLocalGet(LS_MUTE_ALL) === "1";
+
+  const syncMuteUi = () => {
+    if (!qsMuteBtn) return;
+    qsMuteBtn.setAttribute("aria-pressed", muteAll ? "true" : "false");
+    const icon = qsMuteBtn.querySelector("i");
+    if (icon) icon.className = muteAll ? "fa-solid fa-volume-xmark" : "fa-solid fa-volume-high";
+  };
+
+  const syncMusicBtnUi = (on) => {
+    if (!toggleMusicBtn) return;
+    toggleMusicBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    toggleMusicBtn.classList.toggle("qsPillBtn--off", !on);
+  };
+
+  const syncMusicVolUi = (n) => {
+    if (qsMusicVolumeVal) qsMusicVolumeVal.textContent = String(Math.round(n));
+  };
+
+  const setPlayIcon = (playing) => {
+    if (!qsMusicPlayBtn) return;
+    const icon = qsMusicPlayBtn.querySelector("i");
+    if (!icon) return;
+    icon.className = playing ? "fa-solid fa-pause" : "fa-solid fa-play";
+  };
+
+  const music = {
+    enabled: safeLocalGet(LS_MUSIC_ON) !== "0",
+    volume: (() => {
+      const saved = readStoredNumber(LS_MUSIC_VOL);
+      return Number.isFinite(saved) ? Math.max(0, Math.min(100, saved)) : 55;
+    })(),
+    index: Math.max(0, Number(safeLocalGet(LS_MUSIC_IDX) ?? 0) || 0),
+    tracks: [],
+    loaded: false,
+  };
+
+  let musicCtx = null;
+  let musicAnalyser = null;
+  let musicGain = null;
+  let musicSource = null;
+  let musicFreq = null;
+  let musicRaf = null;
+  let beatAvg = 0;
+  let beatPulse = 0;
+
+  const applyMusicGain = () => {
+    const target = (music.enabled ? clamp01(music.volume / 100) : 0) * (muteAll ? 0 : 1);
+    if (musicGain) {
+      try {
+        musicGain.gain.value = target;
+      } catch {
+        // ignore
+      }
+      return;
+    }
+    if (qsMusicAudio) qsMusicAudio.volume = target;
+  };
+
+  const startBeatLoop = () => {
+    if (musicRaf) return;
+    const tick = () => {
+      if (musicAnalyser && musicFreq && qsMusicIcon) {
+        if (qsMusicAudio && qsMusicAudio.paused) {
+          beatAvg *= 0.92;
+          beatPulse *= 0.86;
+          qsMusicIcon.style.setProperty("--qs-beat", "0");
+          musicRaf = requestAnimationFrame(tick);
+          return;
+        }
+        try {
+          musicAnalyser.getByteFrequencyData(musicFreq);
+          const bassBins = Math.min(24, musicFreq.length);
+          const midStart = bassBins;
+          const midEnd = Math.min(midStart + 48, musicFreq.length);
+
+          let bass = 0;
+          for (let i = 0; i < bassBins; i++) bass += musicFreq[i];
+          bass = (bass / Math.max(1, bassBins)) / 255;
+
+          let mid = 0;
+          for (let i = midStart; i < midEnd; i++) mid += musicFreq[i];
+          mid = (mid / Math.max(1, midEnd - midStart)) / 255;
+
+          const energy = bass * 0.72 + mid * 0.28;
+          beatAvg = beatAvg * 0.94 + energy * 0.06;
+          const delta = energy - beatAvg;
+          const hit = clamp01(delta * 6.2);
+          beatPulse = Math.max(beatPulse * 0.84, hit);
+          const beat = clamp01(energy * 1.7 + beatPulse * 0.85);
+          qsMusicIcon.style.setProperty("--qs-beat", beat.toFixed(3));
+        } catch {
+          qsMusicIcon.style.setProperty("--qs-beat", "0");
+        }
+      } else if (qsMusicIcon) {
+        qsMusicIcon.style.setProperty("--qs-beat", "0");
+      }
+      musicRaf = requestAnimationFrame(tick);
+    };
+    musicRaf = requestAnimationFrame(tick);
+  };
+
+  const ensureMusicGraph = async () => {
+    if (!qsMusicAudio) return;
+    if (musicCtx && musicAnalyser && musicGain && musicSource) return;
+
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+
+    const ctx = new Ctx();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    analyser.smoothingTimeConstant = 0.82;
+
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+
+    const source = ctx.createMediaElementSource(qsMusicAudio);
+    source.connect(analyser);
+    analyser.connect(gain);
+    gain.connect(ctx.destination);
+
+    musicCtx = ctx;
+    musicAnalyser = analyser;
+    musicGain = gain;
+    musicSource = source;
+    musicFreq = new Uint8Array(analyser.frequencyBinCount);
+
+    try {
+      if (ctx.state === "suspended") await ctx.resume();
+    } catch {
+      // ignore
+    }
+
+    // When using WebAudio, keep element volume at 1 so we control output via `gain`.
+    try {
+      qsMusicAudio.volume = 1;
+    } catch {
+      // ignore
+    }
+
+    applyMusicGain();
+    startBeatLoop();
+  };
+
+  const applyMusicVolume = (value) => {
+    const n = Math.max(0, Math.min(100, Number(value) || 0));
+    music.volume = n;
+    if (qsMusicVolume) qsMusicVolume.value = String(n);
+    syncMusicVolUi(n);
+    safeLocalSet(LS_MUSIC_VOL, String(Math.round(n)));
+    applyMusicGain();
+  };
+
+  const setMusicEnabled = (on, { persist = true } = {}) => {
+    music.enabled = !!on;
+    if (persist) safeLocalSet(LS_MUSIC_ON, music.enabled ? "1" : "0");
+    syncMusicBtnUi(music.enabled);
+    applyMusicGain();
+    if (!music.enabled && qsMusicAudio) {
+      try {
+        qsMusicAudio.pause();
+      } catch {
+        // ignore
+      }
+    }
+    setPlayIcon(qsMusicAudio ? !qsMusicAudio.paused : false);
+  };
+
+  const applyMuteAll = ({ persist = true } = {}) => {
+    if (typeof SFX?.setMuted === "function") SFX.setMuted(muteAll);
+    if (persist) safeLocalSet(LS_MUTE_ALL, muteAll ? "1" : "0");
+    applyMusicGain();
+    syncMuteUi();
+  };
+
+  const prettyTitle = (filename) => {
+    const base = String(filename || "").replace(/\.[a-z0-9]+$/i, "");
+    const cleaned = base.replace(/^[0-9]+[ _.-]*/, "").replace(/[_-]+/g, " ").trim();
+    // Insert spaces in simple camelcase: PlasticLove -> Plastic Love
+    return cleaned.replace(/([a-z])([A-Z])/g, "$1 $2").trim() || "Untitled";
+  };
+
+  const setTrackUi = (track) => {
+    if (!qsTrackTitle || !qsTrackSub) return;
+    if (!track) {
+      qsTrackTitle.textContent = "No playlist";
+      qsTrackSub.textContent = "No tracks loaded";
+      return;
+    }
+    qsTrackTitle.textContent = track.title || "Track";
+    qsTrackSub.textContent = track.subtitle || track.file || "";
+  };
+
+  const applyTrack = (idx, { autoplay = false } = {}) => {
+    if (!qsMusicAudio) return;
+    if (!music.tracks || music.tracks.length === 0) {
+      setTrackUi(null);
+      try {
+        qsMusicAudio.removeAttribute("src");
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
+    const nextIndex = ((idx % music.tracks.length) + music.tracks.length) % music.tracks.length;
+    music.index = nextIndex;
+    safeLocalSet(LS_MUSIC_IDX, String(nextIndex));
+
+    const t = music.tracks[nextIndex];
+    setTrackUi(t);
+
+    const src = t.src || t.url || "";
+    if (src) {
+      const wanted = String(src);
+      if (qsMusicAudio.getAttribute("src") !== wanted) {
+        qsMusicAudio.src = wanted;
+        try {
+          qsMusicAudio.load();
+        } catch {
+          // ignore
+        }
+        if (qsMusicSeek) {
+          qsMusicSeek.disabled = true;
+          qsMusicSeek.value = "0";
+          qsMusicSeek.dataset.scrubbing = "0";
+        }
+      }
+
+      if (autoplay && music.enabled) {
+        try {
+          const p = qsMusicAudio.play();
+          if (p && typeof p.catch === "function") p.catch(() => {});
+        } catch {
+          // ignore autoplay errors
+        }
+      }
+    }
+  };
+
+  const loadPlaylistOnce = async () => {
+    if (music.loaded) return;
+    music.loaded = true;
+
+    try {
+      const res = await fetch("/sound/playlist/manifest.json", { cache: "no-store" });
+      if (!res.ok) throw new Error(`manifest ${res.status}`);
+      const json = await res.json();
+      const tracks = Array.isArray(json?.tracks) ? json.tracks : [];
+      music.tracks = tracks
+        .map((t) => {
+          if (!t) return null;
+          if (typeof t === "string") return { src: t, title: prettyTitle(t.split("/").pop()) };
+          const file = t.file || t.filename || "";
+          const src = t.src || t.url || (file ? `/sound/playlist/${file}` : "");
+          return {
+            src,
+            file,
+            title: t.title || prettyTitle(file || src.split("/").pop()),
+            subtitle: t.subtitle || t.artist || "",
+          };
+        })
+        .filter(Boolean);
+    } catch {
+      music.tracks = [];
+    }
+
+    if (qsMusicAudio) {
+      qsMusicAudio.loop = false;
+    }
+    applyMusicGain();
+
+    if (music.tracks.length === 0) {
+      setTrackUi(null);
+      return;
+    }
+
+    applyTrack(music.index, { autoplay: false });
+  };
+
+  const applyBrightness = (value) => {
+    const n = Math.max(0, Math.min(100, Number(value) || 0));
+    // Background brightness factor 0.70..1.20
+    const b = 0.7 + (n / 100) * 0.5;
+    document.body.style.setProperty("--qs-bg-brightness", String(b.toFixed(3)));
+    // Slight veil reduction when brighter.
+    const veil = 1 - (n / 100) * 0.12;
+    document.body.style.setProperty("--qs-veil-opacity", String(veil.toFixed(3)));
+    if (qsBrightnessVal) qsBrightnessVal.textContent = String(Math.round(n));
+  };
+
+  const applySfxVolume = (value) => {
+    const raw = Number(value);
+    if (!Number.isFinite(raw)) return;
+    const n = Math.max(0, Math.min(100, raw));
+    const v = n / 100;
+    if (typeof SFX?.setVolume === "function") SFX.setVolume(v);
+    if (qsSfxVolumeVal) qsSfxVolumeVal.textContent = String(Math.round(n));
+  };
+
+  const setSfxVolumeUi = (value) => {
+    if (!qsSfxVolume) return;
+    const raw = Number(value);
+    if (!Number.isFinite(raw)) return;
+    const n = Math.max(0, Math.min(100, raw));
+    qsSfxVolume.value = String(n);
+    if (qsSfxVolumeVal) qsSfxVolumeVal.textContent = String(Math.round(n));
+  };
+
+  const applyFullscreenPref = (on) => {
+    safeLocalSet(LS_FS, on ? "1" : "0");
+  };
+
+  const applyWallpapers = (on) => {
+    if (on) document.body.classList.remove("no-video");
+    else document.body.classList.add("no-video");
+    safeLocalSet(LS_WALL, on ? "1" : "0");
   };
 
   let closeTimer = null;
@@ -501,6 +1024,53 @@ const SFX = (() => {
     if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
     hideViewInfo();
     syncSfxLabel();
+    syncNotifUi();
+    syncMusicBtnUi(music.enabled);
+    muteAll = safeLocalGet(LS_MUTE_ALL) === "1";
+    applyMuteAll({ persist: false });
+
+    // Sync quick settings values on open.
+    if (qsBrightness) {
+      const saved = readStoredNumber(LS_BRIGHT);
+      const val = Number.isFinite(saved) ? saved : Number(qsBrightness.value || 78);
+      qsBrightness.value = String(Math.max(0, Math.min(100, val)));
+      applyBrightness(qsBrightness.value);
+    }
+
+    if (qsSfxVolume) {
+      const saved = readStoredNumber(LS_SFXVOL);
+      const val = Number.isFinite(saved) ? saved : Math.round((typeof SFX?.getVolume === "function" ? SFX.getVolume() : 0.55) * 100);
+      setSfxVolumeUi(val);
+    }
+
+    if (qsFullscreen) {
+      const on = safeLocalGet(LS_FS) === "1";
+      qsFullscreen.checked = on;
+    }
+
+    if (qsWallpapers) {
+      const saved = safeLocalGet(LS_WALL);
+      const on = saved === null ? !document.body.classList.contains("no-video") : saved === "1";
+      qsWallpapers.checked = on;
+      applyWallpapers(on);
+    }
+
+    if (qsSettingsBtn && qsAdvanced) {
+      const open = safeLocalGet(LS_QS_ADV) === "1";
+      setAdvancedOpen(open, { persist: false });
+    }
+
+    if (qsMusicVolume) {
+      const saved = readStoredNumber(LS_MUSIC_VOL);
+      const val = Number.isFinite(saved) ? saved : music.volume;
+      applyMusicVolume(val);
+    }
+
+    if (qsMusicAudio) {
+      setPlayIcon(!qsMusicAudio.paused);
+      // Lazy-load playlist (fetch) only when the drawer is opened.
+      loadPlaylistOnce();
+    }
 
     if (closeTimer) clearTimeout(closeTimer);
     overlay.hidden = false;
@@ -561,6 +1131,185 @@ const SFX = (() => {
     });
   }
 
+  if (qsNotifBtn) {
+    qsNotifBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      const on = safeLocalGet(LS_NOTIF) !== "0";
+      safeLocalSet(LS_NOTIF, on ? "0" : "1");
+      syncNotifUi();
+    });
+  }
+
+  const navShortcut = (href) => {
+    if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+    closeDrawer({ focusProfile: false });
+    setTimeout(() => {
+      window.location.href = href;
+    }, 120);
+  };
+
+  if (qsQuestBtn) qsQuestBtn.addEventListener("click", () => navShortcut("/quest"));
+  if (qsBattleBtn) qsBattleBtn.addEventListener("click", () => navShortcut("/battle"));
+  if (qsNotesBtn) qsNotesBtn.addEventListener("click", () => navShortcut("/notes"));
+  if (qsHomeBtn) qsHomeBtn.addEventListener("click", () => navShortcut("/dashboard"));
+
+  if (qsSettingsBtn && qsAdvanced) {
+    qsSettingsBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      const open = !qsAdvanced.hidden;
+      setAdvancedOpen(!open, { persist: true, focusFirst: true });
+    });
+  }
+
+  if (toggleMusicBtn) {
+    toggleMusicBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      setMusicEnabled(!music.enabled);
+    });
+  }
+
+  if (qsMusicPrevBtn) {
+    qsMusicPrevBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      loadPlaylistOnce();
+      applyTrack(music.index - 1, { autoplay: !qsMusicAudio?.paused });
+    });
+  }
+
+  if (qsMusicNextBtn) {
+    qsMusicNextBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      loadPlaylistOnce();
+      applyTrack(music.index + 1, { autoplay: !qsMusicAudio?.paused });
+    });
+  }
+
+  if (qsMusicPlayBtn) {
+    qsMusicPlayBtn.addEventListener("click", async () => {
+      if (!muteAll && typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      setMusicEnabled(true);
+      loadPlaylistOnce();
+      if (!qsMusicAudio) return;
+      await ensureMusicGraph();
+      if (!qsMusicAudio.getAttribute("src")) applyTrack(music.index, { autoplay: false });
+      applyMusicGain();
+      try {
+        if (qsMusicAudio.paused) {
+          const p = qsMusicAudio.play();
+          if (p && typeof p.catch === "function") p.catch(() => {});
+        } else qsMusicAudio.pause();
+      } catch {
+        // ignore
+      }
+      setPlayIcon(!qsMusicAudio.paused);
+    });
+  }
+
+  if (qsMuteBtn) {
+    qsMuteBtn.addEventListener("click", () => {
+      const wasMuted = muteAll;
+      muteAll = !muteAll;
+      applyMuteAll({ persist: true });
+      if (wasMuted && !muteAll && typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+    });
+  }
+
+  if (qsMusicVolume) {
+    qsMusicVolume.addEventListener("input", () => {
+      applyMusicVolume(qsMusicVolume.value);
+    });
+  }
+
+  if (qsMusicAudio) {
+    qsMusicAudio.addEventListener("play", () => setPlayIcon(true));
+    qsMusicAudio.addEventListener("pause", () => setPlayIcon(false));
+    qsMusicAudio.addEventListener("ended", () => {
+      if (!music.enabled) return;
+      loadPlaylistOnce();
+      applyTrack(music.index + 1, { autoplay: true });
+    });
+
+    const syncSeekUi = () => {
+      if (!qsMusicSeek) return;
+      const d = qsMusicAudio.duration;
+      if (!Number.isFinite(d) || d <= 0) {
+        qsMusicSeek.disabled = true;
+        qsMusicSeek.value = "0";
+        return;
+      }
+      if (qsMusicSeek.dataset.scrubbing === "1") return;
+      qsMusicSeek.disabled = false;
+      const ratio = Math.max(0, Math.min(1, (qsMusicAudio.currentTime || 0) / d));
+      qsMusicSeek.value = String(Math.round(ratio * 1000));
+    };
+
+    qsMusicAudio.addEventListener("loadedmetadata", syncSeekUi);
+    qsMusicAudio.addEventListener("durationchange", syncSeekUi);
+    qsMusicAudio.addEventListener("timeupdate", syncSeekUi);
+    qsMusicAudio.addEventListener("emptied", syncSeekUi);
+  }
+
+  if (qsMusicSeek && qsMusicAudio) {
+    const seekTo = () => {
+      const d = qsMusicAudio.duration;
+      if (!Number.isFinite(d) || d <= 0) return;
+      const ratio = Math.max(0, Math.min(1, (Number(qsMusicSeek.value) || 0) / 1000));
+      try {
+        qsMusicAudio.currentTime = ratio * d;
+      } catch {
+        // ignore
+      }
+    };
+
+    qsMusicSeek.addEventListener("pointerdown", () => {
+      qsMusicSeek.dataset.scrubbing = "1";
+    });
+    qsMusicSeek.addEventListener("pointerup", () => {
+      qsMusicSeek.dataset.scrubbing = "0";
+    });
+    qsMusicSeek.addEventListener("input", () => seekTo());
+    qsMusicSeek.addEventListener("change", () => {
+      seekTo();
+      qsMusicSeek.dataset.scrubbing = "0";
+    });
+  }
+
+  if (qsBrightness) {
+    qsBrightness.addEventListener("input", () => {
+      applyBrightness(qsBrightness.value);
+      safeLocalSet(LS_BRIGHT, String(Math.round(Number(qsBrightness.value) || 0)));
+    });
+  }
+
+  if (qsSfxVolume) {
+    qsSfxVolume.addEventListener("input", () => {
+      applySfxVolume(qsSfxVolume.value);
+      safeLocalSet(LS_SFXVOL, String(Math.round(Number(qsSfxVolume.value) || 0)));
+    });
+  }
+
+  // Initialize SFX volume once on load. Avoid changing it again on drawer open
+  // so opening Quick Settings doesn't unexpectedly mute SFX.
+  (() => {
+    if (!qsSfxVolume) return;
+    const saved = Number(safeLocalGet(LS_SFXVOL));
+    const initial = Number.isFinite(saved) ? saved : Number(qsSfxVolume.value || 55);
+    setSfxVolumeUi(initial);
+    applySfxVolume(initial);
+  })();
+
+  if (qsFullscreen) {
+    qsFullscreen.addEventListener("change", () => {
+      applyFullscreenPref(!!qsFullscreen.checked);
+    });
+  }
+
+  if (qsWallpapers) {
+    qsWallpapers.addEventListener("change", () => {
+      applyWallpapers(!!qsWallpapers.checked);
+    });
+  }
+
   if (backToLandingBtn) {
     backToLandingBtn.addEventListener("click", () => {
       if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
@@ -608,6 +1357,9 @@ const SFX = (() => {
       closeDrawer({ focusProfile: true });
     });
 
+  // Apply persisted audio mute immediately (so SFX/music match before opening the drawer).
+  applyMuteAll({ persist: false });
+
   window.studiumViewInfoApi = {
     isOpen: isViewInfoOpen,
     close: () => hideViewInfo(),
@@ -615,10 +1367,14 @@ const SFX = (() => {
 
   const drawerFocusables = () => {
     if (!drawer) return [];
-    const els = Array.from(drawer.querySelectorAll("button,[tabindex='0']"));
+    const els = Array.from(drawer.querySelectorAll("button,input,select,textarea,[tabindex='0']"));
     return els.filter((el) => {
       if (el.hasAttribute("disabled")) return false;
       if (el.getAttribute("aria-hidden") === "true") return false;
+      if (el.closest("[hidden]")) return false;
+      if (el.closest('[aria-hidden=\"true\"]')) return false;
+      const style = getComputedStyle(el);
+      if (style.display === "none" || style.visibility === "hidden") return false;
       return true;
     });
   };
@@ -646,8 +1402,75 @@ const SFX = (() => {
 
 (function initNavbar() {
   const carousel = document.getElementById("carousel");
-  const items = Array.from(document.querySelectorAll(".navItem"));
-  if (!carousel || items.length === 0) return;
+  if (!carousel) return;
+  let items = Array.from(carousel.querySelectorAll(".navItem"));
+  if (items.length === 0) return;
+
+  const safeLocalGet = (k) => {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  };
+  const safeLocalSet = (k, v) => {
+    try {
+      localStorage.setItem(k, v);
+    } catch {
+      // ignore
+    }
+  };
+
+  const LS_NAV_ORDER = "studium:nav_order";
+  const DEFAULT_ORDER = ["dashboard", "notes", "quest", "schedules", "study", "battle", "match"];
+
+  const refreshItems = () => {
+    items = Array.from(carousel.querySelectorAll(".navItem"));
+  };
+
+  const applyNavOrder = (order, { persist = false } = {}) => {
+    if (!Array.isArray(order) || order.length === 0) return;
+
+    const byPage = new Map();
+    items.forEach((el) => {
+      const p = el?.dataset?.page;
+      if (p) byPage.set(p, el);
+    });
+
+    const out = [];
+    order.forEach((page) => {
+      const el = byPage.get(page);
+      if (!el) return;
+      out.push(el);
+      byPage.delete(page);
+    });
+
+    // Append remaining in current DOM order.
+    items.forEach((el) => {
+      const p = el?.dataset?.page;
+      if (p && byPage.has(p)) out.push(el);
+    });
+
+    out.forEach((el) => carousel.appendChild(el));
+    refreshItems();
+    if (persist) safeLocalSet(LS_NAV_ORDER, JSON.stringify(items.map((x) => x.dataset.page).filter(Boolean)));
+  };
+
+  try {
+    const raw = safeLocalGet(LS_NAV_ORDER);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const migrated = parsed
+          .map((x) => (x === "guild" ? "battle" : x))
+          .filter((x, idx, arr) => arr.indexOf(x) === idx);
+        applyNavOrder(migrated, { persist: false });
+        if (migrated.join("|") !== parsed.join("|")) safeLocalSet(LS_NAV_ORDER, JSON.stringify(migrated));
+      }
+    }
+  } catch {
+    // ignore
+  }
 
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
@@ -692,6 +1515,7 @@ const SFX = (() => {
 
     const pageName = el.dataset.page;
     if (pageName) setView(pageName);
+    if (pageName && typeof window.applyViewTint === "function") window.applyViewTint(pageName);
 
     if (!document.body.classList.contains("booting") && pageName && lastSfxView && pageName !== lastSfxView) {
       SFX.playSwitch();
@@ -758,16 +1582,46 @@ const SFX = (() => {
     },
     switchRelative,
     focusCurrent: () => setFocused(focusedIndex ?? activeIndex, { focus: true, scroll: true }),
+    getOrder: () => items.map((x) => x?.dataset?.page).filter(Boolean),
+    setOrder: (order) => {
+      applyNavOrder(order, { persist: true });
+      const view = getView();
+      activeIndex = items.findIndex((i) => i?.dataset?.page === view);
+      if (activeIndex < 0) activeIndex = 0;
+      focusedIndex = activeIndex;
+      setActive(activeIndex, { navigate: false });
+      setFocused(activeIndex, { focus: false, scroll: true });
+    },
+    resetOrder: () => {
+      try {
+        localStorage.removeItem(LS_NAV_ORDER);
+      } catch {
+        // ignore
+      }
+      applyNavOrder(DEFAULT_ORDER, { persist: false });
+      const view = getView();
+      activeIndex = items.findIndex((i) => i?.dataset?.page === view);
+      if (activeIndex < 0) activeIndex = 0;
+      focusedIndex = activeIndex;
+      setActive(activeIndex, { navigate: false });
+      setFocused(activeIndex, { focus: false, scroll: true });
+    },
   };
 
-  items.forEach((item, idx) => {
+  items.forEach((item) => {
     item.addEventListener("click", () => {
       if (document.body.classList.contains("booting")) return;
+      const idx = items.indexOf(item);
+      if (idx < 0) return;
       setMode("nav");
       setFocused(idx, { focus: true, scroll: true });
       setActive(idx, { navigate: true });
     });
-    item.addEventListener("focus", () => setFocused(idx, { focus: false, scroll: true }));
+    item.addEventListener("focus", () => {
+      const idx = items.indexOf(item);
+      if (idx < 0) return;
+      setFocused(idx, { focus: false, scroll: true });
+    });
   });
 
   carousel.addEventListener(
@@ -875,8 +1729,8 @@ const SFX = (() => {
     study: "study.launcher",
     pomodoro: "pomodoro.timer",
     battle: "battle.lobby",
-    guild: "guild.overview",
-    match: "match.events",
+    guild: "battle.lobby",
+    match: "match.system.nav",
   };
 
   const overrideByView = {
@@ -934,17 +1788,39 @@ const SFX = (() => {
 
   const getZone = () => {
     if (document.body.classList.contains("drawer-open")) return "drawer";
+    if (document.body.classList.contains("modal-open")) return "modal";
     const ae = document.activeElement;
+    if (ae?.closest?.(".studiumModal")) return "modal";
     if (ae?.closest?.("#profileDrawer")) return "drawer";
     if (ae?.id === "userMenuBtn" || ae?.id === "viewLabel") return "header";
-    if (ae?.closest?.("#routeOutlet") && ae?.getAttribute?.("data-focus")) return "grid";
-    if (ae?.classList?.contains("gridCard")) return "grid";
+    if (ae?.closest?.("#routeOutlet") && (ae?.getAttribute?.("data-focus") || ae?.classList?.contains("gridCard") || ae?.closest?.(".gridCard")))
+      return "grid";
     return "nav";
   };
 
   const drawerMove = (dir) => {
     const api = window.profileDrawerApi;
     const focusables = api?.focusables?.() || [];
+    if (focusables.length === 0) return;
+    const idx = focusables.indexOf(document.activeElement);
+    const cur = idx >= 0 ? idx : 0;
+    const next = (cur + dir + focusables.length) % focusables.length;
+    focusEl(focusables[next]);
+  };
+
+  const modalFocusables = () => {
+    const root = document.querySelector("#routeOutlet .studiumModal");
+    if (!root) return [];
+    const nodes = Array.from(
+      root.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+    );
+    return nodes.filter(isVisible);
+  };
+
+  const modalMove = (dir) => {
+    const focusables = modalFocusables();
     if (focusables.length === 0) return;
     const idx = focusables.indexOf(document.activeElement);
     const cur = idx >= 0 ? idx : 0;
@@ -1013,8 +1889,9 @@ const SFX = (() => {
 
   const moveInGrid = (dir) => {
     const view = getView();
-    const cur = document.activeElement;
-    const fromKey = cur?.getAttribute?.("data-focus") || "";
+    const curRaw = document.activeElement;
+    const cur = curRaw?.closest?.(".gridCard") || curRaw;
+    const fromKey = cur?.getAttribute?.("data-focus") || curRaw?.getAttribute?.("data-focus") || "";
     const override = overrideByView?.[view]?.[`${fromKey}:${dir}`];
     if (override) {
       const moved = focusByKey(override);
@@ -1053,10 +1930,58 @@ const SFX = (() => {
 
       const zone = getZone();
 
+      // Modal
+      if (zone === "modal") {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const ae = document.activeElement;
+        const isRange =
+          ae?.tagName &&
+          String(ae.tagName).toLowerCase() === "input" &&
+          String(ae.getAttribute("type") || "").toLowerCase() === "range";
+        if (isRange && (key === "ArrowLeft" || key === "ArrowRight")) {
+          const input = ae;
+          const min = Number(input.min || 0);
+          const max = Number(input.max || 100);
+          const step = Number(input.step || 1);
+          const cur = Number(input.value || 0);
+          const next = Math.max(min, Math.min(max, cur + (key === "ArrowRight" ? step : -step)));
+          input.value = String(next);
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          return;
+        }
+
+        if (key === "Escape") {
+          if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+          window.studiumModalApi?.close?.();
+          return;
+        }
+
+        if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
+        if (key === "ArrowDown" || key === "ArrowRight") modalMove(1);
+        else if (key === "ArrowUp" || key === "ArrowLeft") modalMove(-1);
+        return;
+      }
+
       // Drawer
       if (zone === "drawer") {
         e.preventDefault();
         e.stopPropagation();
+
+        const ae = document.activeElement;
+        const isRange = ae?.tagName && String(ae.tagName).toLowerCase() === "input" && String(ae.getAttribute("type") || "").toLowerCase() === "range";
+        if (isRange && (key === "ArrowLeft" || key === "ArrowRight")) {
+          const input = ae;
+          const min = Number(input.min || 0);
+          const max = Number(input.max || 100);
+          const step = Number(input.step || 1);
+          const cur = Number(input.value || 0);
+          const next = Math.max(min, Math.min(max, cur + (key === "ArrowRight" ? step : -step)));
+          input.value = String(next);
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          return;
+        }
 
         if (key === "Escape") {
           if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
@@ -1077,6 +2002,13 @@ const SFX = (() => {
         e.stopPropagation();
 
         if (key === "Escape") {
+          if (document.body.classList.contains("quest-detail") && window.questDetailApi?.back) {
+            if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+            try {
+              window.questDetailApi.back();
+            } catch {}
+            return;
+          }
           if (window.studiumViewInfoApi?.isOpen?.()) {
             if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
             window.studiumViewInfoApi?.close?.();
@@ -1112,6 +2044,13 @@ const SFX = (() => {
         e.stopPropagation();
 
         if (key === "Escape") {
+          if (document.body.classList.contains("quest-detail") && window.questDetailApi?.back) {
+            if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+            try {
+              window.questDetailApi.back();
+            } catch {}
+            return;
+          }
           if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
           focusNav();
           return;
@@ -1120,6 +2059,7 @@ const SFX = (() => {
         if (key === "ArrowDown") {
           const moved = moveInGrid("down");
           if (!moved) {
+            if (document.body.classList.contains("quest-detail")) return;
             if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
             focusNav();
           }
