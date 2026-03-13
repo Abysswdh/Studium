@@ -1,12 +1,3 @@
 {
-  "tracks": [
-    {
-      "src": "/sound/playlist/1_PlasticLove.mp3",
-      "title": "PlasticLove"
-    },
-    {
-      "src": "/sound/playlist/2_Persona.mp3",
-      "title": "Persona"
-    }
-  ]
+  "tracks": []
 }

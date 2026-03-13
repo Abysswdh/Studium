@@ -4,7 +4,7 @@ import ViewMarker from "../../../components/view-marker";
 export default function Page() {
   return (
     <>
-      <ViewMarker view="schedules" label="Schedules" desc="Agenda + deadlines that feed your routine." />
+      <ViewMarker view="schedules" label="Schedule" desc="Agenda + deadlines that feed your routine." />
       <SchedulesGrid />
     </>
   );

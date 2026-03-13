@@ -1,0 +1,374 @@
+/* Responsive + modern sizing overrides (keep legacy CSS untouched). */
+
+:root {
+  --shell-gap: clamp(10px, 1.8vw, 16px);
+  --shell-pad-y: clamp(12px, 2.6vw, 24px);
+  --shell-pad-x: clamp(14px, 4.2vw, 40px);
+}
+
+.shell {
+  gap: var(--shell-gap);
+  padding: var(--shell-pad-y) var(--shell-pad-x);
+  padding-top: calc(var(--shell-pad-y) + env(safe-area-inset-top, 0px));
+  padding-right: calc(var(--shell-pad-x) + env(safe-area-inset-right, 0px));
+  padding-bottom: calc(var(--shell-pad-y) + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(var(--shell-pad-x) + env(safe-area-inset-left, 0px));
+}
+
+.header {
+  min-height: clamp(56px, 8vh, 70px);
+}
+
+.gridContainer,
+.gridContainerLeft,
+.gridContainerLeftBottom,
+.gridContainerRight,
+.gridContainerRightLeft {
+  gap: var(--shell-gap);
+}
+
+.userName {
+  font-size: clamp(15px, 2.1vw, 18px);
+}
+
+.userXp {
+  font-size: clamp(12px, 1.6vw, 14px);
+}
+
+.viewLabel {
+  font-size: clamp(11px, 1.3vw, 12px);
+}
+
+.navItem span {
+  font-size: clamp(11px, 2.6vw, 13px);
+}
+
+.hudGroup--touch {
+  display: none;
+}
+
+.cardInner {
+  padding: clamp(12px, 2vw, 16px) clamp(12px, 2vw, 16px) clamp(10px, 1.6vw, 14px);
+}
+
+.cardKicker {
+  font-size: clamp(10px, 1.1vw, 11px);
+}
+
+.cardTitle {
+  font-size: clamp(16px, 1.8vw, 18px);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cardMeta {
+  font-size: clamp(11px, 1.2vw, 12px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 900px) {
+  /* HUD: legacy makes it huge; keep it compact on tablet/phone. */
+  .footerHUD {
+    justify-content: center;
+  }
+
+  .footerHUD .appver {
+    display: none;
+  }
+
+  .hudBar {
+    padding: 12px 14px;
+    gap: 14px;
+    max-width: min(94vw, 560px);
+  }
+
+  .hudKey {
+    width: clamp(28px, 6vw, 36px);
+    height: clamp(28px, 6vw, 36px);
+    border-radius: clamp(12px, 3vw, 16px);
+  }
+
+  .hudKey i {
+    font-size: clamp(13px, 2.6vw, 16px);
+  }
+
+  .hudLabel {
+    font-size: clamp(12px, 2.8vw, 14px);
+  }
+
+  /* Touch hint replaces mouse wheel hint on touch widths. */
+  .hudGroup--right {
+    display: none;
+  }
+
+  .hudGroup--touch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Reduce vertical bloat: use aspect ratios instead of large min-heights. */
+  .gridContainer {
+    min-height: 0;
+    height: auto;
+  }
+
+  .gridContainerLeft,
+  .gridContainerRight {
+    height: auto;
+  }
+
+  .gridContainerLeftTop {
+    flex: 0 0 auto;
+    min-height: 0;
+    aspect-ratio: 21 / 9;
+  }
+
+  .gridContainerLeftBottom {
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+
+  .gridContainerLeftBottomLeft,
+  .gridContainerLeftBottomRight {
+    height: auto;
+    aspect-ratio: 3 / 2;
+  }
+
+  .gridContainerRightLeftOne,
+  .gridContainerRightLeftTwo,
+  .gridContainerRightLeftThree,
+  .gridContainerRightLeftFour {
+    flex: 0 0 auto;
+    min-height: 0;
+    height: auto;
+    aspect-ratio: 3 / 2;
+  }
+
+  .gridContainerRightRight {
+    flex: 0 0 auto;
+    min-height: 0;
+    height: auto;
+    aspect-ratio: 21 / 10;
+  }
+
+  .footerHUD {
+    gap: clamp(8px, 2.2vw, 12px);
+  }
+}
+
+@media (max-width: 520px) {
+  /* Mobile: swipe-only navigation (hide the carousel navbar). */
+  .navbar {
+    display: none;
+  }
+
+  /* Swipe anywhere: allow the page to handle vertical scroll while we detect horizontal swipes. */
+  #routeOutlet {
+    touch-action: pan-y;
+  }
+
+  body {
+    --nav-bar-minh: clamp(92px, 14vh, 110px);
+    --nav-item-w: clamp(78px, 24vw, 92px);
+    --nav-item-h: clamp(70px, 22vw, 84px);
+    --nav-icon-size: clamp(20px, 6vw, 24px);
+  }
+
+  body.grid-mode {
+    --nav-bar-minh: clamp(66px, 10vh, 80px);
+    --nav-item-w: clamp(52px, 16vw, 60px);
+    --nav-item-h: clamp(52px, 16vw, 60px);
+    --nav-icon-size: clamp(18px, 5.2vw, 21px);
+  }
+
+  /* Keep a 2-col quest grid longer; drop to 1-col only on very small screens. */
+  .gridContainerRightLeft {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gridContainerLeftBottom {
+    flex-direction: row;
+  }
+
+  .footerHUD .hud {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hudBar {
+    padding: 10px 12px;
+    gap: 12px;
+  }
+
+  .hudGroup:not(.hudGroup--touch) {
+    display: none;
+  }
+
+  .hudGroup--touch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 1024px) and (min-width: 521px) {
+  /* Tablet: keep nav icon-only even in nav-mode. */
+  body {
+    --nav-label-opacity: 0;
+    --nav-label-maxh: 0px;
+    --nav-label-mt: 0px;
+    --nav-label-shift: -6px;
+
+    --nav-bar-minh: clamp(92px, 12vh, 110px);
+    --nav-item-w: clamp(62px, 7.6vw, 74px);
+    --nav-item-h: clamp(62px, 7.6vw, 74px);
+    --nav-radius: clamp(14px, 2vw, 18px);
+    --nav-icon-size: clamp(20px, 2.6vw, 26px);
+  }
+
+  .navItem span {
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .gridContainerLeftBottom {
+    flex-direction: column;
+  }
+
+  .gridContainerRightLeft {
+    grid-template-columns: 1fr;
+  }
+
+  .gridContainerLeftTop {
+    aspect-ratio: 16 / 9;
+  }
+
+  .gridContainerLeftBottomLeft,
+  .gridContainerLeftBottomRight,
+  .gridContainerRightLeftOne,
+  .gridContainerRightLeftTwo,
+  .gridContainerRightLeftThree,
+  .gridContainerRightLeftFour {
+    aspect-ratio: 16 / 9;
+  }
+
+  .gridContainerRightRight {
+    aspect-ratio: 16 / 10;
+  }
+}
+
+@media (max-height: 760px) and (min-width: 521px) {
+  :root {
+    --shell-pad-y: clamp(8px, 1.8vh, 16px);
+    --shell-gap: clamp(8px, 1.2vh, 12px);
+  }
+
+  .shell {
+    padding-bottom: calc(clamp(6px, 1.2vh, 12px) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .header {
+    min-height: clamp(52px, 7vh, 64px);
+  }
+
+  /* Allow the main grid to shrink on shorter laptop viewports. */
+  .gridContainer {
+    min-height: 0;
+  }
+
+  /* Reduce navbar bloat so it doesn't collide with the outlet. */
+  body {
+    --nav-bar-minh: clamp(96px, 16vh, 132px);
+    --carousel-pad-y: clamp(10px, 1.6vh, 14px);
+    --nav-item-h: clamp(76px, 12vh, 96px);
+    --nav-icon-size: clamp(20px, 2.2vw, 26px);
+  }
+
+  body.grid-mode {
+    --nav-bar-minh: clamp(70px, 12vh, 96px);
+    --carousel-pad-y: clamp(8px, 1.2vh, 12px);
+    --nav-item-h: clamp(58px, 9vh, 74px);
+    --nav-icon-size: clamp(18px, 2vw, 24px);
+  }
+
+  /* HUD: smaller + a bit closer to the bottom edge. */
+  .footerHUD {
+    padding-bottom: 2px;
+  }
+
+  .hudBar {
+    padding: 12px 14px;
+    gap: 16px;
+    border-radius: 16px;
+  }
+
+  .hudGroup {
+    gap: 14px;
+  }
+
+  .hudKey {
+    width: 26px;
+    height: 26px;
+    border-radius: 14px;
+  }
+
+  .hudKey i {
+    font-size: 13px;
+  }
+
+  .hudLabel {
+    font-size: 13px;
+  }
+
+  /* Profile (header + drawer): slightly smaller. */
+  .leftUserMenu {
+    gap: 10px;
+    padding: 3px 4px;
+    border-radius: 16px;
+  }
+
+  .userAvatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .userMeta {
+    gap: 4px;
+  }
+
+  .drawer {
+    top: 12px;
+    left: 12px;
+    bottom: 12px;
+    width: min(340px, calc(100vw - 24px));
+    padding: 12px;
+    border-radius: 20px;
+  }
+
+  .drawerClose {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+
+  .drawerAvatar {
+    width: 46px;
+    height: 46px;
+  }
+
+  .drawerCard {
+    padding: 10px;
+  }
+
+  .drawerToggle {
+    padding: 9px 10px;
+    border-radius: 12px;
+  }
+}

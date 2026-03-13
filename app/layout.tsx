@@ -3,6 +3,7 @@ import "./styles/legacy/base.css";
 import "./styles/legacy/boot.css";
 import "./styles/legacy/ui.css";
 import "./styles/legacy/drawer.css";
+import "./styles/shell/responsive.css";
 
 export const metadata = {
   title: "Studium",
