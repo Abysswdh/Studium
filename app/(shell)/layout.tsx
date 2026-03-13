@@ -1,4 +1,5 @@
 import RouteBridge from "../../components/route-bridge";
+import ShellBackground from "../../components/shell-background";
 import { getCurrentUser } from "../../lib/auth/current-user";
 import { guestUser } from "../../lib/mock-user";
 import Script from "next/script";
@@ -64,9 +65,9 @@ export default async function ShellLayout({ children }: { children: React.ReactN
               <i className="fa-solid fa-gauge" aria-hidden="true"></i>
               <span>Dashboard</span>
             </button>
-            <button className="navItem" type="button" data-page="routine" data-focus="nav.routine" role="tab" aria-selected="false">
-              <i className="fa-solid fa-list-check" aria-hidden="true"></i>
-              <span>Routine</span>
+            <button className="navItem" type="button" data-page="notes" data-focus="nav.notes" role="tab" aria-selected="false">
+              <i className="fa-solid fa-note-sticky" aria-hidden="true"></i>
+              <span>Notes</span>
             </button>
             <button className="navItem" type="button" data-page="quest" data-focus="nav.quest" role="tab" aria-selected="false">
               <i className="fa-solid fa-map" aria-hidden="true"></i>
@@ -74,31 +75,19 @@ export default async function ShellLayout({ children }: { children: React.ReactN
             </button>
             <button className="navItem" type="button" data-page="schedules" data-focus="nav.schedules" role="tab" aria-selected="false">
               <i className="fa-solid fa-calendar-days" aria-hidden="true"></i>
-              <span>Schedules</span>
-            </button>
-            <button className="navItem" type="button" data-page="notes" data-focus="nav.notes" role="tab" aria-selected="false">
-              <i className="fa-solid fa-note-sticky" aria-hidden="true"></i>
-              <span>Notes</span>
+              <span>Schedule</span>
             </button>
             <button className="navItem" type="button" data-page="study" data-focus="nav.study" role="tab" aria-selected="false">
               <i className="fa-solid fa-book-open" aria-hidden="true"></i>
-              <span>Study</span>
-            </button>
-            <button className="navItem" type="button" data-page="pomodoro" data-focus="nav.pomodoro" role="tab" aria-selected="false">
-              <i className="fa-solid fa-stopwatch" aria-hidden="true"></i>
-              <span>Pomodoro</span>
-            </button>
-            <button className="navItem" type="button" data-page="battle" data-focus="nav.battle" role="tab" aria-selected="false">
-              <i className="fa-solid fa-crosshairs" aria-hidden="true"></i>
-              <span>Battle</span>
+              <span>Study Room</span>
             </button>
             <button className="navItem" type="button" data-page="guild" data-focus="nav.guild" role="tab" aria-selected="false">
               <i className="fa-solid fa-people-group" aria-hidden="true"></i>
               <span>Guild</span>
             </button>
             <button className="navItem" type="button" data-page="match" data-focus="nav.match" role="tab" aria-selected="false">
-              <i className="fa-solid fa-trophy" aria-hidden="true"></i>
-              <span>Match</span>
+              <i className="fa-solid fa-gear" aria-hidden="true"></i>
+              <span>Options</span>
             </button>
           </div>
         </div>
@@ -222,8 +211,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
       </aside>
 
       <div className="bg">
-        <video className="bg__video bg__video--active" id="bgVideoA" src="/bg/blue - dashboard.mp4" autoPlay muted loop playsInline preload="auto" />
-        <video className="bg__video" id="bgVideoB" autoPlay muted loop playsInline preload="auto" />
+        <ShellBackground />
         <div className="bg__veil" aria-hidden="true"></div>
       </div>
 

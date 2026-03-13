@@ -7,13 +7,13 @@ const VIEW_META: Record<string, { label: string; desc: string }> = {
   dashboard: { label: "Dashboard", desc: "Your daily snapshot: routine, quests, streaks, and widgets." },
   routine: { label: "Routine", desc: "Now / Next / Later — turn deadlines into concrete steps." },
   quest: { label: "Quest", desc: "Pick quests, set difficulty, earn XP & streaks." },
-  schedules: { label: "Schedules", desc: "Agenda + deadlines that feed your routine." },
+  schedules: { label: "Schedule", desc: "Agenda + deadlines that feed your routine." },
   notes: { label: "Notes", desc: "Capture quick notes tied to your quests and sessions." },
-  study: { label: "Study", desc: "Start a session: focus, review, and capture." },
+  study: { label: "Study Room", desc: "Start a session: focus, review, and capture." },
   pomodoro: { label: "Pomodoro", desc: "Timer + co-op focus sessions linked to tasks." },
   battle: { label: "Battle", desc: "1v1 quizzes from a question bank. Win, rank up, repeat." },
   guild: { label: "Guild", desc: "Group study rooms, co-focus, chat, accountability." },
-  match: { label: "Match", desc: "Modes like guild vs guild, tournaments, and events." },
+  match: { label: "Options", desc: "Settings, preferences, and app options." },
 };
 
 function viewFromPath(pathname: string) {

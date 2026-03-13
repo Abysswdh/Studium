@@ -4,7 +4,7 @@ import ViewMarker from "../../../components/view-marker";
 export default function Page() {
   return (
     <>
-      <ViewMarker view="match" label="Match" desc="Modes like guild vs guild, tournaments, and events." />
+      <ViewMarker view="match" label="Options" desc="Settings, preferences, and app options." />
       <MatchGrid />
     </>
   );
