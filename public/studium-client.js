@@ -24,7 +24,14 @@ function getView() {
 function isTypingTarget(el) {
   if (!el) return false;
   const tag = String(el.tagName || "").toLowerCase();
-  return tag === "input" || tag === "textarea" || el.isContentEditable;
+  if (tag === "textarea" || el.isContentEditable) return true;
+  if (tag === "input") {
+    const t = String(el.getAttribute("type") || "text").toLowerCase();
+    // Range/checkbox should still allow arrow-key navigation handling in our router.
+    if (t === "range" || t === "checkbox" || t === "radio") return false;
+    return true;
+  }
+  return tag === "select";
 }
 
 function setMode(mode) {
@@ -231,6 +238,7 @@ const SFX = (() => {
   const SW_VOL = 0.55;
   const GRID_VOL = 0.55;
   const HEADER_VOL = 0.55;
+  const clamp01 = (n) => Math.max(0, Math.min(1, n));
 
   boot.preload = "auto";
   sw.preload = "auto";
@@ -254,14 +262,15 @@ const SFX = (() => {
   let pendingBoot = false;
   let lastBootAt = 0;
   let muted = false;
+  let vol = 1;
   let fullscreenAttempted = false;
 
   const applyMute = () => {
     const m = muted ? 0 : 1;
     boot.volume = BOOT_VOL * m;
-    sw.volume = SW_VOL * m;
-    grid.volume = GRID_VOL * m;
-    header.volume = HEADER_VOL * m;
+    sw.volume = SW_VOL * vol * m;
+    grid.volume = GRID_VOL * vol * m;
+    header.volume = HEADER_VOL * vol * m;
   };
   applyMute();
 
@@ -317,6 +326,11 @@ const SFX = (() => {
     isMuted: () => muted,
     setMuted: (next) => {
       muted = !!next;
+      applyMute();
+    },
+    getVolume: () => vol,
+    setVolume: (next) => {
+      vol = clamp01(Number(next));
       applyMute();
     },
     playBoot: () => {
@@ -417,7 +431,30 @@ const SFX = (() => {
   const overlay = document.getElementById("profileOverlay");
   const drawer = document.getElementById("profileDrawer");
   const closeBtn = document.getElementById("profileCloseBtn");
+  const qsNotifBtn = document.getElementById("qsNotifBtn");
+  const qsNotifPill = document.getElementById("qsNotifPill");
+  const qsQuestBtn = document.getElementById("qsQuestBtn");
+  const qsGuildBtn = document.getElementById("qsGuildBtn");
+  const qsNotesBtn = document.getElementById("qsNotesBtn");
+  const qsHomeBtn = document.getElementById("qsHomeBtn");
+  const qsSettingsBtn = document.getElementById("qsSettingsBtn");
+  const qsAdvanced = document.getElementById("qsAdvanced");
   const toggleSfxBtn = document.getElementById("toggleSfxBtn");
+  const toggleMusicBtn = document.getElementById("toggleMusicBtn");
+  const qsBrightness = document.getElementById("qsBrightness");
+  const qsBrightnessVal = document.getElementById("qsBrightnessVal");
+  const qsSfxVolume = document.getElementById("qsSfxVolume");
+  const qsSfxVolumeVal = document.getElementById("qsSfxVolumeVal");
+  const qsFullscreen = document.getElementById("qsFullscreen");
+  const qsWallpapers = document.getElementById("qsWallpapers");
+  const qsMusicAudio = document.getElementById("qsMusicAudio");
+  const qsTrackTitle = document.getElementById("qsTrackTitle");
+  const qsTrackSub = document.getElementById("qsTrackSub");
+  const qsMusicPrevBtn = document.getElementById("qsMusicPrevBtn");
+  const qsMusicPlayBtn = document.getElementById("qsMusicPlayBtn");
+  const qsMusicNextBtn = document.getElementById("qsMusicNextBtn");
+  const qsMusicVolume = document.getElementById("qsMusicVolume");
+  const qsMusicVolumeVal = document.getElementById("qsMusicVolumeVal");
   const backToLandingBtn = document.getElementById("backToLandingBtn");
   const signInBtn = document.getElementById("signInBtn");
   const registerBtn = document.getElementById("registerBtn");
@@ -491,7 +528,240 @@ const SFX = (() => {
   const syncSfxLabel = () => {
     if (!toggleSfxBtn) return;
     const on = typeof SFX?.isMuted === "function" ? !SFX.isMuted() : true;
-    toggleSfxBtn.textContent = `SFX: ${on ? "On" : "Off"}`;
+    toggleSfxBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    const icon = toggleSfxBtn.querySelector("i");
+    if (icon) icon.className = on ? "fa-solid fa-volume-high" : "fa-solid fa-volume-xmark";
+  };
+
+  const safeLocalGet = (k) => {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  };
+  const safeLocalSet = (k, v) => {
+    try {
+      localStorage.setItem(k, v);
+    } catch {
+      // ignore
+    }
+  };
+
+  const LS_BRIGHT = "studium:qs_brightness";
+  const LS_SFXVOL = "studium:qs_sfx_volume";
+  const LS_FS = "studium:pref_fullscreen";
+  const LS_WALL = "studium:qs_wallpapers";
+  const LS_NOTIF = "studium:qs_notifications";
+  const LS_MUSIC_ON = "studium:qs_music_on";
+  const LS_MUSIC_VOL = "studium:qs_music_volume";
+  const LS_MUSIC_IDX = "studium:qs_music_index";
+  const LS_QS_ADV = "studium:qs_advanced_open";
+
+  const setAdvancedOpen = (open, { persist = false, focusFirst = false } = {}) => {
+    if (!qsAdvanced || !qsSettingsBtn) return;
+    qsAdvanced.hidden = !open;
+    qsSettingsBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (persist) safeLocalSet(LS_QS_ADV, open ? "1" : "0");
+
+    if (open && focusFirst) {
+      const first = qsAdvanced.querySelector("input,button,select,textarea,[tabindex='0']");
+      if (first) {
+        requestAnimationFrame(() => {
+          try {
+            first.focus({ preventScroll: true });
+          } catch {
+            first.focus();
+          }
+        });
+      }
+    }
+  };
+
+  const syncNotifUi = () => {
+    if (!qsNotifBtn) return;
+    const on = safeLocalGet(LS_NOTIF) !== "0";
+    qsNotifBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    if (qsNotifPill) {
+      qsNotifPill.textContent = on ? "On" : "Off";
+      qsNotifPill.classList.toggle("qsMenuPill--off", !on);
+    }
+  };
+
+  const syncMusicBtnUi = (on) => {
+    if (!toggleMusicBtn) return;
+    toggleMusicBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    toggleMusicBtn.classList.toggle("qsPillBtn--off", !on);
+  };
+
+  const syncMusicVolUi = (n) => {
+    if (qsMusicVolumeVal) qsMusicVolumeVal.textContent = String(Math.round(n));
+  };
+
+  const setPlayIcon = (playing) => {
+    if (!qsMusicPlayBtn) return;
+    const icon = qsMusicPlayBtn.querySelector("i");
+    if (!icon) return;
+    icon.className = playing ? "fa-solid fa-pause" : "fa-solid fa-play";
+  };
+
+  const music = {
+    enabled: safeLocalGet(LS_MUSIC_ON) !== "0",
+    volume: Math.max(0, Math.min(100, Number(safeLocalGet(LS_MUSIC_VOL) ?? 55) || 55)),
+    index: Math.max(0, Number(safeLocalGet(LS_MUSIC_IDX) ?? 0) || 0),
+    tracks: [],
+    loaded: false,
+  };
+
+  const applyMusicVolume = (value) => {
+    const n = Math.max(0, Math.min(100, Number(value) || 0));
+    music.volume = n;
+    if (qsMusicAudio) qsMusicAudio.volume = n / 100;
+    if (qsMusicVolume) qsMusicVolume.value = String(n);
+    syncMusicVolUi(n);
+    safeLocalSet(LS_MUSIC_VOL, String(Math.round(n)));
+  };
+
+  const setMusicEnabled = (on, { persist = true } = {}) => {
+    music.enabled = !!on;
+    if (persist) safeLocalSet(LS_MUSIC_ON, music.enabled ? "1" : "0");
+    syncMusicBtnUi(music.enabled);
+    if (!music.enabled && qsMusicAudio) {
+      try {
+        qsMusicAudio.pause();
+      } catch {
+        // ignore
+      }
+    }
+    setPlayIcon(qsMusicAudio ? !qsMusicAudio.paused : false);
+  };
+
+  const prettyTitle = (filename) => {
+    const base = String(filename || "").replace(/\.[a-z0-9]+$/i, "");
+    const cleaned = base.replace(/^[0-9]+[ _.-]*/, "").replace(/[_-]+/g, " ").trim();
+    // Insert spaces in simple camelcase: PlasticLove -> Plastic Love
+    return cleaned.replace(/([a-z])([A-Z])/g, "$1 $2").trim() || "Untitled";
+  };
+
+  const setTrackUi = (track) => {
+    if (!qsTrackTitle || !qsTrackSub) return;
+    if (!track) {
+      qsTrackTitle.textContent = "No playlist";
+      qsTrackSub.textContent = "Add files to /public/sound/playlist";
+      return;
+    }
+    qsTrackTitle.textContent = track.title || "Track";
+    qsTrackSub.textContent = track.subtitle || track.file || "";
+  };
+
+  const applyTrack = (idx, { autoplay = false } = {}) => {
+    if (!qsMusicAudio) return;
+    if (!music.tracks || music.tracks.length === 0) {
+      setTrackUi(null);
+      try {
+        qsMusicAudio.removeAttribute("src");
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
+    const nextIndex = ((idx % music.tracks.length) + music.tracks.length) % music.tracks.length;
+    music.index = nextIndex;
+    safeLocalSet(LS_MUSIC_IDX, String(nextIndex));
+
+    const t = music.tracks[nextIndex];
+    setTrackUi(t);
+
+    const src = t.src || t.url || "";
+    if (src) {
+      const wanted = String(src);
+      if (qsMusicAudio.getAttribute("src") !== wanted) {
+        qsMusicAudio.src = wanted;
+        try {
+          qsMusicAudio.load();
+        } catch {
+          // ignore
+        }
+      }
+
+      if (autoplay && music.enabled) {
+        try {
+          const p = qsMusicAudio.play();
+          if (p && typeof p.catch === "function") p.catch(() => {});
+        } catch {
+          // ignore autoplay errors
+        }
+      }
+    }
+  };
+
+  const loadPlaylistOnce = async () => {
+    if (music.loaded) return;
+    music.loaded = true;
+
+    try {
+      const res = await fetch("/sound/playlist/manifest.json", { cache: "no-store" });
+      if (!res.ok) throw new Error(`manifest ${res.status}`);
+      const json = await res.json();
+      const tracks = Array.isArray(json?.tracks) ? json.tracks : [];
+      music.tracks = tracks
+        .map((t) => {
+          if (!t) return null;
+          if (typeof t === "string") return { src: t, title: prettyTitle(t.split("/").pop()) };
+          const file = t.file || t.filename || "";
+          const src = t.src || t.url || (file ? `/sound/playlist/${file}` : "");
+          return {
+            src,
+            file,
+            title: t.title || prettyTitle(file || src.split("/").pop()),
+            subtitle: t.subtitle || t.artist || "",
+          };
+        })
+        .filter(Boolean);
+    } catch {
+      music.tracks = [];
+    }
+
+    if (qsMusicAudio) {
+      qsMusicAudio.volume = music.volume / 100;
+      qsMusicAudio.loop = false;
+    }
+
+    if (music.tracks.length === 0) {
+      setTrackUi(null);
+      return;
+    }
+
+    applyTrack(music.index, { autoplay: false });
+  };
+
+  const applyBrightness = (value) => {
+    const n = Math.max(0, Math.min(100, Number(value) || 0));
+    // Background brightness factor 0.70..1.20
+    const b = 0.7 + (n / 100) * 0.5;
+    document.body.style.setProperty("--qs-bg-brightness", String(b.toFixed(3)));
+    // Slight veil reduction when brighter.
+    const veil = 1 - (n / 100) * 0.12;
+    document.body.style.setProperty("--qs-veil-opacity", String(veil.toFixed(3)));
+    if (qsBrightnessVal) qsBrightnessVal.textContent = String(Math.round(n));
+  };
+
+  const applySfxVolume = (value) => {
+    const n = Math.max(0, Math.min(100, Number(value) || 0));
+    const v = n / 100;
+    if (typeof SFX?.setVolume === "function") SFX.setVolume(v);
+    if (qsSfxVolumeVal) qsSfxVolumeVal.textContent = String(Math.round(n));
+  };
+
+  const applyFullscreenPref = (on) => {
+    safeLocalSet(LS_FS, on ? "1" : "0");
+  };
+
+  const applyWallpapers = (on) => {
+    if (on) document.body.classList.remove("no-video");
+    else document.body.classList.add("no-video");
+    safeLocalSet(LS_WALL, on ? "1" : "0");
   };
 
   let closeTimer = null;
@@ -501,6 +771,52 @@ const SFX = (() => {
     if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
     hideViewInfo();
     syncSfxLabel();
+    syncNotifUi();
+    syncMusicBtnUi(music.enabled);
+
+    // Sync quick settings values on open.
+    if (qsBrightness) {
+      const saved = Number(safeLocalGet(LS_BRIGHT));
+      const val = Number.isFinite(saved) ? saved : Number(qsBrightness.value || 78);
+      qsBrightness.value = String(Math.max(0, Math.min(100, val)));
+      applyBrightness(qsBrightness.value);
+    }
+
+    if (qsSfxVolume) {
+      const saved = Number(safeLocalGet(LS_SFXVOL));
+      const val = Number.isFinite(saved) ? saved : Math.round((typeof SFX?.getVolume === "function" ? SFX.getVolume() : 0.55) * 100);
+      qsSfxVolume.value = String(Math.max(0, Math.min(100, val)));
+      applySfxVolume(qsSfxVolume.value);
+    }
+
+    if (qsFullscreen) {
+      const on = safeLocalGet(LS_FS) === "1";
+      qsFullscreen.checked = on;
+    }
+
+    if (qsWallpapers) {
+      const saved = safeLocalGet(LS_WALL);
+      const on = saved === null ? !document.body.classList.contains("no-video") : saved === "1";
+      qsWallpapers.checked = on;
+      applyWallpapers(on);
+    }
+
+    if (qsSettingsBtn && qsAdvanced) {
+      const open = safeLocalGet(LS_QS_ADV) === "1";
+      setAdvancedOpen(open, { persist: false });
+    }
+
+    if (qsMusicVolume) {
+      const saved = Number(safeLocalGet(LS_MUSIC_VOL));
+      const val = Number.isFinite(saved) ? saved : music.volume;
+      applyMusicVolume(val);
+    }
+
+    if (qsMusicAudio) {
+      setPlayIcon(!qsMusicAudio.paused);
+      // Lazy-load playlist (fetch) only when the drawer is opened.
+      loadPlaylistOnce();
+    }
 
     if (closeTimer) clearTimeout(closeTimer);
     overlay.hidden = false;
@@ -561,6 +877,120 @@ const SFX = (() => {
     });
   }
 
+  if (qsNotifBtn) {
+    qsNotifBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      const on = safeLocalGet(LS_NOTIF) !== "0";
+      safeLocalSet(LS_NOTIF, on ? "0" : "1");
+      syncNotifUi();
+    });
+  }
+
+  const navShortcut = (href) => {
+    if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+    closeDrawer({ focusProfile: false });
+    setTimeout(() => {
+      window.location.href = href;
+    }, 120);
+  };
+
+  if (qsQuestBtn) qsQuestBtn.addEventListener("click", () => navShortcut("/quest"));
+  if (qsGuildBtn) qsGuildBtn.addEventListener("click", () => navShortcut("/guild"));
+  if (qsNotesBtn) qsNotesBtn.addEventListener("click", () => navShortcut("/notes"));
+  if (qsHomeBtn) qsHomeBtn.addEventListener("click", () => navShortcut("/dashboard"));
+
+  if (qsSettingsBtn && qsAdvanced) {
+    qsSettingsBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      const open = !qsAdvanced.hidden;
+      setAdvancedOpen(!open, { persist: true, focusFirst: true });
+    });
+  }
+
+  if (toggleMusicBtn) {
+    toggleMusicBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      setMusicEnabled(!music.enabled);
+    });
+  }
+
+  if (qsMusicPrevBtn) {
+    qsMusicPrevBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      loadPlaylistOnce();
+      applyTrack(music.index - 1, { autoplay: !qsMusicAudio?.paused });
+    });
+  }
+
+  if (qsMusicNextBtn) {
+    qsMusicNextBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      loadPlaylistOnce();
+      applyTrack(music.index + 1, { autoplay: !qsMusicAudio?.paused });
+    });
+  }
+
+  if (qsMusicPlayBtn) {
+    qsMusicPlayBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      setMusicEnabled(true);
+      loadPlaylistOnce();
+      if (!qsMusicAudio) return;
+      if (!qsMusicAudio.getAttribute("src")) applyTrack(music.index, { autoplay: false });
+      try {
+        if (qsMusicAudio.paused) {
+          const p = qsMusicAudio.play();
+          if (p && typeof p.catch === "function") p.catch(() => {});
+        } else qsMusicAudio.pause();
+      } catch {
+        // ignore
+      }
+      setPlayIcon(!qsMusicAudio.paused);
+    });
+  }
+
+  if (qsMusicVolume) {
+    qsMusicVolume.addEventListener("input", () => {
+      applyMusicVolume(qsMusicVolume.value);
+    });
+  }
+
+  if (qsMusicAudio) {
+    qsMusicAudio.addEventListener("play", () => setPlayIcon(true));
+    qsMusicAudio.addEventListener("pause", () => setPlayIcon(false));
+    qsMusicAudio.addEventListener("ended", () => {
+      if (!music.enabled) return;
+      loadPlaylistOnce();
+      applyTrack(music.index + 1, { autoplay: true });
+    });
+  }
+
+  if (qsBrightness) {
+    qsBrightness.addEventListener("input", () => {
+      applyBrightness(qsBrightness.value);
+      safeLocalSet(LS_BRIGHT, String(Math.round(Number(qsBrightness.value) || 0)));
+    });
+  }
+
+  if (qsSfxVolume) {
+    qsSfxVolume.addEventListener("input", () => {
+      applySfxVolume(qsSfxVolume.value);
+      safeLocalSet(LS_SFXVOL, String(Math.round(Number(qsSfxVolume.value) || 0)));
+    });
+  }
+
+  if (qsFullscreen) {
+    qsFullscreen.addEventListener("change", () => {
+      applyFullscreenPref(!!qsFullscreen.checked);
+    });
+  }
+
+  if (qsWallpapers) {
+    qsWallpapers.addEventListener("change", () => {
+      applyWallpapers(!!qsWallpapers.checked);
+    });
+  }
+
   if (backToLandingBtn) {
     backToLandingBtn.addEventListener("click", () => {
       if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
@@ -615,10 +1045,14 @@ const SFX = (() => {
 
   const drawerFocusables = () => {
     if (!drawer) return [];
-    const els = Array.from(drawer.querySelectorAll("button,[tabindex='0']"));
+    const els = Array.from(drawer.querySelectorAll("button,input,select,textarea,[tabindex='0']"));
     return els.filter((el) => {
       if (el.hasAttribute("disabled")) return false;
       if (el.getAttribute("aria-hidden") === "true") return false;
+      if (el.closest("[hidden]")) return false;
+      if (el.closest('[aria-hidden=\"true\"]')) return false;
+      const style = getComputedStyle(el);
+      if (style.display === "none" || style.visibility === "hidden") return false;
       return true;
     });
   };
@@ -1057,6 +1491,20 @@ const SFX = (() => {
       if (zone === "drawer") {
         e.preventDefault();
         e.stopPropagation();
+
+        const ae = document.activeElement;
+        const isRange = ae?.tagName && String(ae.tagName).toLowerCase() === "input" && String(ae.getAttribute("type") || "").toLowerCase() === "range";
+        if (isRange && (key === "ArrowLeft" || key === "ArrowRight")) {
+          const input = ae;
+          const min = Number(input.min || 0);
+          const max = Number(input.max || 100);
+          const step = Number(input.step || 1);
+          const cur = Number(input.value || 0);
+          const next = Math.max(min, Math.min(max, cur + (key === "ArrowRight" ? step : -step)));
+          input.value = String(next);
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          return;
+        }
 
         if (key === "Escape") {
           if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();

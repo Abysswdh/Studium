@@ -6,6 +6,7 @@
   },
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true});\"",
+    "predev": "node scripts/generate-playlist-manifest.mjs",
     "dev": "next dev",
     "prebuild": "node scripts/generate-playlist-manifest.mjs",
     "build": "next build",

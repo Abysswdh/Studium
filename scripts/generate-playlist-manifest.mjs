@@ -5,7 +5,8 @@ const AUDIO_EXT = new Set([".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac"]);
 
 function titleFromFilename(name) {
   const base = name.replace(/\.[^.]+$/, "");
-  return base.replace(/^\s*\d+\s*([._-]\s*)?/, "").trim() || base;
+  const cleaned = base.replace(/^\s*\d+\s*([._-]\s*)?/, "").replace(/[_-]+/g, " ").trim() || base;
+  return cleaned.replace(/([a-z])([A-Z])/g, "$1 $2").trim() || cleaned;
 }
 
 function main() {
@@ -32,4 +33,3 @@ function main() {
 }
 
 main();
-
