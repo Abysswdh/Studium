@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { clearSessionCookie, deleteSession, readSessionTokenAsync } from "../../lib/auth/session";
+import { deleteSession, readSessionTokenAsync, SESSION_COOKIE } from "../../lib/auth/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,11 +14,15 @@ export async function GET(req: Request) {
     }
   }
 
-  try {
-    await clearSessionCookie();
-  } catch {
-    // ignore
-  }
-
-  return NextResponse.redirect(new URL("/", req.url));
+  const res = NextResponse.redirect(new URL("/", req.url));
+  res.cookies.set({
+    name: SESSION_COOKIE,
+    value: "",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
+  return res;
 }
