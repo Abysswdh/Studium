@@ -1,5 +1,26 @@
 /* Quick Settings UI inside the profile drawer (console-like). */
 
+.drawer {
+  width: min(420px, calc(100vw - 36px));
+}
+
+.drawerBody {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge legacy */
+  padding-right: 0;
+}
+
+.drawerBody::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.qsAccountRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 .qsMenu {
   display: grid;
   gap: 12px;

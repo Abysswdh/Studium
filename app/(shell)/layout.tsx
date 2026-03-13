@@ -312,6 +312,30 @@ export default async function ShellLayout({ children }: { children: React.ReactN
                   <span className="qsSwitch" aria-hidden="true"></span>
                 </label>
               </div>
+
+              <div className="qsSection" aria-label="Account actions">
+                <div className="qsCaption">ACCOUNT</div>
+                {user.id === 0 ? (
+                  <div className="qsAccountRow" aria-label="Sign in or register">
+                    <button className="drawerToggle headerAction" id="signInBtn" data-focus="drawer.signin" type="button" aria-label="Sign in">
+                      Sign In
+                    </button>
+                    <button
+                      className="drawerToggle headerAction"
+                      id="registerBtn"
+                      data-focus="drawer.register"
+                      type="button"
+                      aria-label="Create an account"
+                    >
+                      Register
+                    </button>
+                  </div>
+                ) : (
+                  <button className="drawerToggle headerAction" id="signOutBtn" data-focus="drawer.signout" type="button" aria-label="Sign out">
+                    Sign Out
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="qsAudioBar" aria-label="Audio controls">
@@ -361,29 +385,6 @@ export default async function ShellLayout({ children }: { children: React.ReactN
                 </div>
               </div>
             </div>
-            {user.id === 0 ? (
-              <>
-                <button className="drawerToggle headerAction" id="signInBtn" data-focus="drawer.signin" type="button" aria-label="Sign in">
-                  Sign In
-                </button>
-                <button
-                  className="drawerToggle headerAction"
-                  id="registerBtn"
-                  data-focus="drawer.register"
-                  type="button"
-                  aria-label="Create an account"
-                >
-                  Register
-                </button>
-              </>
-            ) : (
-              <button className="drawerToggle headerAction" id="signOutBtn" data-focus="drawer.signout" type="button" aria-label="Sign out">
-                Sign Out
-              </button>
-            )}
-            <button className="drawerToggle headerAction" data-focus="drawer.profile" type="button" aria-label="Open profile page (placeholder)">
-              Open Profile (Soon)
-            </button>
           </div>
         </div>
       </aside>
