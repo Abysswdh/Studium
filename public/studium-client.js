@@ -415,6 +415,7 @@ const SFX = (() => {
   };
 
   let infoTimer = null;
+  const isViewInfoOpen = () => !!viewInfo && !viewInfo.hidden && viewInfo.classList.contains("viewInfo--show");
   const hideViewInfo = () => {
     if (!viewInfo) return;
     viewInfo.classList.remove("viewInfo--show");
@@ -473,7 +474,7 @@ const SFX = (() => {
     }, 20);
   };
 
-  const closeDrawer = () => {
+  const closeDrawer = ({ focusProfile = true } = {}) => {
     if (!drawer || !overlay) return;
     document.body.classList.remove("drawer-open");
     drawer.setAttribute("aria-hidden", "true");
@@ -483,6 +484,16 @@ const SFX = (() => {
       overlay.hidden = true;
       drawer.hidden = true;
     }, 340);
+
+    if (focusProfile && userBtn) {
+      setTimeout(() => {
+        try {
+          userBtn.focus({ preventScroll: true });
+        } catch {
+          userBtn.focus();
+        }
+      }, 30);
+    }
   };
 
   if (viewBtn) {
@@ -509,13 +520,18 @@ const SFX = (() => {
   if (overlay)
     overlay.addEventListener("click", () => {
       if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
-      closeDrawer();
+      closeDrawer({ focusProfile: true });
     });
   if (closeBtn)
     closeBtn.addEventListener("click", () => {
       if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
-      closeDrawer();
+      closeDrawer({ focusProfile: true });
     });
+
+  window.studiumViewInfoApi = {
+    isOpen: isViewInfoOpen,
+    close: () => hideViewInfo(),
+  };
 
   const drawerFocusables = () => {
     if (!drawer) return [];
@@ -950,6 +966,13 @@ const SFX = (() => {
         e.stopPropagation();
 
         if (key === "Escape") {
+          if (window.studiumViewInfoApi?.isOpen?.()) {
+            if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+            window.studiumViewInfoApi?.close?.();
+            focusById("userMenuBtn");
+            return;
+          }
+
           if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
           focusNav();
           return;
