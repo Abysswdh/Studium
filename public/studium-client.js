@@ -1158,17 +1158,17 @@ const SFX = (() => {
 })();
 
 (function initSwipeNav() {
-  const outlet = document.getElementById("routeOutlet");
-  if (!outlet) return;
+  const root = document.documentElement;
+  if (!root) return;
 
   const shouldIgnoreTarget = (target) => {
     const el = target?.closest?.(
-      "#carousel, .navbar, .footerHUD, .hud, #profileDrawer, #profileOverlay, .drawer, .drawerOverlay"
+      "#carousel, .navbar, #profileDrawer, #profileOverlay, .drawer, .drawerOverlay"
     );
     if (el) return true;
 
     const t = target?.tagName ? String(target.tagName).toLowerCase() : "";
-    if (t === "input" || t === "textarea" || t === "select" || t === "button") return true;
+    if (t === "input" || t === "textarea" || t === "select") return true;
     if (target?.closest?.('input[type="range"]')) return true;
     return false;
   };
@@ -1185,7 +1185,7 @@ const SFX = (() => {
     st = 0;
   };
 
-  outlet.addEventListener(
+  root.addEventListener(
     "touchstart",
     (e) => {
       if (document.body.classList.contains("booting")) return;
@@ -1202,7 +1202,7 @@ const SFX = (() => {
     { passive: true }
   );
 
-  outlet.addEventListener(
+  root.addEventListener(
     "touchend",
     (e) => {
       if (!tracking) return;
@@ -1235,5 +1235,5 @@ const SFX = (() => {
     { passive: true }
   );
 
-  outlet.addEventListener("touchcancel", reset, { passive: true });
+  root.addEventListener("touchcancel", reset, { passive: true });
 })();
