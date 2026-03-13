@@ -1,6 +1,8 @@
 import RouteBridge from "../../components/route-bridge";
 import { getCurrentUser } from "../../lib/auth/current-user";
 import { guestUser } from "../../lib/mock-user";
+import MusicPlayer from "../../components/music/music-player";
+import { getPlaylistTracks } from "../../lib/music/playlist";
 import Script from "next/script";
 
 export const runtime = "nodejs";
@@ -8,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ShellLayout({ children }: { children: React.ReactNode }) {
   const user = (await getCurrentUser()) ?? guestUser();
+  const tracks = getPlaylistTracks();
 
   return (
     <main>
@@ -107,6 +110,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
           <div className="appver">
             <div className="userName">Studium v1.0.0</div>
           </div>
+          <MusicPlayer tracks={tracks} />
           <div className="hud">
             <div className="hudBar" aria-label="Controls">
               <div className="hudGroup" aria-label="Navigate">
