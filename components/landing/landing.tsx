@@ -20,9 +20,26 @@ export default function Landing() {
     document.body.classList.remove("drawer-open");
   }, []);
 
-  const enter = () => {
+  const enter = async () => {
     if (entering) return;
     setEntering(true);
+    try {
+      localStorage.setItem("studium:pref_fullscreen", "1");
+    } catch {
+      // ignore
+    }
+
+    try {
+      const el = document.documentElement as any;
+      const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+      if (!document.fullscreenElement && typeof fn === "function") {
+        const p = fn.call(el);
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
+
     window.setTimeout(() => router.push("/dashboard"), 380);
   };
 
@@ -33,7 +50,7 @@ export default function Landing() {
 
       if (e.key === "Enter" || e.key.toLowerCase() === "e") {
         e.preventDefault();
-        enter();
+        void enter();
       }
     };
 

@@ -254,6 +254,7 @@ const SFX = (() => {
   let pendingBoot = false;
   let lastBootAt = 0;
   let muted = false;
+  let fullscreenAttempted = false;
 
   const applyMute = () => {
     const m = muted ? 0 : 1;
@@ -281,6 +282,27 @@ const SFX = (() => {
 
   const unlock = () => {
     unlocked = true;
+    if (!fullscreenAttempted) {
+      fullscreenAttempted = true;
+      try {
+        if (window.sessionStorage && sessionStorage.getItem("studium:fs_attempted") === "1") {
+          // noop
+        } else {
+          sessionStorage?.setItem?.("studium:fs_attempted", "1");
+          const want = window.localStorage?.getItem?.("studium:pref_fullscreen") === "1";
+          if (want && !document.fullscreenElement) {
+            const el = document.documentElement;
+            const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+            if (typeof fn === "function") {
+              const p = fn.call(el);
+              if (p && typeof p.catch === "function") p.catch(() => {});
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
     if (pendingBoot) {
       pendingBoot = false;
       lastBootAt = Date.now();
@@ -543,6 +565,17 @@ const SFX = (() => {
     backToLandingBtn.addEventListener("click", () => {
       if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
       setTimeout(() => {
+        try {
+          if (document.fullscreenElement) {
+            const fn = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+            if (typeof fn === "function") {
+              const p = fn.call(document);
+              if (p && typeof p.catch === "function") p.catch(() => {});
+            }
+          }
+        } catch {
+          // ignore
+        }
         window.location.href = "/";
       }, 110);
     });
