@@ -13,6 +13,13 @@ export default function Landing() {
   const router = useRouter();
   const [entering, setEntering] = useState(false);
 
+  useEffect(() => {
+    document.body.classList.add("nav-mode");
+    document.body.classList.remove("grid-mode");
+    document.body.dataset.view = "dashboard";
+    document.body.classList.remove("drawer-open");
+  }, []);
+
   const enter = () => {
     if (entering) return;
     setEntering(true);
