@@ -3,7 +3,6 @@ import { getCurrentUser } from "../../lib/auth/current-user";
 import { guestUser } from "../../lib/mock-user";
 import MusicPlayer from "../../components/music/music-player";
 import { getPlaylistTracks } from "../../lib/music/playlist";
-import ExternalNowPlaying from "../../components/external-now-playing/external-now-playing";
 import Script from "next/script";
 
 export const runtime = "nodejs";
@@ -112,7 +111,6 @@ export default async function ShellLayout({ children }: { children: React.ReactN
             <div className="userName">Studium v1.0.0</div>
           </div>
           <MusicPlayer tracks={tracks} />
-          <ExternalNowPlaying />
           <div className="hud">
             <div className="hudBar" aria-label="Controls">
               <div className="hudGroup" aria-label="Navigate">

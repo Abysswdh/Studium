@@ -42,6 +42,7 @@ export default function MusicPlayer({ tracks }: Props) {
   const [enabled, setEnabled] = useState(true);
   const [volume, setVolume] = useState(0.55);
 
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -51,8 +52,7 @@ export default function MusicPlayer({ tracks }: Props) {
   const freqRef = useRef<Uint8Array | null>(null);
 
   const orbRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const beatRef = useRef({ ema: 0, pulse: 0 });
+  const beatRef = useRef({ avg: 0, pulse: 0 });
 
   const current = list[index] ?? null;
 
@@ -169,45 +169,36 @@ export default function MusicPlayer({ tracks }: Props) {
       const analyser = analyserRef.current;
       const arr = freqRef.current;
       const orb = orbRef.current;
-      const canvas = canvasRef.current;
-      const ctx2d = canvas?.getContext?.("2d") ?? null;
 
       if (analyser && arr && orb) {
         analyser.getByteFrequencyData(arr as any);
 
-        // Bass energy (roughly first ~12 bins)
-        const bins = Math.min(14, arr.length);
-        let sum = 0;
-        for (let i = 0; i < bins; i++) sum += arr[i];
-        const energy = (sum / bins) / 255;
+        // Weighted energy: bass + some mid. Designed to feel alive even on steady tracks.
+        const bassBins = Math.min(14, arr.length);
+        const midStart = bassBins;
+        const midEnd = Math.min(midStart + 28, arr.length);
+
+        let bass = 0;
+        for (let i = 0; i < bassBins; i++) bass += arr[i];
+        bass = (bass / Math.max(1, bassBins)) / 255;
+
+        let mid = 0;
+        for (let i = midStart; i < midEnd; i++) mid += arr[i];
+        mid = (mid / Math.max(1, midEnd - midStart)) / 255;
+
+        const energy = bass * 0.78 + mid * 0.22;
 
         const s = beatRef.current;
-        s.ema = s.ema * 0.93 + energy * 0.07;
-        const threshold = s.ema * 1.35;
-        if (energy > threshold && energy > 0.06) s.pulse = Math.max(s.pulse, clamp((energy - threshold) * 2.3, 0, 1));
+        s.avg = s.avg * 0.96 + energy * 0.04;
+        const delta = energy - s.avg;
+        const hit = clamp(delta * 7.5, 0, 1);
 
-        s.pulse *= 0.88;
-        const beat = clamp(s.pulse, 0, 1);
+        // Maintain a small "breathing" motion, while peaks punch harder.
+        const floor = clamp((energy - 0.02) * 0.55, 0, 0.22);
+        s.pulse = Math.max(s.pulse * 0.86, hit);
+
+        const beat = clamp(floor + s.pulse, 0, 1);
         orb.style.setProperty("--beat", beat.toFixed(3));
-
-        if (ctx2d && canvas) {
-          const w = canvas.width;
-          const h = canvas.height;
-          ctx2d.clearRect(0, 0, w, h);
-
-          const bars = 18;
-          const step = Math.max(1, Math.floor(arr.length / 64));
-          const barW = w / bars;
-
-          for (let i = 0; i < bars; i++) {
-            const v = arr[i * step] / 255;
-            const bh = Math.max(2, v * h);
-            const x = i * barW;
-            const y = h - bh;
-            ctx2d.fillStyle = `rgba(255,255,255,${0.08 + v * 0.26})`;
-            ctx2d.fillRect(x + 1, y, Math.max(2, barW - 2), bh);
-          }
-        }
       } else if (orb) {
         orb.style.setProperty("--beat", "0");
       }
@@ -285,18 +276,67 @@ export default function MusicPlayer({ tracks }: Props) {
 
   const label = current?.title ?? "No playlist";
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const root = panelRef.current;
+      if (!root) return;
+      const ae = document.activeElement as HTMLElement | null;
+      if (!ae || !root.contains(ae)) return;
+
+      // Player-local keyboard mapping (only when focused inside the player).
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        prev();
+        return;
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        next();
+        return;
+      }
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        void toggle();
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setVolume((v) => clamp(v + 0.05, 0, 1));
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setVolume((v) => clamp(v - 0.05, 0, 1));
+        return;
+      }
+      if (e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        setEnabled((x) => !x);
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", onKeyDown, { capture: true } as any);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list.length, index, enabled]);
+
   return (
-    <div className="panelItem mx-4 flex w-[520px] max-w-[44vw] flex-col gap-3 rounded-2xl px-4 py-3">
+    <div
+      ref={panelRef}
+      className="panelItem mx-3 flex w-[360px] max-w-[32vw] flex-col gap-2 rounded-2xl px-3 py-2"
+      aria-label="Music player"
+    >
       <audio ref={audioRef} preload="metadata" />
 
       <div className="flex items-center gap-3">
         <div
           ref={orbRef}
-          className="relative grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black/25"
+          className="relative grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-black/25"
           aria-hidden="true"
           style={{
             transform: "scale(calc(1 + var(--beat, 0) * 0.16))",
-            transition: "transform 60ms linear",
+            transition: "transform 70ms ease-out",
             boxShadow: "0 10px 45px rgba(0,0,0,0.35)",
           }}
         >
@@ -312,7 +352,7 @@ export default function MusicPlayer({ tracks }: Props) {
 
         <div className="min-w-0 flex-1">
           <div className="text-[11px] font-[900] tracking-[0.18em] text-white/55">MUSIC</div>
-          <div className="truncate text-sm font-[900] text-white/90" title={label}>
+          <div className="truncate text-[13px] font-[900] text-white/90" title={label}>
             {label}
           </div>
         </div>
@@ -370,14 +410,6 @@ export default function MusicPlayer({ tracks }: Props) {
             <div className="w-10 text-right text-xs font-[900] text-white/60">{Math.round(volume * 100)}</div>
           </div>
         </div>
-
-        <canvas
-          ref={canvasRef}
-          width={200}
-          height={34}
-          className="rounded-xl border border-white/10 bg-black/20"
-          aria-hidden="true"
-        />
       </div>
 
       {!list.length ? (
