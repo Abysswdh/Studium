@@ -81,9 +81,9 @@ export default async function ShellLayout({ children }: { children: React.ReactN
               <i className="fa-solid fa-book-open" aria-hidden="true"></i>
               <span>Study Room</span>
             </button>
-            <button className="navItem" type="button" data-page="guild" data-focus="nav.guild" role="tab" aria-selected="false">
-              <i className="fa-solid fa-people-group" aria-hidden="true"></i>
-              <span>Guild</span>
+            <button className="navItem" type="button" data-page="battle" data-focus="nav.battle" role="tab" aria-selected="false">
+              <i className="fa-solid fa-fire" aria-hidden="true"></i>
+              <span>Battle</span>
             </button>
             <button className="navItem" type="button" data-page="match" data-focus="nav.match" role="tab" aria-selected="false">
               <i className="fa-solid fa-gear" aria-hidden="true"></i>
@@ -187,11 +187,11 @@ export default async function ShellLayout({ children }: { children: React.ReactN
                 </span>
               </button>
 
-              <button className="qsMenuBtn headerAction" id="qsGuildBtn" data-focus="drawer.shortcutGuild" type="button" aria-label="Go to Guild">
+              <button className="qsMenuBtn headerAction" id="qsBattleBtn" data-focus="drawer.shortcutBattle" type="button" aria-label="Go to Battle">
                 <span className="qsMenuIcon" aria-hidden="true">
-                  <i className="fa-solid fa-people-group"></i>
+                  <i className="fa-solid fa-fire"></i>
                 </span>
-                <span className="qsMenuText">Guild</span>
+                <span className="qsMenuText">Battle</span>
                 <span className="qsMenuChevron" aria-hidden="true">
                   <i className="fa-solid fa-chevron-right"></i>
                 </span>
@@ -341,47 +341,43 @@ export default async function ShellLayout({ children }: { children: React.ReactN
             <div className="qsAudioBar" aria-label="Audio controls">
               <audio id="qsMusicAudio" preload="metadata" />
 
-              <div className="qsAudioLeft">
-                <div className="qsMusicIcon" aria-hidden="true">
+              <div className="qsPlayer" aria-label="Music player">
+                <div className="qsMusicIcon" id="qsMusicIcon" aria-hidden="true">
                   <i className="fa-solid fa-music"></i>
                 </div>
-                <div className="qsTrack">
-                  <div className="qsTrackTitle" id="qsTrackTitle">
-                    No playlist
+
+                <div className="qsPlayerMain">
+                  <div className="qsTrack">
+                    <div className="qsTrackTitle" id="qsTrackTitle">
+                      No playlist
+                    </div>
+                    <div className="qsTrackSub" id="qsTrackSub">
+                      No tracks loaded
+                    </div>
                   </div>
-                  <div className="qsTrackSub" id="qsTrackSub">
-                    Add files to /public/sound/playlist
+
+                  <div className="qsPlayerControls" aria-label="Music controls">
+                    <button
+                      className="qsCtl headerAction"
+                      id="qsMusicPrevBtn"
+                      data-focus="drawer.musicPrev"
+                      type="button"
+                      aria-label="Previous track"
+                    >
+                      <i className="fa-solid fa-backward-step" aria-hidden="true"></i>
+                    </button>
+                    <button className="qsCtl headerAction" id="qsMusicPlayBtn" data-focus="drawer.musicPlay" type="button" aria-label="Play or pause">
+                      <i className="fa-solid fa-play" aria-hidden="true"></i>
+                    </button>
+                    <button className="qsCtl headerAction" id="qsMusicNextBtn" data-focus="drawer.musicNext" type="button" aria-label="Next track">
+                      <i className="fa-solid fa-forward-step" aria-hidden="true"></i>
+                    </button>
+                    <button className="qsCtl headerAction" id="qsMuteBtn" data-focus="drawer.mute" type="button" aria-label="Mute audio">
+                      <i className="fa-solid fa-volume-high" aria-hidden="true"></i>
+                    </button>
                   </div>
-                </div>
-              </div>
 
-              <div className="qsAudioControls" aria-label="Music controls">
-                <button className="qsCtl headerAction" id="qsMusicPrevBtn" data-focus="drawer.musicPrev" type="button" aria-label="Previous track">
-                  <i className="fa-solid fa-backward-step" aria-hidden="true"></i>
-                </button>
-                <button className="qsCtl headerAction" id="qsMusicPlayBtn" data-focus="drawer.musicPlay" type="button" aria-label="Play or pause">
-                  <i className="fa-solid fa-play" aria-hidden="true"></i>
-                </button>
-                <button className="qsCtl headerAction" id="qsMusicNextBtn" data-focus="drawer.musicNext" type="button" aria-label="Next track">
-                  <i className="fa-solid fa-forward-step" aria-hidden="true"></i>
-                </button>
-              </div>
-
-              <div className="qsAudioRight" aria-label="Audio toggles">
-                <button className="qsPillBtn headerAction" id="toggleSfxBtn" data-focus="drawer.sfx" type="button" aria-label="Toggle sound effects">
-                  <span className="qsPillBtn__label">SFX</span>
-                  <i className="fa-solid fa-volume-high" aria-hidden="true"></i>
-                </button>
-                <button className="qsPillBtn headerAction" id="toggleMusicBtn" data-focus="drawer.music" type="button" aria-label="Toggle music">
-                  <span className="qsPillBtn__label">Music</span>
-                  <i className="fa-solid fa-music" aria-hidden="true"></i>
-                </button>
-              </div>
-
-              <div className="qsMusicVol" aria-label="Music volume">
-                <input className="qsRange" id="qsMusicVolume" data-focus="drawer.musicVolume" tabIndex={0} type="range" min={0} max={100} defaultValue={55} aria-label="Music volume" />
-                <div className="qsValue" id="qsMusicVolumeVal" aria-hidden="true">
-                  55
+                  <input className="qsSeek" id="qsMusicSeek" data-focus="drawer.musicSeek" tabIndex={0} type="range" min={0} max={1000} defaultValue={0} aria-label="Track position" />
                 </div>
               </div>
             </div>

@@ -2,7 +2,7 @@
 
 html {
   /* Prevent subtle left/right jumps when scrollbars appear/disappear on desktop. */
-  scrollbar-gutter: stable both-edges;
+  scrollbar-gutter: stable;
 }
 
 :root {

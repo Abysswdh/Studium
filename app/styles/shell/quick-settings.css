@@ -270,34 +270,51 @@
 
 .qsAudioBar {
   margin-top: 14px;
-  border-radius: 20px;
-  padding: 14px;
-  background: rgba(0, 0, 0, 0.20);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  display: grid;
-  gap: 12px;
+  border-radius: 24px;
+  padding: 16px 16px;
+  /* "Vertical ramp" like the reference: brighter top, darker bottom. */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
 }
 
-.qsAudioLeft {
-  display: flex;
+.qsPlayer {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 14px;
   align-items: center;
-  gap: 12px;
 }
 
 .qsMusicIcon {
-  width: 52px;
-  height: 52px;
-  border-radius: 18px;
-  background: rgba(88, 216, 255, 0.32);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  width: 70px;
+  height: 70px;
+  border-radius: 22px;
+  background: rgba(120, 220, 255, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   display: grid;
   place-items: center;
   color: rgba(255, 255, 255, 0.92);
   flex: 0 0 auto;
+  transform: scale(calc(1 + var(--qs-beat, 0) * 0.22));
+  transition: transform 70ms ease-out;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  position: relative;
+}
+
+.qsMusicIcon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.13), 0 0 40px rgba(255, 255, 255, 0.10);
+  opacity: calc(0.55 + var(--qs-beat, 0) * 0.55);
+  transition: opacity 120ms ease-out;
 }
 
 .qsMusicIcon i {
-  font-size: 22px;
+  font-size: 26px;
+  position: relative;
+  z-index: 1;
 }
 
 .qsTrack {
@@ -308,7 +325,7 @@
   font-family: var(--font-display);
   font-weight: 900;
   color: rgba(255, 255, 255, 0.92);
-  font-size: 13px;
+  font-size: 18px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -324,18 +341,25 @@
   text-overflow: ellipsis;
 }
 
-.qsAudioControls {
+.qsPlayerMain {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: 10px;
+}
+
+.qsPlayerControls {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 10px;
 }
 
 .qsCtl {
-  width: 44px;
+  width: 40px;
   height: 40px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.10);
   display: grid;
   place-items: center;
@@ -346,46 +370,42 @@
   font-size: 16px;
 }
 
-.qsAudioRight {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
+.qsSeek {
+  width: 100%;
+  height: 16px;
+  accent-color: rgba(255, 255, 255, 0.92);
+  background: transparent;
 }
 
-.qsPillBtn {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 86, 86, 0.70);
-  color: rgba(255, 255, 255, 0.96);
-  border-radius: 16px;
-  padding: 10px 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--font-display);
-  font-weight: 900;
+.qsSeek::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
 }
 
-.qsPillBtn--off {
-  background: rgba(255, 255, 255, 0.10);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.80);
+.qsSeek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  margin-top: -3px;
 }
 
-.qsPillBtn i {
-  font-size: 16px;
+.qsSeek::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
 }
 
-.qsPillBtn__label {
-  font-size: 12px;
-  letter-spacing: 0.12em;
-}
-
-.qsMusicVol {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  align-items: center;
+.qsSeek::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.35);
 }
 
 /* Background adjustments driven by quick settings vars. */
@@ -443,12 +463,12 @@
     padding: 12px;
   }
   .qsMusicIcon {
-    width: 46px;
-    height: 46px;
-    border-radius: 16px;
+    width: 58px;
+    height: 58px;
+    border-radius: 20px;
   }
   .qsCtl {
-    width: 42px;
+    width: 38px;
     height: 38px;
     border-radius: 14px;
   }
