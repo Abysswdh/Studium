@@ -76,6 +76,29 @@ function setMode(mode) {
   document.body.classList.toggle("grid-mode", mode === "grid");
 }
 
+const NAV_LOCK_KEY = "studium:nav_lock_until";
+function setNavLock(ms) {
+  try {
+    sessionStorage.setItem(NAV_LOCK_KEY, String(Date.now() + Math.max(0, ms || 0)));
+  } catch {
+    // ignore
+  }
+}
+function clearNavLock() {
+  try {
+    sessionStorage.removeItem(NAV_LOCK_KEY);
+  } catch {
+    // ignore
+  }
+}
+function navLockActive() {
+  try {
+    return Date.now() < Number(sessionStorage.getItem(NAV_LOCK_KEY) || 0);
+  } catch {
+    return false;
+  }
+}
+
 (function initWallpapers() {
   const videoA = document.getElementById("bgVideoA");
   const videoB = document.getElementById("bgVideoB");
@@ -529,6 +552,7 @@ try {
   const overlay = document.getElementById("profileOverlay");
   const drawer = document.getElementById("profileDrawer");
   const closeBtn = document.getElementById("profileCloseBtn");
+  const qsProfileBtn = document.getElementById("qsProfileBtn");
   const qsNotifBtn = document.getElementById("qsNotifBtn");
   const qsNotifPill = document.getElementById("qsNotifPill");
   const qsQuestBtn = document.getElementById("qsQuestBtn");
@@ -693,6 +717,15 @@ try {
     if (qsNotifPill) {
       qsNotifPill.textContent = on ? "On" : "Off";
       qsNotifPill.classList.toggle("qsMenuPill--off", !on);
+    }
+  };
+
+  const setPendingFocus = (key) => {
+    if (!key) return;
+    try {
+      sessionStorage.setItem("studium:pending_focus", String(key));
+    } catch {
+      // ignore
     }
   };
 
@@ -1134,9 +1167,16 @@ try {
   if (qsNotifBtn) {
     qsNotifBtn.addEventListener("click", () => {
       if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
-      const on = safeLocalGet(LS_NOTIF) !== "0";
-      safeLocalSet(LS_NOTIF, on ? "0" : "1");
-      syncNotifUi();
+      setPendingFocus("match.account.notifications");
+      navShortcut("/match");
+    });
+  }
+
+  if (qsProfileBtn) {
+    qsProfileBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      setPendingFocus("match.account.profile");
+      navShortcut("/match");
     });
   }
 
@@ -1153,13 +1193,7 @@ try {
   if (qsNotesBtn) qsNotesBtn.addEventListener("click", () => navShortcut("/notes"));
   if (qsHomeBtn) qsHomeBtn.addEventListener("click", () => navShortcut("/dashboard"));
 
-  if (qsSettingsBtn && qsAdvanced) {
-    qsSettingsBtn.addEventListener("click", () => {
-      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
-      const open = !qsAdvanced.hidden;
-      setAdvancedOpen(!open, { persist: true, focusFirst: true });
-    });
-  }
+  if (qsSettingsBtn) qsSettingsBtn.addEventListener("click", () => navShortcut("/match"));
 
   if (toggleMusicBtn) {
     toggleMusicBtn.addEventListener("click", () => {
@@ -1482,6 +1516,20 @@ try {
     }
   };
 
+  const ensureCarouselVisible = (el, { behavior = "smooth" } = {}) => {
+    if (!el || !carousel) return;
+    try {
+      const c = carousel.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      const pad = 28;
+      const isVisible = r.left >= c.left + pad && r.right <= c.right - pad;
+      if (isVisible) return;
+      el.scrollIntoView({ behavior, inline: "center", block: "nearest" });
+    } catch {
+      // ignore
+    }
+  };
+
   const initialView = document.body.dataset.view || "dashboard";
   let activeIndex = items.findIndex((i) => i.dataset.page === initialView);
   if (activeIndex < 0) activeIndex = 0;
@@ -1497,7 +1545,7 @@ try {
     const el = items[focusedIndex];
     el.classList.add("focused");
 
-    if (scroll) el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    if (scroll) ensureCarouselVisible(el, { behavior: "smooth" });
     if (focus) safeFocus(el);
   }
 
@@ -1550,17 +1598,11 @@ try {
     // Update active + route.
     setActive(nextIndex, { navigate: true });
 
-    // Always keep the active item visible in the carousel.
-    try {
-      items[nextIndex].scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-    } catch {
-      // ignore
-    }
-
     // If user is in grid mode (nav minimized), preserve the mode and don't steal focus.
     if (preserveMode && document.body.classList.contains("grid-mode")) {
       items.forEach((i) => i.classList.remove("focused"));
       items[nextIndex].classList.add("focused");
+      ensureCarouselVisible(items[nextIndex], { behavior: "smooth" });
       return;
     }
 
@@ -1613,6 +1655,8 @@ try {
       if (document.body.classList.contains("booting")) return;
       const idx = items.indexOf(item);
       if (idx < 0) return;
+      const pageName = item.dataset.page || "";
+      if (pageName === "quest") setNavLock(650);
       setMode("nav");
       setFocused(idx, { focus: true, scroll: true });
       setActive(idx, { navigate: true });
@@ -1652,6 +1696,7 @@ try {
 
 (function initContentBindings() {
   const enterContentMode = () => {
+    if (getView() === "quest" && navLockActive()) return;
     setMode("grid");
     if (typeof window.clearNavFocus === "function") window.clearNavFocus();
   };
@@ -1695,10 +1740,37 @@ try {
 
       el.addEventListener("focus", () => {
         const view = getView();
-        lastByView[view] = el.getAttribute("data-focus") || "";
+        const key = el.getAttribute("data-focus") || "";
+        if (view === "quest" && navLockActive()) {
+          requestAnimationFrame(() => {
+            try {
+              window.setMode?.("nav");
+              window.focusNavMenu?.();
+            } catch {
+              // ignore
+            }
+          });
+          return;
+        }
+        lastByView[view] = key;
         enterContentMode();
+
+        // Dashboard calendar widget: focusing the container should enter the controls.
+        if (key === "dashboard.widget") {
+          const target = el.querySelector?.('[data-focus="dashboard.widget.today"]');
+          if (target) {
+            requestAnimationFrame(() => {
+              try {
+                target.focus({ preventScroll: true });
+              } catch {
+                target.focus();
+              }
+            });
+          }
+        }
       });
       el.addEventListener("pointerdown", () => {
+        clearNavLock();
         if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
         enterContentMode();
       });
@@ -1717,6 +1789,29 @@ try {
 
   window.studiumReinitContent = () => bindGrid();
   bindGrid();
+
+  // Guard: Next.js may move focus into newly-mounted route content on navigation.
+  // When entering Quest, keep the navbar open/focused unless the user explicitly clicks the content.
+  document.addEventListener(
+    "focusin",
+    (e) => {
+      if (getView() !== "quest") return;
+      if (!navLockActive()) return;
+      const t = e.target;
+      if (!t || typeof t !== "object") return;
+      if (typeof t.closest !== "function") return;
+      if (!t.closest("#routeOutlet")) return;
+      requestAnimationFrame(() => {
+        try {
+          window.setMode?.("nav");
+          window.focusNavMenu?.();
+        } catch {
+          // ignore
+        }
+      });
+    },
+    true
+  );
 })();
 
 (function initKeyboardRouterHybrid() {
@@ -1767,6 +1862,7 @@ try {
   };
 
   const focusContentEntry = () => {
+    if (getView() === "quest") clearNavLock();
     const view = getView();
     const key = entryByView[view];
     if (key && focusByKey(key)) return true;
@@ -1843,66 +1939,127 @@ try {
 
   const overlap1d = (a1, a2, b1, b2) => Math.max(0, Math.min(a2, b2) - Math.max(a1, b1));
 
+  let gridRectCache = null;
+  let gridCacheTimer = null;
+  let lastXMemory = null;
+
+  const invalidateGridCache = () => { gridRectCache = null; };
+  window.addEventListener('resize', invalidateGridCache);
+
+  const getCachedRects = (candidates) => {
+    if (gridRectCache && gridRectCache.length === candidates.length) return gridRectCache;
+    gridRectCache = candidates.map(el => ({ el, rect: el.getBoundingClientRect(), center: centerOf(el.getBoundingClientRect()) }));
+    return gridRectCache;
+  };
+
   const spatialNext = (current, dir, candidates) => {
     if (!current) return null;
+    if (gridCacheTimer) clearTimeout(gridCacheTimer);
+    gridCacheTimer = setTimeout(invalidateGridCache, 500);
+
     const curRect = current.getBoundingClientRect();
     const cur = centerOf(curRect);
 
+    if (dir === 'up' || dir === 'down') {
+      if (lastXMemory === null) lastXMemory = cur.x;
+    } else {
+      lastXMemory = null;
+    }
+
+    const targetX = lastXMemory !== null ? lastXMemory : cur.x;
     let best = null;
     let bestScore = Infinity;
+    const items = getCachedRects(candidates);
 
-    for (const el of candidates) {
+    for (const item of items) {
+      const el = item.el;
       if (!el || el === current) continue;
-      const r = el.getBoundingClientRect();
-      const c = centerOf(r);
+      const r = item.rect;
+      const c = item.center;
+      
       const dx = c.x - cur.x;
       const dy = c.y - cur.y;
 
-      if (dir === "left" && dx >= -6) continue;
-      if (dir === "right" && dx <= 6) continue;
-      if (dir === "up" && dy >= -6) continue;
-      if (dir === "down" && dy <= 6) continue;
+      if (dir === 'left' && dx >= -6) continue;
+      if (dir === 'right' && dx <= 6) continue;
+      if (dir === 'up' && dy >= -6) continue;
+      if (dir === 'down' && dy <= 6) continue;
 
-      const primary = dir === "left" || dir === "right" ? Math.abs(dx) : Math.abs(dy);
-      const secondary = dir === "left" || dir === "right" ? Math.abs(dy) : Math.abs(dx);
+      const primary = dir === 'left' || dir === 'right' ? Math.abs(dx) : Math.abs(dy);
+      const secondaryRaw = dir === 'left' || dir === 'right' ? Math.abs(dy) : Math.abs(c.x - targetX);
+      const secondary = secondaryRaw;
+
       let score = primary * primary + secondary * secondary * 2.2;
 
-      const overlap =
-        dir === "left" || dir === "right"
+      const overlap = dir === 'left' || dir === 'right'
           ? overlap1d(curRect.top, curRect.bottom, r.top, r.bottom)
           : overlap1d(curRect.left, curRect.right, r.left, r.right);
       if (overlap > 0) score *= 0.62;
 
-      if (score < bestScore) {
-        bestScore = score;
-        best = el;
-      }
+      if (score < bestScore) { bestScore = score; best = el; }
     }
-
     return best;
   };
 
-  const gridCandidates = () =>
-    (window.studiumGridApi?.list ? window.studiumGridApi.list() : Array.from(document.querySelectorAll("#routeOutlet [data-focus]"))).filter(
-      isVisible
-    );
+  const gridCandidatesAll = () =>
+    (window.studiumGridApi?.list ? window.studiumGridApi.list() : Array.from(document.querySelectorAll("#routeOutlet [data-focus]"))).filter(isVisible);
+
+  const gridCandidateSets = () => {
+    const all = gridCandidatesAll();
+    const widget = document.getElementById("grid-widget");
+    const ae = document.activeElement;
+    if (widget && ae && widget.contains(ae)) {
+      const scoped = all.filter((el) => widget.contains(el));
+      return { primary: scoped.length ? scoped : all, fallback: all };
+    }
+    return { primary: all, fallback: all };
+  };
+
+  const applyRovingTabindex = (activeEl) => {
+    const all = gridCandidatesAll();
+    for (const el of all) { if (el === activeEl) { el.setAttribute('tabindex', '0'); } else { el.setAttribute('tabindex', '-1'); } }
+  };
+
+  const ensureVisibleSmooth = (el) => {
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const pad = 120;
+    const vh = window.innerHeight;
+    if (r.top < pad) { if (window.scrollBy) window.scrollBy({ top: r.top - pad, behavior: 'smooth' }); }
+    else if (r.bottom > vh - pad) { if (window.scrollBy) window.scrollBy({ top: r.bottom - vh + pad, behavior: 'smooth' }); }
+  };
 
   const moveInGrid = (dir) => {
     const view = getView();
     const curRaw = document.activeElement;
-    const cur = curRaw?.closest?.(".gridCard") || curRaw;
-    const fromKey = cur?.getAttribute?.("data-focus") || curRaw?.getAttribute?.("data-focus") || "";
-    const override = overrideByView?.[view]?.[`${fromKey}:${dir}`];
+    const curHasKey = !!curRaw?.getAttribute?.("data-focus") || !!curRaw?.classList?.contains?.("gridCard");
+    const cur = curHasKey ? curRaw : curRaw?.closest?.(".gridCard") || curRaw;
+    const fromKey = cur?.getAttribute?.('data-focus') || curRaw?.getAttribute?.('data-focus') || '';
+    const override = overrideByView?.[view]?.[fromKey + ':' + dir];
+    
     if (override) {
       const moved = focusByKey(override);
-      if (moved && typeof SFX?.playGridMove === "function") SFX.playGridMove();
+      if (moved) {
+        if (typeof SFX?.playGridMove === 'function') SFX.playGridMove();
+        applyRovingTabindex(document.activeElement);
+        ensureVisibleSmooth(document.activeElement);
+      }
       return moved;
     }
 
-    const next = spatialNext(cur, dir, gridCandidates());
-    if (!next) return false;
+    const { primary, fallback } = gridCandidateSets();
+    const next = spatialNext(cur, dir, primary) || (fallback !== primary ? spatialNext(cur, dir, fallback) : null);
+    if (!next) {
+       if (dir === 'up' || dir === 'down') lastXMemory = null;
+       return false;
+    }
+    
     const moved = focusEl(next);
-    if (moved && typeof SFX?.playGridMove === "function") SFX.playGridMove();
+    if (moved) {
+      if (typeof SFX?.playGridMove === 'function') SFX.playGridMove();
+      applyRovingTabindex(next);
+      ensureVisibleSmooth(next);
+    }
     return moved;
   };
 
@@ -1922,20 +2079,36 @@ try {
     (e) => {
       if (document.body.classList.contains("booting")) return;
       if (e.altKey || e.ctrlKey || e.metaKey) return;
-      if (isTypingTarget(document.activeElement)) return;
 
       const key = e.key;
       const isArrow = key === "ArrowLeft" || key === "ArrowRight" || key === "ArrowUp" || key === "ArrowDown" || key === "Escape";
       if (!isArrow) return;
 
       const zone = getZone();
+      const ae = document.activeElement;
+      const typing = isTypingTarget(ae);
+
+      // Don't steal arrow keys from typing targets (let caret/value navigation work).
+      // Escape is still handled for closing modals/drawers.
+      if (typing && key !== "Escape") return;
 
       // Modal
       if (zone === "modal") {
+        // Let native widgets keep their arrow-key behavior.
+        if (key !== "Escape") {
+          const tag = ae?.tagName ? String(ae.tagName).toLowerCase() : "";
+          const type = tag === "input" ? String(ae.getAttribute?.("type") || "text").toLowerCase() : "";
+          const valueControl =
+            tag === "select" ||
+            (tag === "input" && (type === "time" || type === "date" || type === "datetime-local" || type === "number" || type === "month" || type === "week"));
+
+          // Keep up/down for changing values, but allow left/right to keep navigating between controls.
+          if (valueControl && (key === "ArrowUp" || key === "ArrowDown")) return;
+        }
+
         e.preventDefault();
         e.stopPropagation();
 
-        const ae = document.activeElement;
         const isRange =
           ae?.tagName &&
           String(ae.tagName).toLowerCase() === "input" &&
@@ -1966,10 +2139,20 @@ try {
 
       // Drawer
       if (zone === "drawer") {
+        // Let native widgets keep their arrow-key behavior.
+        if (key !== "Escape") {
+          const tag = ae?.tagName ? String(ae.tagName).toLowerCase() : "";
+          const type = tag === "input" ? String(ae.getAttribute?.("type") || "text").toLowerCase() : "";
+          const valueControl =
+            tag === "select" ||
+            (tag === "input" && (type === "time" || type === "date" || type === "datetime-local" || type === "number" || type === "month" || type === "week"));
+
+          if (valueControl && (key === "ArrowUp" || key === "ArrowDown")) return;
+        }
+
         e.preventDefault();
         e.stopPropagation();
 
-        const ae = document.activeElement;
         const isRange = ae?.tagName && String(ae.tagName).toLowerCase() === "input" && String(ae.getAttribute("type") || "").toLowerCase() === "range";
         if (isRange && (key === "ArrowLeft" || key === "ArrowRight")) {
           const input = ae;
@@ -2040,6 +2223,17 @@ try {
 
       // Grid (any view)
       if (zone === "grid") {
+        // Let native widgets keep up/down arrows for changing values,
+        // but keep left/right for spatial navigation.
+        if (key !== "Escape") {
+          const tag = ae?.tagName ? String(ae.tagName).toLowerCase() : "";
+          const type = tag === "input" ? String(ae.getAttribute?.("type") || "text").toLowerCase() : "";
+          const valueControl =
+            tag === "select" ||
+            (tag === "input" && (type === "time" || type === "date" || type === "datetime-local" || type === "number" || type === "month" || type === "week"));
+          if (valueControl && (key === "ArrowUp" || key === "ArrowDown")) return;
+        }
+
         e.preventDefault();
         e.stopPropagation();
 

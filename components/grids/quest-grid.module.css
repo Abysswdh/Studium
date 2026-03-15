@@ -116,7 +116,29 @@
 .dangerBtn:focus-visible,
 .mission:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18), 0 0 0 6px rgb(var(--glass-tint) / 0.18);
+  box-shadow: none;
+}
+
+.actionBtn,
+.primaryBtn,
+.backBtn,
+.dangerBtn,
+.mission {
+  position: relative;
+}
+
+.actionBtn:focus-visible::after,
+.primaryBtn:focus-visible::after,
+.backBtn:focus-visible::after,
+.dangerBtn:focus-visible::after,
+.mission:focus-visible::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+  animation: focusPulse 1.15s ease-in-out infinite;
 }
 
 .backBtn {
@@ -859,7 +881,21 @@
 
 .objectiveBtn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18), 0 0 0 6px rgb(var(--glass-tint) / 0.18);
+  box-shadow: none;
+}
+
+.objectiveBtn {
+  position: relative;
+}
+
+.objectiveBtn:focus-visible::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+  animation: focusPulse 1.15s ease-in-out infinite;
 }
 
 .check {

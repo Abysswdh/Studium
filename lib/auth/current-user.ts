@@ -29,7 +29,7 @@ export async function getCurrentUser(): Promise<CurrentUser> {
       displayName: row.display_name,
       xp: Number(row.xp ?? 0),
       level: Number(row.level ?? 1),
-      avatarUrl: row.avatar_url || "/pfp.png",
+      avatarUrl: row.avatar_url || "/blockyPng/profilePicture.png",
     };
   } catch {
     return null;

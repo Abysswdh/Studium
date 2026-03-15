@@ -23,7 +23,7 @@ export default function NotesGrid() {
             role="button"
             aria-label="Tags and folders"
           >
-            <CardChrome kicker="Organize" title="Tags & folders" meta="Pinned • Subjects • Exams" />
+            <CardChrome kicker="Organize" title="Tags & folders" meta="Pinned | Subjects | Exams" />
           </div>
           <div
             className="gridContainerLeftBottomRight gridCard"
@@ -33,7 +33,7 @@ export default function NotesGrid() {
             role="button"
             aria-label="Quick capture"
           >
-            <CardChrome kicker="Quick capture" title="New note" meta="Enter • Type • Save" />
+            <CardChrome kicker="Quick capture" title="New note" meta="Enter | Type | Save" />
           </div>
         </div>
       </div>
@@ -48,7 +48,7 @@ export default function NotesGrid() {
             role="button"
             aria-label="Recent note 1"
           >
-            <CardChrome kicker="Recent" title="Limits — cheat sheet" meta="2m ago • Calculus" />
+            <CardChrome kicker="Recent" title="Limits - cheat sheet" meta="2m ago | Calculus" />
           </div>
           <div
             className="gridContainerRightLeftTwo gridCard"
@@ -58,7 +58,7 @@ export default function NotesGrid() {
             role="button"
             aria-label="Recent note 2"
           >
-            <CardChrome kicker="Pinned" title="Midterm roadmap" meta="Checklist • 6 items" />
+            <CardChrome kicker="Pinned" title="Midterm roadmap" meta="Checklist | 6 items" />
           </div>
           <div
             className="gridContainerRightLeftThree gridCard"
@@ -68,7 +68,7 @@ export default function NotesGrid() {
             role="button"
             aria-label="Recent note 3"
           >
-            <CardChrome kicker="Link" title="Attach to task" meta="1 due today • 3 open" />
+            <CardChrome kicker="Link" title="Attach to task" meta="1 due today | 3 open" />
           </div>
           <div
             className="gridContainerRightLeftFour gridCard"
@@ -78,7 +78,7 @@ export default function NotesGrid() {
             role="button"
             aria-label="Recent note 4"
           >
-            <CardChrome kicker="Review" title="Convert to flashcards" meta="12 cards • 1 deck" />
+            <CardChrome kicker="Review" title="Convert to flashcards" meta="12 cards | 1 deck" />
           </div>
         </div>
 

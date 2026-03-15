@@ -6,6 +6,8 @@ import { hashPassword } from "./auth/password";
 
 let db: DatabaseSync | null = null;
 
+const DEFAULT_AVATAR_URL = "/blockyPng/profilePicture.png";
+
 function ensureUsersColumns(db: DatabaseSync) {
   const cols = db.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
   const has = (name: string) => cols.some((c) => c.name === name);
@@ -27,13 +29,20 @@ function init(db: DatabaseSync) {
       password_hash TEXT,
       xp INTEGER NOT NULL DEFAULT 0,
       level INTEGER NOT NULL DEFAULT 1,
-      avatar_url TEXT NOT NULL DEFAULT '/pfp.png',
+      avatar_url TEXT NOT NULL DEFAULT '${DEFAULT_AVATAR_URL}',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
 
   // Keep older local DBs working after schema changes.
   ensureUsersColumns(db);
+
+  // Migrate older defaults / missing values.
+  db.prepare(
+    `UPDATE users
+     SET avatar_url = ?
+     WHERE avatar_url IS NULL OR avatar_url = '' OR avatar_url = '/pfp.png'`
+  ).run(DEFAULT_AVATAR_URL);
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS sessions (
@@ -45,12 +54,22 @@ function init(db: DatabaseSync) {
     );
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS planner_state (
+      user_id INTEGER PRIMARY KEY,
+      quests_json TEXT NOT NULL DEFAULT '[]',
+      events_json TEXT NOT NULL DEFAULT '[]',
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    );
+  `);
+
   // Seed a demo account for quick testing.
   const hasDemo = db.prepare("SELECT 1 FROM users WHERE email = ?").get("demo@studium.local");
   if (!hasDemo) {
     db.prepare(
       "INSERT INTO users (email, display_name, password_hash, xp, level, avatar_url) VALUES (?, ?, ?, ?, ?, ?)"
-    ).run("demo@studium.local", "Demo User", hashPassword("demo1234"), 1350, 12, "/pfp.png");
+    ).run("demo@studium.local", "Demo User", hashPassword("demo1234"), 1350, 12, DEFAULT_AVATAR_URL);
   }
 }
 

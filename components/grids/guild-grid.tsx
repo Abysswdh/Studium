@@ -12,7 +12,7 @@ export default function GuildGrid() {
           role="button"
           aria-label="Guild overview"
         >
-          <CardChrome kicker="Guild" title="Orbit Squad" meta="5 online • 2 co-focus rooms" />
+          <CardChrome kicker="Guild" title="Orbit Squad" meta="5 online | 2 co-focus rooms" />
         </div>
         <div className="gridContainerLeftBottom">
           <div
@@ -23,7 +23,7 @@ export default function GuildGrid() {
             role="button"
             aria-label="Accountability"
           >
-            <CardChrome kicker="Accountability" title="Nudges: On" meta="Leave-early check • Gentle reminders" />
+            <CardChrome kicker="Accountability" title="Nudges: On" meta="Leave-early check | Gentle reminders" />
           </div>
           <div
             className="gridContainerLeftBottomRight gridCard"
@@ -33,7 +33,7 @@ export default function GuildGrid() {
             role="button"
             aria-label="Start co-focus"
           >
-            <CardChrome kicker="Co-focus" title="Start a room" meta="25m • 50m • Custom" />
+            <CardChrome kicker="Co-focus" title="Start a room" meta="25m | 50m | Custom" />
           </div>
         </div>
       </div>
@@ -48,7 +48,7 @@ export default function GuildGrid() {
             role="button"
             aria-label="Room 1"
           >
-            <CardChrome kicker="Room" title="Calculus grind" meta="3 members • 18m left" />
+            <CardChrome kicker="Room" title="Calculus grind" meta="3 members | 18m left" />
           </div>
           <div
             className="gridContainerRightLeftTwo gridCard"
@@ -58,7 +58,7 @@ export default function GuildGrid() {
             role="button"
             aria-label="Room 2"
           >
-            <CardChrome kicker="Room" title="Chem review" meta="2 members • starting soon" />
+            <CardChrome kicker="Room" title="Chem review" meta="2 members | starting soon" />
           </div>
           <div
             className="gridContainerRightLeftThree gridCard"
@@ -68,7 +68,7 @@ export default function GuildGrid() {
             role="button"
             aria-label="Guild event"
           >
-            <CardChrome kicker="Event" title="Guild vs Guild" meta="Tonight • 21:00" />
+            <CardChrome kicker="Event" title="Guild vs Guild" meta="Tonight | 21:00" />
           </div>
           <div
             className="gridContainerRightLeftFour gridCard"
@@ -78,7 +78,7 @@ export default function GuildGrid() {
             role="button"
             aria-label="Leaderboard"
           >
-            <CardChrome kicker="Rank" title="Weekly XP" meta="#3 • +1,240 XP" />
+            <CardChrome kicker="Rank" title="Weekly XP" meta="#3 | +1,240 XP" />
           </div>
         </div>
 
@@ -90,7 +90,7 @@ export default function GuildGrid() {
           role="button"
           aria-label="Chat and activity"
         >
-          <CardChrome kicker="Chat" title="Squad feed" meta="Mentions • Pings • Join links" />
+          <CardChrome kicker="Chat" title="Squad feed" meta="Mentions | Pings | Join links" />
         </div>
       </div>
     </div>
