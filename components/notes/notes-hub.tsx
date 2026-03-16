@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import styles from "./notes-hub.module.css";
 
@@ -174,7 +174,6 @@ export default function NotesHub() {
   const [folderFilter, setFolderFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string>("");
-  const notesListRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setStore(loadStore());
@@ -320,13 +319,6 @@ export default function NotesHub() {
       notes: store.notes.map((n) => ({ ...n, tags: Array.isArray(n.tags) ? n.tags.filter((x) => x !== id) : [] })),
     };
     persistStore(next);
-  };
-
-  const scrollNotesList = (dir: "up" | "down") => {
-    const el = notesListRef.current;
-    if (!el) return;
-    const step = Math.max(180, Math.floor(el.clientHeight * 0.75));
-    el.scrollBy({ top: dir === "up" ? -step : step, behavior: "smooth" });
   };
 
   return (
@@ -495,40 +487,20 @@ export default function NotesHub() {
                 </button>
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="notesSearchWrap flex-1">
-                  <i className="fa-solid fa-magnifying-glass text-white/55" aria-hidden="true" />
-                  <input
-                    className="notesSearchInput"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search notes..."
-                    aria-label="Search notes"
-                  />
-                </div>
-                <button
-                  type="button"
-                  className="notesIconBtn gridCard"
-                  aria-label="Scroll up"
-                  title="Scroll up"
-                  onClick={() => scrollNotesList("up")}
-                >
-                  <i className="fa-solid fa-arrow-up" aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  className="notesIconBtn gridCard"
-                  aria-label="Scroll down"
-                  title="Scroll down"
-                  onClick={() => scrollNotesList("down")}
-                >
-                  <i className="fa-solid fa-arrow-down" aria-hidden="true" />
-                </button>
+              <div className="notesSearchWrap">
+                <i className="fa-solid fa-magnifying-glass text-white/55" aria-hidden="true" />
+                <input
+                  className="notesSearchInput"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search notes..."
+                  aria-label="Search notes"
+                />
               </div>
             </div>
 
             <div className={styles.notesPanelBody}>
-              <div ref={notesListRef} className={styles.list} role="list" aria-label="Notes list items">
+              <div className={styles.list} role="list" aria-label="Notes list items">
                 {filteredNotes.map((n) => (
                   <button
                     key={n.id}
