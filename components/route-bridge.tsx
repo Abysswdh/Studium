@@ -110,7 +110,8 @@ export default function RouteBridge() {
       if (!isFirst) {
         const key = "studium:pref_boot_on_nav";
         const stored = localStorage.getItem(key);
-        const enabled = stored == null ? true : stored === "1";
+        // Default OFF: the nav boot overlay can feel like a page fade.
+        const enabled = stored === "1";
         if (enabled) requestBoot({ mode: "nav", showWelcome: false, playSound: false });
       }
     } catch {
