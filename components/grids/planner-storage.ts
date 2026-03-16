@@ -32,9 +32,29 @@ export type PlannerEvent = {
   priority?: QuestPriority;
 };
 
-const LS_QUESTS = "studium:quests_v1";
-const LS_EVENTS = "studium:events_v1";
+const LS_QUESTS_BASE = "studium:quests_v1";
+const LS_EVENTS_BASE = "studium:events_v1";
 const UPDATED_EVENT = "studium:planner_updated";
+
+let bootstrapPromise: Promise<void> | null = null;
+let syncTimer: any = null;
+
+function currentUserId(): number | null {
+  if (typeof document === "undefined") return null;
+  const root = document.querySelector<HTMLElement>(".shellRoot");
+  const raw = root?.dataset?.userId || document.body?.dataset?.userId || "";
+  const id = Number(raw);
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
+
+function scopedKey(base: string) {
+  const uid = currentUserId();
+  return uid ? `${base}:u${uid}` : base;
+}
+
+function canUseRemote() {
+  return typeof window !== "undefined" && typeof fetch === "function";
+}
 
 function safeLocalGet(key: string) {
   try {
@@ -52,6 +72,14 @@ function safeLocalSet(key: string, value: string) {
   }
 }
 
+function safeLocalRemove(key: string) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+}
+
 function safeJsonParse<T>(value: string | null, fallback: T): T {
   if (!value) return fallback;
   try {
@@ -59,6 +87,87 @@ function safeJsonParse<T>(value: string | null, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+function migrateLegacy(base: string) {
+  const scoped = scopedKey(base);
+  if (scoped === base) return;
+  const scopedVal = safeLocalGet(scoped);
+  if (scopedVal != null) return;
+  const legacyVal = safeLocalGet(base);
+  if (legacyVal == null) return;
+  safeLocalSet(scoped, legacyVal);
+  safeLocalRemove(base);
+}
+
+function readLocalPlanner() {
+  migrateLegacy(LS_QUESTS_BASE);
+  migrateLegacy(LS_EVENTS_BASE);
+  const quests = safeJsonParse<Quest[]>(safeLocalGet(scopedKey(LS_QUESTS_BASE)), []);
+  const events = safeJsonParse<PlannerEvent[]>(safeLocalGet(scopedKey(LS_EVENTS_BASE)), []);
+  return { quests, events };
+}
+
+function writeLocalPlanner(quests: Quest[], events: PlannerEvent[]) {
+  safeLocalSet(scopedKey(LS_QUESTS_BASE), JSON.stringify(quests));
+  safeLocalSet(scopedKey(LS_EVENTS_BASE), JSON.stringify(events));
+}
+
+async function fetchRemotePlanner() {
+  const res = await fetch("/api/planner", { method: "GET", headers: { accept: "application/json" } });
+  if (!res.ok) throw new Error(`planner GET failed: ${res.status}`);
+  const data = (await res.json()) as any;
+  return { quests: (Array.isArray(data?.quests) ? data.quests : []) as Quest[], events: (Array.isArray(data?.events) ? data.events : []) as PlannerEvent[] };
+}
+
+async function putRemotePlanner(quests: Quest[], events: PlannerEvent[]) {
+  const res = await fetch("/api/planner", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ quests, events }),
+  });
+  if (!res.ok) throw new Error(`planner PUT failed: ${res.status}`);
+}
+
+export async function bootstrapPlannerFromServer() {
+  if (!canUseRemote()) return;
+  if (bootstrapPromise) return bootstrapPromise;
+
+  bootstrapPromise = (async () => {
+    try {
+      const remote = await fetchRemotePlanner();
+      const local = readLocalPlanner();
+
+      const remoteEmpty = remote.quests.length === 0 && remote.events.length === 0;
+      const localHas = local.quests.length > 0 || local.events.length > 0;
+
+      if (remoteEmpty && localHas) {
+        await putRemotePlanner(local.quests, local.events);
+        return;
+      }
+
+      writeLocalPlanner(remote.quests, remote.events);
+      emitPlannerUpdated();
+    } catch {
+      // ignore (offline / unauthorized / etc)
+    }
+  })();
+
+  return bootstrapPromise;
+}
+
+function queueRemoteSync() {
+  if (!canUseRemote()) return;
+  if (syncTimer) return;
+  syncTimer = setTimeout(async () => {
+    syncTimer = null;
+    try {
+      const { quests, events } = readLocalPlanner();
+      await putRemotePlanner(quests, events);
+    } catch {
+      // ignore
+    }
+  }, 450);
 }
 
 export function emitPlannerUpdated() {
@@ -80,21 +189,23 @@ export function onPlannerUpdated(handler: () => void) {
 }
 
 export function loadQuests(): Quest[] {
-  return safeJsonParse<Quest[]>(safeLocalGet(LS_QUESTS), []);
+  return readLocalPlanner().quests;
 }
 
 export function saveQuests(quests: Quest[]) {
-  safeLocalSet(LS_QUESTS, JSON.stringify(quests));
+  writeLocalPlanner(quests, loadEvents());
   emitPlannerUpdated();
+  queueRemoteSync();
 }
 
 export function loadEvents(): PlannerEvent[] {
-  return safeJsonParse<PlannerEvent[]>(safeLocalGet(LS_EVENTS), []);
+  return readLocalPlanner().events;
 }
 
 export function saveEvents(events: PlannerEvent[]) {
-  safeLocalSet(LS_EVENTS, JSON.stringify(events));
+  writeLocalPlanner(loadQuests(), events);
   emitPlannerUpdated();
+  queueRemoteSync();
 }
 
 function uuid() {
@@ -159,13 +270,7 @@ function buildStages(type: QuestType) {
   ];
 }
 
-export function createQuest(input: {
-  type: QuestType;
-  title: string;
-  context: string;
-  dueAt?: string;
-  priority?: QuestPriority;
-}) {
+export function createQuest(input: { type: QuestType; title: string; context: string; dueAt?: string; priority?: QuestPriority }) {
   const now = new Date();
   const due = input.dueAt ? clampDate(new Date(input.dueAt)) : addMinutes(now, 7 * 24 * 60);
   const priority: QuestPriority = input.priority ?? "medium";
@@ -190,7 +295,7 @@ export function createQuest(input: {
 
   const events: PlannerEvent[] = stages.map((s) => ({
     id: uuid(),
-    title: `${quest.title} — ${s.title}`,
+    title: `${quest.title} - ${s.title}`,
     startAt: s.dueAt || due.toISOString(),
     durationMin: 45,
     questId: quest.id,

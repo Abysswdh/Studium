@@ -1,0 +1,33 @@
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.monthBtns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.iconBtnSmall {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+.ghostBtnSmall {
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.openBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}

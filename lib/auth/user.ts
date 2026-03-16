@@ -10,6 +10,8 @@ export type User = {
   avatarUrl: string;
 };
 
+const DEFAULT_AVATAR_URL = "/blockyPng/profilePicture.png";
+
 function mapUser(row: any): User {
   return {
     id: Number(row.id),
@@ -17,7 +19,7 @@ function mapUser(row: any): User {
     displayName: row.display_name,
     xp: Number(row.xp ?? 0),
     level: Number(row.level ?? 1),
-    avatarUrl: row.avatar_url || "/pfp.png",
+    avatarUrl: row.avatar_url || DEFAULT_AVATAR_URL,
   };
 }
 
@@ -43,10 +45,19 @@ export function createUser(input: { email: string; displayName: string; password
   const db = getDb();
   const res = db
     .prepare("INSERT INTO users (email, display_name, password_hash, xp, level, avatar_url) VALUES (?, ?, ?, 0, 1, ?)")
-    .run(input.email, input.displayName, input.passwordHash, "/pfp.png");
+    .run(input.email, input.displayName, input.passwordHash, DEFAULT_AVATAR_URL);
 
   const id = Number(res.lastInsertRowid);
-  return getUserById(id) ?? { id, email: input.email, displayName: input.displayName, xp: 0, level: 1, avatarUrl: "/pfp.png" };
+  return (
+    getUserById(id) ?? {
+      id,
+      email: input.email,
+      displayName: input.displayName,
+      xp: 0,
+      level: 1,
+      avatarUrl: DEFAULT_AVATAR_URL,
+    }
+  );
 }
 
 export function authenticate(email: string, password: string): User | null {

@@ -20,7 +20,7 @@ export default function Landing() {
     document.body.classList.remove("drawer-open");
   }, []);
 
-  const enter = async () => {
+  const enterTo = async (to: string) => {
     if (entering) return;
     setEntering(true);
     try {
@@ -40,8 +40,10 @@ export default function Landing() {
       // ignore
     }
 
-    window.setTimeout(() => router.push("/dashboard"), 380);
+    window.setTimeout(() => router.push(to), 380);
   };
+
+  const enter = async () => enterTo("/sign-in");
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -61,7 +63,7 @@ export default function Landing() {
 
   const featureCards = useMemo(
     () => [
-      { icon: "fa-solid fa-list-check", title: "Daily Routine", desc: "Auto steps (Focus → Notes → Review) from deadlines + schedules." },
+      { icon: "fa-solid fa-list-check", title: "Daily Routine", desc: "Auto steps (Focus -> Notes -> Review) from deadlines + schedules." },
       { icon: "fa-solid fa-stopwatch", title: "Pomodoro Co-op", desc: "Focus together, linked to quests/tasks, with shared streak pressure." },
       { icon: "fa-solid fa-note-sticky", title: "Notes Capture", desc: "Fast capture after sessions, connected to material & tasks." },
       { icon: "fa-solid fa-crosshairs", title: "Battle", desc: "1v1 quizzes from a question bank. Win XP, climb ranks." },
@@ -125,6 +127,10 @@ export default function Landing() {
             </a>
             <Link
               href="/sign-in"
+              onClick={(e) => {
+                e.preventDefault();
+                void enterTo("/sign-in");
+              }}
               className="rounded-lg px-3 py-2 text-sm font-[800] text-white/70 transition hover:bg-white/5 hover:text-white/90 focus:outline-none focus:ring-2 focus:ring-white/35"
             >
               Sign in
@@ -134,6 +140,10 @@ export default function Landing() {
           <div className="flex items-center gap-2">
             <Link
               href="/register"
+              onClick={(e) => {
+                e.preventDefault();
+                void enterTo("/register");
+              }}
               className="hidden rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-[900] text-white/85 transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/45 md:inline-flex"
             >
               Register
@@ -143,7 +153,7 @@ export default function Landing() {
               onClick={enter}
               className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-[900] text-black transition hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/60"
             >
-              <span>Enter Console</span>
+              <span>Enter Studium Focus Mode</span>
               <span className="rounded-md bg-black/10 px-2 py-1 text-[11px] font-[900] tracking-wide">Enter</span>
             </button>
           </div>
@@ -153,7 +163,7 @@ export default function Landing() {
           <section className="flex flex-col gap-6">
             <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/12 bg-white/10 px-3 py-2 text-xs font-[800] text-white/80">
               <i className="fa-solid fa-gamepad" aria-hidden="true"></i>
-              <span>Study like a game • Finish like a pro</span>
+              <span>Study like a game | Finish like a pro</span>
             </div>
 
             <h1 className="text-balance text-4xl font-[900] leading-[1.05] tracking-[-0.03em] md:text-6xl">
@@ -174,7 +184,7 @@ export default function Landing() {
                 className="inline-flex items-center gap-3 rounded-2xl bg-white px-6 py-3 text-sm font-[900] text-black transition hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/60"
               >
                 <i className="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
-                <span>Enter Console</span>
+                <span>Enter Studium Focus Mode</span>
               </button>
 
               <a
@@ -207,7 +217,7 @@ export default function Landing() {
 
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { t: "Now", d: "Focus 25 • Calculus", xp: "+120 XP" },
+                  { t: "Now", d: "Focus 25 | Calculus", xp: "+120 XP" },
                   { t: "Next", d: "Battle warmup", xp: "+60 XP" },
                   { t: "Later", d: "Capture notes", xp: "+40 XP" },
                   { t: "Plan", d: "Guild co-focus", xp: "+80 XP" },
@@ -238,7 +248,7 @@ export default function Landing() {
           <div className="flex flex-col gap-3">
             <div className="text-xs font-[900] tracking-[0.22em] text-white/60">ABOUT</div>
             <div className="text-2xl font-[900] tracking-[-0.02em] text-white/92 md:text-3xl">
-              A console-like dashboard for students who need structure.
+              A focus-first dashboard for students who need structure.
             </div>
           </div>
           <div className="text-sm font-[700] leading-relaxed text-white/70 md:text-base">
@@ -253,7 +263,7 @@ export default function Landing() {
               <div className="text-xs font-[900] tracking-[0.22em] text-white/60">FEATURES</div>
               <div className="mt-3 text-2xl font-[900] tracking-[-0.02em] text-white/92 md:text-3xl">Designed to keep you in motion.</div>
             </div>
-            <div className="hidden text-sm font-[900] text-white/60 md:block">Keyboard-first • Glass UI • Console feel</div>
+            <div className="hidden text-sm font-[900] text-white/60 md:block">Keyboard-first | Glass UI | Studium Focus Mode</div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -275,10 +285,10 @@ export default function Landing() {
           <div className="text-xs font-[900] tracking-[0.22em] text-white/60">FAQ</div>
           <div className="mt-3 grid grid-cols-1 gap-6 md:grid-cols-2">
             {[
-              { q: "Do I need an account?", a: "No. This build can run with a dummy user. Add real auth later." },
+              { q: "Do I need an account?", a: "Yes. Sign in (or register) before entering Studium Focus Mode." },
               { q: "Is it only for students?", a: "It’s designed for students, but works for anyone who needs a daily routine." },
               { q: "What makes it different?", a: "Routine is the core: concrete steps every day, with game-like stickiness." },
-              { q: "How do I start?", a: "Press Enter or click Enter Console. You’ll land in the dashboard shell." },
+              { q: "How do I start?", a: "Press Enter, sign in (or register), then you’ll enter Studium Focus Mode." },
             ].map((x) => (
               <div key={x.q} className="rounded-2xl border border-white/10 bg-black/20 p-5">
                 <div className="text-sm font-[900] text-white/90">{x.q}</div>
@@ -289,14 +299,14 @@ export default function Landing() {
         </section>
 
         <footer className="flex flex-col items-center justify-between gap-4 pb-10 pt-4 md:flex-row">
-          <div className="text-xs font-[900] tracking-wide text-white/55">Studium • Prototype</div>
+          <div className="text-xs font-[900] tracking-wide text-white/55">Studium | Prototype</div>
           <button
             type="button"
             onClick={enter}
             className="inline-flex items-center gap-2 rounded-xl border border-white/14 bg-white/10 px-4 py-2 text-xs font-[900] text-white/85 transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/45"
           >
             <i className="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
-            <span>Press Enter to enter console</span>
+            <span>Press Enter to enter Studium Focus Mode</span>
           </button>
         </footer>
       </div>

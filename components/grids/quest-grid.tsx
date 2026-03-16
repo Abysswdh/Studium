@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import styles from "./quest-grid.module.css";
@@ -9,9 +9,9 @@ import type { PlannerEvent } from "./planner-storage";
 import { addQuest, createQuest, deleteQuest, loadEvents, loadQuests, onPlannerUpdated, toggleStageDone } from "./planner-storage";
 
 function formatShort(dt?: string) {
-  if (!dt) return "—";
+  if (!dt) return "-";
   const d = new Date(dt);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   return d.toLocaleString(undefined, { month: "short", day: "2-digit" });
 }
 
@@ -74,6 +74,9 @@ export default function QuestGrid() {
   const [title, setTitle] = useState("");
   const [context, setContext] = useState("");
   const [dueAt, setDueAt] = useState("");
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+  const titleRef = useRef<HTMLInputElement | null>(null);
+  const didViewAutofocus = useRef(false);
 
   useEffect(() => {
     const sync = () => {
@@ -91,6 +94,10 @@ export default function QuestGrid() {
     return onPlannerUpdated(sync);
   }, []);
 
+  useEffect(() => {
+    setPortalRoot(document.getElementById("routeOutlet") || document.body);
+  }, []);
+
   const selected = useMemo(() => quests.find((q) => q.id === selectedId) ?? null, [quests, selectedId]);
 
   const selectedMeta = useMemo(() => {
@@ -106,6 +113,22 @@ export default function QuestGrid() {
     if (view === "detail") document.body.classList.add("quest-detail");
     else document.body.classList.remove("quest-detail");
     return () => document.body.classList.remove("quest-detail");
+  }, [view]);
+
+  useEffect(() => {
+    if (!didViewAutofocus.current) {
+      didViewAutofocus.current = true;
+      return;
+    }
+
+    const raf = requestAnimationFrame(() => {
+      const root = document.getElementById("routeOutlet");
+      const selector = view === "detail" ? '[data-focus="quest.back"]' : '[data-focus="quest.slot1"], [data-focus="quest.generate"]';
+      const el = root?.querySelector?.(selector) as HTMLElement | null;
+      el?.focus();
+    });
+
+    return () => cancelAnimationFrame(raf);
   }, [view]);
 
   useEffect(() => {
@@ -127,6 +150,20 @@ export default function QuestGrid() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, [generatorOpen]);
+
+  useEffect(() => {
+    if (!generatorOpen) return;
+    document.body.classList.add("modal-open");
+    const api = { close: () => setGeneratorOpen(false) };
+    (window as any).studiumModalApi = api;
+
+    const raf = requestAnimationFrame(() => titleRef.current?.focus());
+    return () => {
+      cancelAnimationFrame(raf);
+      document.body.classList.remove("modal-open");
+      if ((window as any).studiumModalApi === api) delete (window as any).studiumModalApi;
+    };
   }, [generatorOpen]);
 
   const submit = () => {
@@ -197,7 +234,7 @@ export default function QuestGrid() {
                   <div className={styles.emptyCard}>
                     <div className={styles.emptyTitle}>No missions yet</div>
                     <div className={styles.emptySub}>Generate a quest to get auto objectives + schedule milestones.</div>
-                    <button className={styles.actionBtn} type="button" onClick={() => setGeneratorOpen(true)} data-focus="quest.slot1">
+                    <button className={styles.actionBtn} type="button" onClick={() => setGeneratorOpen(true)} data-focus="quest.generate">
                       Generate quest
                     </button>
                   </div>
@@ -259,7 +296,7 @@ export default function QuestGrid() {
                       <div className={styles.focusKicker}>Selected mission</div>
                       <div className={styles.focusTitle}>{selected.title}</div>
                       <div className={styles.focusSub}>
-                        {typeLabel(selected.type)} • Rank {selectedMeta.rank} • {priorityLabel(selectedMeta.p)} priority
+                        {typeLabel(selected.type)} | Rank {selectedMeta.rank} | {priorityLabel(selectedMeta.p)} priority
                       </div>
                     </div>
                     <button
@@ -493,7 +530,7 @@ export default function QuestGrid() {
                     </div>
                     <div className={styles.sideRow}>
                       <span className={styles.sideLabel}>Next</span>
-                      <span className={styles.sideValue}>{questEvents[0] ? formatShort(questEvents[0].startAt) : "—"}</span>
+                      <span className={styles.sideValue}>{questEvents[0] ? formatShort(questEvents[0].startAt) : "-"}</span>
                     </div>
                   </div>
                 </div>
@@ -511,7 +548,7 @@ export default function QuestGrid() {
       {generatorOpen
         ? createPortal(
             <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="Generate quest" onClick={() => setGeneratorOpen(false)}>
-              <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div className={`${styles.modal} studiumModal`} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.modalHead}>
                   <div>
                     <div className={styles.modalTitle}>Generate quest</div>
@@ -549,7 +586,20 @@ export default function QuestGrid() {
 
                   <div className={styles.field}>
                     <div className={styles.label}>Title</div>
-                    <input className={styles.control} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Database assignment" aria-label="Quest title" />
+                    <input
+                      ref={titleRef}
+                      className={styles.control}
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          submit();
+                        }
+                      }}
+                      placeholder="e.g. Database assignment"
+                      aria-label="Quest title"
+                    />
                   </div>
 
                   <div className={styles.field}>
@@ -568,7 +618,7 @@ export default function QuestGrid() {
                 </div>
               </div>
             </div>,
-            document.body
+            portalRoot ?? document.body
           )
         : null}
     </div>

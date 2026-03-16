@@ -2,10 +2,11 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { bootstrapPlannerFromServer } from "./grids/planner-storage";
 
 const VIEW_META: Record<string, { label: string; desc: string }> = {
   dashboard: { label: "Dashboard", desc: "Your daily snapshot: routine, quests, streaks, and widgets." },
-  routine: { label: "Routine", desc: "Now / Next / Later — turn deadlines into concrete steps." },
+  routine: { label: "Routine", desc: "Now / Next / Later - turn deadlines into concrete steps." },
   quest: { label: "Quest", desc: "Pick quests, set difficulty, earn XP & streaks." },
   schedules: { label: "Schedule", desc: "Agenda + deadlines that feed your routine." },
   notes: { label: "Notes", desc: "Capture quick notes tied to your quests and sessions." },
@@ -16,8 +17,11 @@ const VIEW_META: Record<string, { label: string; desc: string }> = {
   match: { label: "Options", desc: "Settings, preferences, and app options." },
 };
 
+const PLANNER_VIEWS = new Set(["dashboard", "routine", "quest", "schedules"]);
+
 function viewFromPath(pathname: string) {
   const seg = pathname.split("?")[0].split("#")[0].split("/").filter(Boolean)[0] || "dashboard";
+  if (seg === "study-room") return "study";
   return VIEW_META[seg] ? seg : "dashboard";
 }
 
@@ -35,6 +39,35 @@ export default function RouteBridge() {
     const meta = VIEW_META[view];
 
     document.body.dataset.view = view;
+    if (pathname.startsWith("/notes/new")) document.body.dataset.subview = "notes-editor";
+    else if (pathname.startsWith("/study-room")) document.body.dataset.subview = "study-room";
+    else document.body.removeAttribute("data-subview");
+    if (view === "quest" && typeof (window as any).setMode === "function") {
+      try {
+        sessionStorage.setItem("studium:nav_lock_until", String(Date.now() + 650));
+      } catch {
+        // ignore
+      }
+
+      const focusNav = () => {
+        try {
+          const ae = document.activeElement as HTMLElement | null;
+          if (ae?.closest?.("#routeOutlet")) ae.blur?.();
+          (window as any).setMode("nav");
+          (window as any).focusNavMenu?.();
+        } catch {
+          // ignore
+        }
+      };
+
+      focusNav();
+      requestAnimationFrame(focusNav);
+      setTimeout(focusNav, 60);
+      setTimeout(focusNav, 380);
+    }
+    const root = document.querySelector<HTMLElement>(".shellRoot");
+    if (root?.dataset?.userId) document.body.dataset.userId = root.dataset.userId;
+    if (PLANNER_VIEWS.has(view)) void bootstrapPlannerFromServer();
     if (typeof (window as any).applyStudiumDensity === "function") (window as any).applyStudiumDensity();
     if (typeof (window as any).applyViewTint === "function") (window as any).applyViewTint(view);
 
@@ -61,6 +94,18 @@ export default function RouteBridge() {
     // Re-bind grid/page focus listeners after route swaps content.
     if (typeof (window as any).studiumReinitContent === "function") {
       (window as any).studiumReinitContent();
+    }
+
+    // If something set a pending focus target (e.g. Quick Settings shortcut),
+    // focus it once the new route content exists.
+    try {
+      const pending = sessionStorage.getItem("studium:pending_focus") || "";
+      if (pending) {
+        sessionStorage.removeItem("studium:pending_focus");
+        requestAnimationFrame(() => (window as any).studiumGridApi?.focusByKey?.(pending));
+      }
+    } catch {
+      // ignore
     }
   }, [pathname, router]);
 
