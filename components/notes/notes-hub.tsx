@@ -220,7 +220,7 @@ export default function NotesHub() {
   }, [store.notes]);
 
   const allFolderNoteCount = useMemo(() => store.notes.filter((n) => !n.deletedAt && !!n.folder).length, [store.notes]);
-  const allTaggedNoteCount = useMemo(() => store.notes.filter((n) => !n.deletedAt && Array.isArray(n.tags) && n.tags.length > 0).length, [store.notes]);
+  const allTaggedNoteCount = useMemo(() => Object.values(tagCounts).reduce((sum, v) => sum + Number(v || 0), 0), [tagCounts]);
 
   const filteredNotes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -355,7 +355,7 @@ export default function NotesHub() {
                     type="button"
                     className={[sidebarItemClass(folderFilter === f.id), "flex-1 min-w-0"].join(" ")}
                     role="listitem"
-                    onClick={() => setFolderFilter((prev) => (prev === f.id ? null : f.id))}
+                    onClick={() => setFolderFilter(f.id)}
                     aria-label={`Folder ${f.label}`}
                   >
                     <i className="fa-solid fa-folder" aria-hidden="true" />
@@ -412,7 +412,7 @@ export default function NotesHub() {
                     type="button"
                     className={[tagPillClass(tagFilter === t.id), "flex-1 min-w-0"].join(" ")}
                     role="listitem"
-                    onClick={() => setTagFilter((prev) => (prev === t.id ? null : t.id))}
+                    onClick={() => setTagFilter(t.id)}
                     aria-label={`Tag ${t.label}`}
                   >
                     <span className={["notesDot", t.dotClass].filter(Boolean).join(" ")} aria-hidden="true" />
