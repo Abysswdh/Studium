@@ -25,6 +25,7 @@ html {
 
 .header {
   min-height: clamp(56px, 8vh, 70px);
+  position: relative;
 }
 
 .gridContainer,

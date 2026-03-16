@@ -1,5 +1,6 @@
 import RouteBridge from "../../components/route-bridge";
 import ShellBackground from "../../components/shell-background";
+import NotificationIsland from "../../components/notifications/notification-island";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth/current-user";
 import Script from "next/script";
@@ -40,6 +41,8 @@ export default async function ShellLayout({ children }: { children: React.ReactN
               </div>
             </div>
           </button>
+
+          <NotificationIsland />
 
           <div className="rightClockMenu" aria-label="Clock">
             <button className="viewLabel headerAction" id="viewLabel" data-focus="header.pageInfo" type="button" aria-label="Page info">
