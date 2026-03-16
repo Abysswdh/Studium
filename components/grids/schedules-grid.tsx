@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import styles from "./schedules-grid.module.css";
@@ -63,11 +63,17 @@ export default function SchedulesGrid() {
   const [time, setTime] = useState("09:00");
   const [notes, setNotes] = useState("");
   const [priority, setPriority] = useState<QuestPriority>("medium");
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+  const titleRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const sync = () => setEvents(loadEvents());
     sync();
     return onPlannerUpdated(sync);
+  }, []);
+
+  useEffect(() => {
+    setPortalRoot(document.getElementById("routeOutlet") || document.body);
   }, []);
 
   useEffect(() => {
@@ -77,6 +83,20 @@ export default function SchedulesGrid() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, [addOpen]);
+
+  useEffect(() => {
+    if (!addOpen) return;
+    document.body.classList.add("modal-open");
+    const api = { close: () => setAddOpen(false) };
+    (window as any).studiumModalApi = api;
+
+    const raf = requestAnimationFrame(() => titleRef.current?.focus());
+    return () => {
+      cancelAnimationFrame(raf);
+      document.body.classList.remove("modal-open");
+      if ((window as any).studiumModalApi === api) delete (window as any).studiumModalApi;
+    };
   }, [addOpen]);
 
   const eventsByDay = useMemo(() => {
@@ -211,7 +231,7 @@ export default function SchedulesGrid() {
               <div className={styles.cardTitle}>{selected}</div>
               <div className={styles.cardSub}>
                 {filteredSelectedEvents.length ? `${filteredSelectedEvents.length} event(s)` : "No events yet."}
-                {filter !== "all" ? " • filtered" : ""}
+                {filter !== "all" ? " | filtered" : ""}
               </div>
             </div>
             <select
@@ -245,8 +265,8 @@ export default function SchedulesGrid() {
                   <div className={styles.eventTitle}>{e.title}</div>
                   <div className={styles.eventMeta}>
                     {formatTime(e.startAt)}
-                    {e.durationMin ? ` • ${e.durationMin}m` : ""}
-                    {e.questId ? " • Quest" : ""}
+                    {e.durationMin ? ` | ${e.durationMin}m` : ""}
+                    {e.questId ? " | Quest" : ""}
                   </div>
                   {e.notes ? <div className={styles.eventNotes}>{e.notes}</div> : null}
                 </div>
@@ -268,7 +288,7 @@ export default function SchedulesGrid() {
       {addOpen
         ? createPortal(
             <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="Add event" onClick={() => setAddOpen(false)}>
-              <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div className={`${styles.modal} studiumModal`} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.modalHead}>
                   <div>
                     <div className={styles.modalTitle}>Add event</div>
@@ -282,7 +302,20 @@ export default function SchedulesGrid() {
                 <div className={styles.form}>
                   <div className={styles.field}>
                     <div className={styles.label}>Title</div>
-                    <input className={styles.control} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Review chapter 3" />
+                    <input
+                      ref={titleRef}
+                      className={styles.control}
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          submitEvent();
+                        }
+                      }}
+                      placeholder="e.g. Review chapter 3"
+                      aria-label="Event title"
+                    />
                   </div>
                   <div className={styles.formRow}>
                     <div className={styles.field}>
@@ -313,7 +346,7 @@ export default function SchedulesGrid() {
                 </div>
               </div>
             </div>,
-            document.body
+            portalRoot ?? document.body
           )
         : null}
     </div>

@@ -16,6 +16,43 @@ function getView() {
   return document.body.dataset.view || "dashboard";
 }
 
+(function initViewTint() {
+  const safeLocalGet = (k) => {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  };
+
+  function applyStudiumDensity() {
+    const mode = safeLocalGet("studium:ui_density");
+    const root = document.documentElement;
+    if (mode === "compact") {
+      root.style.setProperty("--shell-gap", "10px");
+      root.style.setProperty("--shell-pad-y", "14px");
+      root.style.setProperty("--shell-pad-x", "18px");
+      return;
+    }
+    root.style.removeProperty("--shell-gap");
+    root.style.removeProperty("--shell-pad-y");
+    root.style.removeProperty("--shell-pad-x");
+  }
+
+  function applyViewTint(view) {
+    const v = view || getView();
+    const key = `studium:view_tint:${v}`;
+    const tint = safeLocalGet(key);
+    if (tint) document.body.style.setProperty("--glass-tint", String(tint));
+    else document.body.style.removeProperty("--glass-tint");
+  }
+
+  window.applyStudiumDensity = applyStudiumDensity;
+  window.applyViewTint = applyViewTint;
+  applyStudiumDensity();
+  applyViewTint(getView());
+})();
+
 (function syncInitialView() {
   const m = readViewMarker();
   if (m?.view) setView(m.view);
@@ -37,6 +74,43 @@ function isTypingTarget(el) {
 function setMode(mode) {
   document.body.classList.toggle("nav-mode", mode === "nav");
   document.body.classList.toggle("grid-mode", mode === "grid");
+}
+
+const NAV_LOCK_KEY = "studium:nav_lock_until";
+function setNavLock(ms) {
+  try {
+    sessionStorage.setItem(NAV_LOCK_KEY, String(Date.now() + Math.max(0, ms || 0)));
+  } catch {
+    // ignore
+  }
+}
+function clearNavLock() {
+  try {
+    sessionStorage.removeItem(NAV_LOCK_KEY);
+  } catch {
+    // ignore
+  }
+}
+function navLockActive() {
+  try {
+    return Date.now() < Number(sessionStorage.getItem(NAV_LOCK_KEY) || 0);
+  } catch {
+    return false;
+  }
+}
+
+function navSwitchLocked() {
+  try {
+    const p = window.location && window.location.pathname ? String(window.location.pathname) : "";
+    if (p.startsWith("/notes/new")) return true;
+    if (p.startsWith("/study-room")) {
+      // Only lock nav switching when strict mode is enabled (Study Room should still be navigable otherwise).
+      return document.body && document.body.classList ? document.body.classList.contains("study-strict") : false;
+    }
+    return document.body && document.body.dataset && document.body.dataset.subview === "notes-editor";
+  } catch {
+    return false;
+  }
 }
 
 (function initWallpapers() {
@@ -233,17 +307,38 @@ const SFX = (() => {
   const sw = new Audio("/sound/switch.mp3");
   const grid = new Audio("/sound/switch.mp3");
   const header = new Audio("/sound/switch.mp3");
+  const notif = new Audio("/sound/notification.mp3");
 
   const BOOT_VOL = 0.7;
   const SW_VOL = 0.55;
   const GRID_VOL = 0.55;
   const HEADER_VOL = 0.55;
+  const NOTIF_VOL = 0.62;
   const clamp01 = (n) => Math.max(0, Math.min(1, n));
 
   boot.preload = "auto";
   sw.preload = "auto";
   grid.preload = "auto";
   header.preload = "auto";
+  notif.preload = "auto";
+
+  notif.addEventListener(
+    "error",
+    () => {
+      try {
+        notif.src = "/sound/switch.mp3";
+        notif.load();
+      } catch {
+        // ignore
+      }
+    },
+    { once: true }
+  );
+  try {
+    notif.load();
+  } catch {
+    // ignore
+  }
 
   grid.playbackRate = 0.82;
   header.playbackRate = 0.66;
@@ -259,11 +354,51 @@ const SFX = (() => {
   }
 
   let unlocked = false;
-  let pendingBoot = false;
   let lastBootAt = 0;
   let muted = false;
   let vol = 1;
-  let fullscreenAttempted = false;
+  let pendingFullscreen = false;
+  let lastFsAt = 0;
+
+  const wantFullscreen = () => {
+    try {
+      return window.localStorage?.getItem?.("studium:pref_fullscreen") === "1";
+    } catch {
+      return false;
+    }
+  };
+
+  const requestFullscreen = () => {
+    if (!wantFullscreen()) return;
+    if (document.fullscreenElement) return;
+    const now = Date.now();
+    if (now - lastFsAt < 900) return;
+    lastFsAt = now;
+
+    try {
+      const el = document.documentElement;
+      const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+      if (typeof fn === "function") {
+        const p = fn.call(el);
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const exitFullscreen = () => {
+    try {
+      if (!document.fullscreenElement) return;
+      const fn = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+      if (typeof fn === "function") {
+        const p = fn.call(document);
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const applyMute = () => {
     const m = muted ? 0 : 1;
@@ -271,6 +406,7 @@ const SFX = (() => {
     sw.volume = SW_VOL * vol * m;
     grid.volume = GRID_VOL * vol * m;
     header.volume = HEADER_VOL * vol * m;
+    notif.volume = NOTIF_VOL * vol * m;
   };
   applyMute();
 
@@ -291,36 +427,23 @@ const SFX = (() => {
 
   const unlock = () => {
     unlocked = true;
-    if (!fullscreenAttempted) {
-      fullscreenAttempted = true;
-      try {
-        if (window.sessionStorage && sessionStorage.getItem("studium:fs_attempted") === "1") {
-          // noop
-        } else {
-          sessionStorage?.setItem?.("studium:fs_attempted", "1");
-          const want = window.localStorage?.getItem?.("studium:pref_fullscreen") === "1";
-          if (want && !document.fullscreenElement) {
-            const el = document.documentElement;
-            const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-            if (typeof fn === "function") {
-              const p = fn.call(el);
-              if (p && typeof p.catch === "function") p.catch(() => {});
-            }
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }
-    if (pendingBoot) {
-      pendingBoot = false;
-      lastBootAt = Date.now();
-      tryPlay(boot);
+    if (pendingFullscreen) {
+      pendingFullscreen = false;
+      requestFullscreen();
+    } else {
+      requestFullscreen();
     }
   };
 
   document.addEventListener("pointerdown", unlock, { once: true, capture: true });
   document.addEventListener("keydown", unlock, { once: true, capture: true });
+
+  document.addEventListener("fullscreenchange", () => {
+    if (document.fullscreenElement) return;
+    if (!wantFullscreen()) return;
+    // Can't re-enter without a user gesture. Queue and it will trigger on next gesture via ensureFullscreen().
+    pendingFullscreen = true;
+  });
 
   return {
     isMuted: () => muted,
@@ -334,7 +457,6 @@ const SFX = (() => {
       applyMute();
     },
     playBoot: () => {
-      if (!unlocked) pendingBoot = true;
       lastBootAt = Date.now();
       tryPlay(boot);
     },
@@ -350,7 +472,83 @@ const SFX = (() => {
       if (!unlocked) return;
       tryPlay(header);
     },
+    playNotif: () => {
+      tryPlay(notif);
+    },
+    ensureFullscreen: () => {
+      if (!wantFullscreen()) return;
+      if (!unlocked) {
+        pendingFullscreen = true;
+        return;
+      }
+      requestFullscreen();
+    },
+    exitFullscreen: () => {
+      pendingFullscreen = false;
+      exitFullscreen();
+    },
   };
+})();
+
+try {
+  window.SFX = SFX;
+} catch {
+  // ignore
+}
+
+(function initProfileOverrides() {
+  const LS_PROFILE = "studium:profile_override";
+  const safeLocalGet = (k) => {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  };
+
+  const apply = () => {
+    let parsed = null;
+    try {
+      const raw = safeLocalGet(LS_PROFILE);
+      parsed = raw ? JSON.parse(raw) : null;
+    } catch {
+      parsed = null;
+    }
+
+    const displayName = parsed && typeof parsed.displayName === "string" ? parsed.displayName.trim() : "";
+    const avatarUrl = parsed && typeof parsed.avatarUrl === "string" ? parsed.avatarUrl.trim() : "";
+
+    const headerName = document.querySelector("#userMenuBtn .userName");
+    if (headerName) {
+      if (!headerName.dataset.defaultText) headerName.dataset.defaultText = headerName.textContent || "";
+      headerName.textContent = displayName || headerName.dataset.defaultText || "";
+    }
+
+    const headerAvatar = document.querySelector("#userMenuBtn .userAvatar__img");
+    if (headerAvatar) {
+      if (!headerAvatar.dataset.defaultSrc) headerAvatar.dataset.defaultSrc = headerAvatar.getAttribute("src") || "";
+      headerAvatar.setAttribute("src", avatarUrl || headerAvatar.dataset.defaultSrc || "");
+    }
+
+    const drawerName = document.querySelector("#profileDrawer .drawerUserName");
+    if (drawerName) {
+      if (!drawerName.dataset.defaultText) drawerName.dataset.defaultText = drawerName.textContent || "";
+      drawerName.textContent = displayName || drawerName.dataset.defaultText || "";
+    }
+
+    const drawerAvatar = document.querySelector("#profileDrawer .drawerAvatar__img");
+    if (drawerAvatar) {
+      if (!drawerAvatar.dataset.defaultSrc) drawerAvatar.dataset.defaultSrc = drawerAvatar.getAttribute("src") || "";
+      drawerAvatar.setAttribute("src", avatarUrl || drawerAvatar.dataset.defaultSrc || "");
+    }
+  };
+
+  window.applyStudiumProfileOverride = apply;
+  apply();
+
+  window.addEventListener("storage", (e) => {
+    if (e && e.key === LS_PROFILE) apply();
+  });
 })();
 
 (function initBootSequence() {
@@ -358,7 +556,46 @@ const SFX = (() => {
   const logo = document.getElementById("bootLogo");
   if (!overlay || !logo) return;
 
-  const cleanup = () => {
+  function notifyIslandWhenReady(detail, maxWaitMs) {
+    const start = Date.now();
+    const limit = Math.max(300, Number(maxWaitMs || 2500));
+
+    const enqueue = () => {
+      try {
+        if (!Array.isArray(window.__studiumNotifyQueue)) window.__studiumNotifyQueue = [];
+        window.__studiumNotifyQueue.push(detail);
+      } catch {
+        // ignore
+      }
+    };
+
+    const tick = () => {
+      try {
+        const fn = window.studiumNotify;
+        if (typeof fn === "function") {
+          fn(detail);
+          return;
+        }
+      } catch {
+        // ignore
+      }
+
+      if (Date.now() - start > limit) {
+        enqueue();
+        return;
+      }
+
+      setTimeout(tick, 120);
+    };
+
+    tick();
+  }
+
+  let bootTimer = null;
+  let logoTimer = null;
+  let hideTimer = null;
+
+  const cleanup = ({ showWelcome = false } = {}) => {
     try {
       overlay.classList.add("bootOverlay--hide");
     } catch {
@@ -371,6 +608,19 @@ const SFX = (() => {
       // ignore
     }
 
+    if (showWelcome) {
+      setTimeout(() => {
+        notifyIslandWhenReady(
+          {
+            title: "Hello! Welcome to Studium Focus Mode",
+            message: "Your routine is ready. Press Enter anytime to dive in.",
+            kind: "success",
+          },
+          3500
+        );
+      }, 220);
+    }
+
     // Default highlight/focus starts on the active nav item.
     setTimeout(() => {
       if (document.body.classList.contains("drawer-open")) return;
@@ -378,30 +628,104 @@ const SFX = (() => {
       const isBlank = ae === document.body || ae === document.documentElement;
       if (isBlank && typeof window.focusNavMenu === "function") window.focusNavMenu();
     }, 60);
+  };
 
-    setTimeout(() => {
+  function runBootSequence(opts) {
+    const mode = (opts && opts.mode) || "enter"; // enter | nav
+    const showWelcome = !!(opts && opts.showWelcome);
+
+    const fadeMs = Math.max(240, Number((opts && opts.fadeMs) || (mode === "nav" ? 680 : 5000)));
+    const logoMs = Math.max(160, Number((opts && opts.logoMs) || (mode === "nav" ? 320 : 1000)));
+    const hideMs = Math.max(160, Number((opts && opts.hideMs) || 520));
+    const showLogo = opts && typeof opts.showLogo === "boolean" ? opts.showLogo : mode === "enter";
+
+    try {
+      overlay.style.setProperty("--boot-fade-ms", `${fadeMs}ms`);
+      overlay.style.setProperty("--boot-hide-ms", `${hideMs}ms`);
+      logo.style.setProperty("--boot-logo-ms", `${logoMs}ms`);
+    } catch {
+      // ignore
+    }
+
+    if (bootTimer) clearTimeout(bootTimer);
+    if (logoTimer) clearTimeout(logoTimer);
+    if (hideTimer) clearTimeout(hideTimer);
+    bootTimer = null;
+    logoTimer = null;
+    hideTimer = null;
+
+    try {
+      overlay.classList.remove("bootOverlay--hide");
+      overlay.classList.remove("bootOverlay--reveal");
+      logo.classList.remove("bootLogo--show");
+      overlay.style.background = "rgba(0,0,0,1)";
+    } catch {
+      // ignore
+    }
+
+    try {
+      document.body.classList.add("booting");
+      document.documentElement.classList.add("booting");
+    } catch {
+      // ignore
+    }
+
+    requestAnimationFrame(() => {
       try {
-        overlay.remove();
+        overlay.style.background = "transparent";
       } catch {
         // ignore
       }
-    }, 650);
-  };
+      try {
+        overlay.classList.add("bootOverlay--reveal");
+      } catch {
+        // ignore
+      }
+    });
+
+    if (showLogo) {
+      logoTimer = setTimeout(() => {
+        try {
+          logo.classList.add("bootLogo--show");
+        } catch {
+          // ignore
+        }
+      }, mode === "nav" ? 140 : 1000);
+    }
+
+    const totalMs = Math.max(520, Number((opts && opts.totalMs) || (mode === "nav" ? 880 : 6000)));
+    bootTimer = setTimeout(() => cleanup({ showWelcome }), totalMs);
+
+    hideTimer = setTimeout(() => {
+      try {
+        overlay.classList.add("bootOverlay--hide");
+      } catch {
+        // ignore
+      }
+    }, Math.max(0, totalMs - hideMs));
+  }
 
   try {
-    document.body.classList.add("booting");
-    document.documentElement.classList.add("booting");
-    SFX.playBoot();
+    window.studiumBoot = runBootSequence;
+  } catch {
+    // ignore
+  }
 
-    requestAnimationFrame(() => overlay.classList.add("bootOverlay--reveal"));
-
-    // After 1s reveal, show the title for ~5s
-    setTimeout(() => logo.classList.add("bootLogo--show"), 1000);
-
-    setTimeout(cleanup, 6000);
+  try {
+    const q = window.__studiumBootQueue;
+    if (Array.isArray(q) && q.length) {
+      window.__studiumBootQueue = [];
+      q.forEach((item) => {
+        try {
+          runBootSequence(item);
+        } catch {
+          // ignore
+        }
+      });
+    }
   } catch (err) {
     console.error("[Studium] Boot sequence failed:", err);
-    cleanup();
+    cleanup({ showWelcome: false });
   }
 })();
 
@@ -431,10 +755,11 @@ const SFX = (() => {
   const overlay = document.getElementById("profileOverlay");
   const drawer = document.getElementById("profileDrawer");
   const closeBtn = document.getElementById("profileCloseBtn");
+  const qsProfileBtn = document.getElementById("qsProfileBtn");
   const qsNotifBtn = document.getElementById("qsNotifBtn");
   const qsNotifPill = document.getElementById("qsNotifPill");
   const qsQuestBtn = document.getElementById("qsQuestBtn");
-  const qsGuildBtn = document.getElementById("qsGuildBtn");
+  const qsBattleBtn = document.getElementById("qsBattleBtn");
   const qsNotesBtn = document.getElementById("qsNotesBtn");
   const qsHomeBtn = document.getElementById("qsHomeBtn");
   const qsSettingsBtn = document.getElementById("qsSettingsBtn");
@@ -448,6 +773,7 @@ const SFX = (() => {
   const qsFullscreen = document.getElementById("qsFullscreen");
   const qsWallpapers = document.getElementById("qsWallpapers");
   const qsMusicAudio = document.getElementById("qsMusicAudio");
+  const qsMusicIcon = document.getElementById("qsMusicIcon");
   const qsTrackTitle = document.getElementById("qsTrackTitle");
   const qsTrackSub = document.getElementById("qsTrackSub");
   const qsMusicPrevBtn = document.getElementById("qsMusicPrevBtn");
@@ -455,6 +781,8 @@ const SFX = (() => {
   const qsMusicNextBtn = document.getElementById("qsMusicNextBtn");
   const qsMusicVolume = document.getElementById("qsMusicVolume");
   const qsMusicVolumeVal = document.getElementById("qsMusicVolumeVal");
+  const qsMuteBtn = document.getElementById("qsMuteBtn");
+  const qsMusicSeek = document.getElementById("qsMusicSeek");
   const backToLandingBtn = document.getElementById("backToLandingBtn");
   const signInBtn = document.getElementById("signInBtn");
   const registerBtn = document.getElementById("registerBtn");
@@ -471,8 +799,7 @@ const SFX = (() => {
     study: "Start a session: focus, review, and capture.",
     pomodoro: "Timer + co-op focus sessions linked to tasks.",
     battle: "1v1 quizzes from a question bank. Win, rank up, repeat.",
-    guild: "Group study rooms, co-focus, chat, accountability.",
-    match: "Modes like guild vs guild, tournaments, and events.",
+    match: "Settings, preferences, and app options.",
   };
 
   const enterHeaderMode = () => {
@@ -506,23 +833,25 @@ const SFX = (() => {
     }, 260);
   };
 
-  const showViewInfo = () => {
-    if (!viewInfo || !viewInfoTitle || !viewInfoDesc || !viewBtn) return;
+  const showHeaderIslandInfo = () => {
+    if (!viewBtn) return;
 
     enterHeaderMode();
+    hideViewInfo();
 
     const view = document.body.dataset.view || "dashboard";
     const m = readViewMarker();
-    const desc = m?.desc;
+    const title = viewBtn.textContent?.trim() || m?.label || "Info";
+    const message = (m?.desc || defaultDesc[view] || "").trim();
 
-    viewInfoTitle.textContent = viewBtn.textContent?.trim() || "Info";
-    viewInfoDesc.textContent = desc || defaultDesc[view] || " ";
-
-    viewInfo.hidden = false;
-    requestAnimationFrame(() => viewInfo.classList.add("viewInfo--show"));
-
-    if (infoTimer) clearTimeout(infoTimer);
-    infoTimer = setTimeout(hideViewInfo, 2800);
+    const detail = { title, message, kind: "info" };
+    try {
+      const fn = window.studiumNotify;
+      if (typeof fn === "function") fn(detail);
+      else window.dispatchEvent(new CustomEvent("studium:notify", { detail }));
+    } catch {
+      // ignore
+    }
   };
 
   const syncSfxLabel = () => {
@@ -548,11 +877,19 @@ const SFX = (() => {
     }
   };
 
+  const readStoredNumber = (k) => {
+    const raw = safeLocalGet(k);
+    if (raw === null) return Number.NaN;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : Number.NaN;
+  };
+
   const LS_BRIGHT = "studium:qs_brightness";
   const LS_SFXVOL = "studium:qs_sfx_volume";
   const LS_FS = "studium:pref_fullscreen";
   const LS_WALL = "studium:qs_wallpapers";
   const LS_NOTIF = "studium:qs_notifications";
+  const LS_MUTE_ALL = "studium:qs_mute_all";
   const LS_MUSIC_ON = "studium:qs_music_on";
   const LS_MUSIC_VOL = "studium:qs_music_volume";
   const LS_MUSIC_IDX = "studium:qs_music_index";
@@ -588,6 +925,25 @@ const SFX = (() => {
     }
   };
 
+  const setPendingFocus = (key) => {
+    if (!key) return;
+    try {
+      sessionStorage.setItem("studium:pending_focus", String(key));
+    } catch {
+      // ignore
+    }
+  };
+
+  const clamp01 = (n) => Math.max(0, Math.min(1, n));
+  let muteAll = safeLocalGet(LS_MUTE_ALL) === "1";
+
+  const syncMuteUi = () => {
+    if (!qsMuteBtn) return;
+    qsMuteBtn.setAttribute("aria-pressed", muteAll ? "true" : "false");
+    const icon = qsMuteBtn.querySelector("i");
+    if (icon) icon.className = muteAll ? "fa-solid fa-volume-xmark" : "fa-solid fa-volume-high";
+  };
+
   const syncMusicBtnUi = (on) => {
     if (!toggleMusicBtn) return;
     toggleMusicBtn.setAttribute("aria-pressed", on ? "true" : "false");
@@ -607,25 +963,137 @@ const SFX = (() => {
 
   const music = {
     enabled: safeLocalGet(LS_MUSIC_ON) !== "0",
-    volume: Math.max(0, Math.min(100, Number(safeLocalGet(LS_MUSIC_VOL) ?? 55) || 55)),
+    volume: (() => {
+      const saved = readStoredNumber(LS_MUSIC_VOL);
+      return Number.isFinite(saved) ? Math.max(0, Math.min(100, saved)) : 55;
+    })(),
     index: Math.max(0, Number(safeLocalGet(LS_MUSIC_IDX) ?? 0) || 0),
     tracks: [],
     loaded: false,
   };
 
+  let musicCtx = null;
+  let musicAnalyser = null;
+  let musicGain = null;
+  let musicSource = null;
+  let musicFreq = null;
+  let musicRaf = null;
+  let beatAvg = 0;
+  let beatPulse = 0;
+
+  const applyMusicGain = () => {
+    const target = (music.enabled ? clamp01(music.volume / 100) : 0) * (muteAll ? 0 : 1);
+    if (musicGain) {
+      try {
+        musicGain.gain.value = target;
+      } catch {
+        // ignore
+      }
+      return;
+    }
+    if (qsMusicAudio) qsMusicAudio.volume = target;
+  };
+
+  const startBeatLoop = () => {
+    if (musicRaf) return;
+    const tick = () => {
+      if (musicAnalyser && musicFreq && qsMusicIcon) {
+        if (qsMusicAudio && qsMusicAudio.paused) {
+          beatAvg *= 0.92;
+          beatPulse *= 0.86;
+          qsMusicIcon.style.setProperty("--qs-beat", "0");
+          musicRaf = requestAnimationFrame(tick);
+          return;
+        }
+        try {
+          musicAnalyser.getByteFrequencyData(musicFreq);
+          const bassBins = Math.min(24, musicFreq.length);
+          const midStart = bassBins;
+          const midEnd = Math.min(midStart + 48, musicFreq.length);
+
+          let bass = 0;
+          for (let i = 0; i < bassBins; i++) bass += musicFreq[i];
+          bass = (bass / Math.max(1, bassBins)) / 255;
+
+          let mid = 0;
+          for (let i = midStart; i < midEnd; i++) mid += musicFreq[i];
+          mid = (mid / Math.max(1, midEnd - midStart)) / 255;
+
+          const energy = bass * 0.72 + mid * 0.28;
+          beatAvg = beatAvg * 0.94 + energy * 0.06;
+          const delta = energy - beatAvg;
+          const hit = clamp01(delta * 6.2);
+          beatPulse = Math.max(beatPulse * 0.84, hit);
+          const beat = clamp01(energy * 1.7 + beatPulse * 0.85);
+          qsMusicIcon.style.setProperty("--qs-beat", beat.toFixed(3));
+        } catch {
+          qsMusicIcon.style.setProperty("--qs-beat", "0");
+        }
+      } else if (qsMusicIcon) {
+        qsMusicIcon.style.setProperty("--qs-beat", "0");
+      }
+      musicRaf = requestAnimationFrame(tick);
+    };
+    musicRaf = requestAnimationFrame(tick);
+  };
+
+  const ensureMusicGraph = async () => {
+    if (!qsMusicAudio) return;
+    if (musicCtx && musicAnalyser && musicGain && musicSource) return;
+
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+
+    const ctx = new Ctx();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    analyser.smoothingTimeConstant = 0.82;
+
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+
+    const source = ctx.createMediaElementSource(qsMusicAudio);
+    source.connect(analyser);
+    analyser.connect(gain);
+    gain.connect(ctx.destination);
+
+    musicCtx = ctx;
+    musicAnalyser = analyser;
+    musicGain = gain;
+    musicSource = source;
+    musicFreq = new Uint8Array(analyser.frequencyBinCount);
+
+    try {
+      if (ctx.state === "suspended") await ctx.resume();
+    } catch {
+      // ignore
+    }
+
+    // When using WebAudio, keep element volume at 1 so we control output via `gain`.
+    try {
+      qsMusicAudio.volume = 1;
+    } catch {
+      // ignore
+    }
+
+    applyMusicGain();
+    startBeatLoop();
+  };
+
   const applyMusicVolume = (value) => {
     const n = Math.max(0, Math.min(100, Number(value) || 0));
     music.volume = n;
-    if (qsMusicAudio) qsMusicAudio.volume = n / 100;
     if (qsMusicVolume) qsMusicVolume.value = String(n);
     syncMusicVolUi(n);
     safeLocalSet(LS_MUSIC_VOL, String(Math.round(n)));
+    applyMusicGain();
   };
 
   const setMusicEnabled = (on, { persist = true } = {}) => {
     music.enabled = !!on;
     if (persist) safeLocalSet(LS_MUSIC_ON, music.enabled ? "1" : "0");
     syncMusicBtnUi(music.enabled);
+    applyMusicGain();
     if (!music.enabled && qsMusicAudio) {
       try {
         qsMusicAudio.pause();
@@ -634,6 +1102,13 @@ const SFX = (() => {
       }
     }
     setPlayIcon(qsMusicAudio ? !qsMusicAudio.paused : false);
+  };
+
+  const applyMuteAll = ({ persist = true } = {}) => {
+    if (typeof SFX?.setMuted === "function") SFX.setMuted(muteAll);
+    if (persist) safeLocalSet(LS_MUTE_ALL, muteAll ? "1" : "0");
+    applyMusicGain();
+    syncMuteUi();
   };
 
   const prettyTitle = (filename) => {
@@ -647,7 +1122,7 @@ const SFX = (() => {
     if (!qsTrackTitle || !qsTrackSub) return;
     if (!track) {
       qsTrackTitle.textContent = "No playlist";
-      qsTrackSub.textContent = "Add files to /public/sound/playlist";
+      qsTrackSub.textContent = "No tracks loaded";
       return;
     }
     qsTrackTitle.textContent = track.title || "Track";
@@ -682,6 +1157,11 @@ const SFX = (() => {
           qsMusicAudio.load();
         } catch {
           // ignore
+        }
+        if (qsMusicSeek) {
+          qsMusicSeek.disabled = true;
+          qsMusicSeek.value = "0";
+          qsMusicSeek.dataset.scrubbing = "0";
         }
       }
 
@@ -724,9 +1204,9 @@ const SFX = (() => {
     }
 
     if (qsMusicAudio) {
-      qsMusicAudio.volume = music.volume / 100;
       qsMusicAudio.loop = false;
     }
+    applyMusicGain();
 
     if (music.tracks.length === 0) {
       setTrackUi(null);
@@ -784,17 +1264,19 @@ const SFX = (() => {
     syncSfxLabel();
     syncNotifUi();
     syncMusicBtnUi(music.enabled);
+    muteAll = safeLocalGet(LS_MUTE_ALL) === "1";
+    applyMuteAll({ persist: false });
 
     // Sync quick settings values on open.
     if (qsBrightness) {
-      const saved = Number(safeLocalGet(LS_BRIGHT));
+      const saved = readStoredNumber(LS_BRIGHT);
       const val = Number.isFinite(saved) ? saved : Number(qsBrightness.value || 78);
       qsBrightness.value = String(Math.max(0, Math.min(100, val)));
       applyBrightness(qsBrightness.value);
     }
 
     if (qsSfxVolume) {
-      const saved = Number(safeLocalGet(LS_SFXVOL));
+      const saved = readStoredNumber(LS_SFXVOL);
       const val = Number.isFinite(saved) ? saved : Math.round((typeof SFX?.getVolume === "function" ? SFX.getVolume() : 0.55) * 100);
       setSfxVolumeUi(val);
     }
@@ -817,7 +1299,7 @@ const SFX = (() => {
     }
 
     if (qsMusicVolume) {
-      const saved = Number(safeLocalGet(LS_MUSIC_VOL));
+      const saved = readStoredNumber(LS_MUSIC_VOL);
       const val = Number.isFinite(saved) ? saved : music.volume;
       applyMusicVolume(val);
     }
@@ -872,7 +1354,7 @@ const SFX = (() => {
   };
 
   if (viewBtn) {
-    viewBtn.addEventListener("click", showViewInfo);
+    viewBtn.addEventListener("click", showHeaderIslandInfo);
     viewBtn.addEventListener("pointerdown", () => {
       if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
     });
@@ -890,32 +1372,49 @@ const SFX = (() => {
   if (qsNotifBtn) {
     qsNotifBtn.addEventListener("click", () => {
       if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
-      const on = safeLocalGet(LS_NOTIF) !== "0";
-      safeLocalSet(LS_NOTIF, on ? "0" : "1");
-      syncNotifUi();
+      setPendingFocus("match.account.notifications");
+      navShortcut("/match");
+    });
+  }
+
+  if (qsProfileBtn) {
+    qsProfileBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      setPendingFocus("match.account.profile");
+      navShortcut("/match");
     });
   }
 
   const navShortcut = (href) => {
+    // Study focus room must be "full screen": no shortcuts that leave the page.
+    try {
+      const sub = document.body && document.body.dataset ? document.body.dataset.subview : "";
+      if (sub === "study-room" && document.body && document.body.classList && document.body.classList.contains("study-strict")) return;
+    } catch {
+      // ignore
+    }
     if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
     closeDrawer({ focusProfile: false });
     setTimeout(() => {
+      try {
+        const seg = String(href || "").split("?")[0].split("#")[0].replace(/^\//, "");
+        if (seg && typeof window.studiumRoutePush === "function") {
+          window.studiumRoutePush(seg);
+          return;
+        }
+      } catch {
+        // ignore
+      }
       window.location.href = href;
     }, 120);
   };
 
   if (qsQuestBtn) qsQuestBtn.addEventListener("click", () => navShortcut("/quest"));
-  if (qsGuildBtn) qsGuildBtn.addEventListener("click", () => navShortcut("/guild"));
+  if (qsBattleBtn) qsBattleBtn.addEventListener("click", () => navShortcut("/battle"));
   if (qsNotesBtn) qsNotesBtn.addEventListener("click", () => navShortcut("/notes"));
   if (qsHomeBtn) qsHomeBtn.addEventListener("click", () => navShortcut("/dashboard"));
 
-  if (qsSettingsBtn && qsAdvanced) {
-    qsSettingsBtn.addEventListener("click", () => {
-      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
-      const open = !qsAdvanced.hidden;
-      setAdvancedOpen(!open, { persist: true, focusFirst: true });
-    });
-  }
+  if (qsSettingsBtn) qsSettingsBtn.addEventListener("click", () => navShortcut("/match"));
 
   if (toggleMusicBtn) {
     toggleMusicBtn.addEventListener("click", () => {
@@ -941,12 +1440,14 @@ const SFX = (() => {
   }
 
   if (qsMusicPlayBtn) {
-    qsMusicPlayBtn.addEventListener("click", () => {
-      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+    qsMusicPlayBtn.addEventListener("click", async () => {
+      if (!muteAll && typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
       setMusicEnabled(true);
       loadPlaylistOnce();
       if (!qsMusicAudio) return;
+      await ensureMusicGraph();
       if (!qsMusicAudio.getAttribute("src")) applyTrack(music.index, { autoplay: false });
+      applyMusicGain();
       try {
         if (qsMusicAudio.paused) {
           const p = qsMusicAudio.play();
@@ -956,6 +1457,15 @@ const SFX = (() => {
         // ignore
       }
       setPlayIcon(!qsMusicAudio.paused);
+    });
+  }
+
+  if (qsMuteBtn) {
+    qsMuteBtn.addEventListener("click", () => {
+      const wasMuted = muteAll;
+      muteAll = !muteAll;
+      applyMuteAll({ persist: true });
+      if (wasMuted && !muteAll && typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
     });
   }
 
@@ -972,6 +1482,50 @@ const SFX = (() => {
       if (!music.enabled) return;
       loadPlaylistOnce();
       applyTrack(music.index + 1, { autoplay: true });
+    });
+
+    const syncSeekUi = () => {
+      if (!qsMusicSeek) return;
+      const d = qsMusicAudio.duration;
+      if (!Number.isFinite(d) || d <= 0) {
+        qsMusicSeek.disabled = true;
+        qsMusicSeek.value = "0";
+        return;
+      }
+      if (qsMusicSeek.dataset.scrubbing === "1") return;
+      qsMusicSeek.disabled = false;
+      const ratio = Math.max(0, Math.min(1, (qsMusicAudio.currentTime || 0) / d));
+      qsMusicSeek.value = String(Math.round(ratio * 1000));
+    };
+
+    qsMusicAudio.addEventListener("loadedmetadata", syncSeekUi);
+    qsMusicAudio.addEventListener("durationchange", syncSeekUi);
+    qsMusicAudio.addEventListener("timeupdate", syncSeekUi);
+    qsMusicAudio.addEventListener("emptied", syncSeekUi);
+  }
+
+  if (qsMusicSeek && qsMusicAudio) {
+    const seekTo = () => {
+      const d = qsMusicAudio.duration;
+      if (!Number.isFinite(d) || d <= 0) return;
+      const ratio = Math.max(0, Math.min(1, (Number(qsMusicSeek.value) || 0) / 1000));
+      try {
+        qsMusicAudio.currentTime = ratio * d;
+      } catch {
+        // ignore
+      }
+    };
+
+    qsMusicSeek.addEventListener("pointerdown", () => {
+      qsMusicSeek.dataset.scrubbing = "1";
+    });
+    qsMusicSeek.addEventListener("pointerup", () => {
+      qsMusicSeek.dataset.scrubbing = "0";
+    });
+    qsMusicSeek.addEventListener("input", () => seekTo());
+    qsMusicSeek.addEventListener("change", () => {
+      seekTo();
+      qsMusicSeek.dataset.scrubbing = "0";
     });
   }
 
@@ -1001,7 +1555,14 @@ const SFX = (() => {
 
   if (qsFullscreen) {
     qsFullscreen.addEventListener("change", () => {
-      applyFullscreenPref(!!qsFullscreen.checked);
+      const on = !!qsFullscreen.checked;
+      applyFullscreenPref(on);
+      try {
+        if (on && typeof SFX?.ensureFullscreen === "function") SFX.ensureFullscreen();
+        if (!on && typeof SFX?.exitFullscreen === "function") SFX.exitFullscreen();
+      } catch {
+        // ignore
+      }
     });
   }
 
@@ -1058,6 +1619,9 @@ const SFX = (() => {
       closeDrawer({ focusProfile: true });
     });
 
+  // Apply persisted audio mute immediately (so SFX/music match before opening the drawer).
+  applyMuteAll({ persist: false });
+
   window.studiumViewInfoApi = {
     isOpen: isViewInfoOpen,
     close: () => hideViewInfo(),
@@ -1100,8 +1664,75 @@ const SFX = (() => {
 
 (function initNavbar() {
   const carousel = document.getElementById("carousel");
-  const items = Array.from(document.querySelectorAll(".navItem"));
-  if (!carousel || items.length === 0) return;
+  if (!carousel) return;
+  let items = Array.from(carousel.querySelectorAll(".navItem"));
+  if (items.length === 0) return;
+
+  const safeLocalGet = (k) => {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  };
+  const safeLocalSet = (k, v) => {
+    try {
+      localStorage.setItem(k, v);
+    } catch {
+      // ignore
+    }
+  };
+
+  const LS_NAV_ORDER = "studium:nav_order";
+  const DEFAULT_ORDER = ["dashboard", "notes", "quest", "schedules", "study", "battle", "match"];
+
+  const refreshItems = () => {
+    items = Array.from(carousel.querySelectorAll(".navItem"));
+  };
+
+  const applyNavOrder = (order, { persist = false } = {}) => {
+    if (!Array.isArray(order) || order.length === 0) return;
+
+    const byPage = new Map();
+    items.forEach((el) => {
+      const p = el?.dataset?.page;
+      if (p) byPage.set(p, el);
+    });
+
+    const out = [];
+    order.forEach((page) => {
+      const el = byPage.get(page);
+      if (!el) return;
+      out.push(el);
+      byPage.delete(page);
+    });
+
+    // Append remaining in current DOM order.
+    items.forEach((el) => {
+      const p = el?.dataset?.page;
+      if (p && byPage.has(p)) out.push(el);
+    });
+
+    out.forEach((el) => carousel.appendChild(el));
+    refreshItems();
+    if (persist) safeLocalSet(LS_NAV_ORDER, JSON.stringify(items.map((x) => x.dataset.page).filter(Boolean)));
+  };
+
+  try {
+    const raw = safeLocalGet(LS_NAV_ORDER);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const migrated = parsed
+          .map((x) => (x === "guild" ? "battle" : x))
+          .filter((x, idx, arr) => arr.indexOf(x) === idx);
+        applyNavOrder(migrated, { persist: false });
+        if (migrated.join("|") !== parsed.join("|")) safeLocalSet(LS_NAV_ORDER, JSON.stringify(migrated));
+      }
+    }
+  } catch {
+    // ignore
+  }
 
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
@@ -1110,6 +1741,20 @@ const SFX = (() => {
       el.focus({ preventScroll: true });
     } catch {
       el.focus();
+    }
+  };
+
+  const ensureCarouselVisible = (el, { behavior = "smooth" } = {}) => {
+    if (!el || !carousel) return;
+    try {
+      const c = carousel.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      const pad = 28;
+      const isVisible = r.left >= c.left + pad && r.right <= c.right - pad;
+      if (isVisible) return;
+      el.scrollIntoView({ behavior, inline: "center", block: "nearest" });
+    } catch {
+      // ignore
     }
   };
 
@@ -1128,7 +1773,7 @@ const SFX = (() => {
     const el = items[focusedIndex];
     el.classList.add("focused");
 
-    if (scroll) el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    if (scroll) ensureCarouselVisible(el, { behavior: "smooth" });
     if (focus) safeFocus(el);
   }
 
@@ -1146,6 +1791,7 @@ const SFX = (() => {
 
     const pageName = el.dataset.page;
     if (pageName) setView(pageName);
+    if (pageName && typeof window.applyViewTint === "function") window.applyViewTint(pageName);
 
     if (!document.body.classList.contains("booting") && pageName && lastSfxView && pageName !== lastSfxView) {
       SFX.playSwitch();
@@ -1171,6 +1817,7 @@ const SFX = (() => {
 
   function switchRelative(dir, { preserveMode = true } = {}) {
     if (document.body.classList.contains("booting")) return;
+    if (navSwitchLocked()) return;
     const nextIndex = clamp(activeIndex + dir, 0, items.length - 1);
     if (nextIndex === activeIndex) return;
 
@@ -1180,17 +1827,11 @@ const SFX = (() => {
     // Update active + route.
     setActive(nextIndex, { navigate: true });
 
-    // Always keep the active item visible in the carousel.
-    try {
-      items[nextIndex].scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-    } catch {
-      // ignore
-    }
-
     // If user is in grid mode (nav minimized), preserve the mode and don't steal focus.
     if (preserveMode && document.body.classList.contains("grid-mode")) {
       items.forEach((i) => i.classList.remove("focused"));
       items[nextIndex].classList.add("focused");
+      ensureCarouselVisible(items[nextIndex], { behavior: "smooth" });
       return;
     }
 
@@ -1201,33 +1842,71 @@ const SFX = (() => {
 
   window.navApi = {
     focus: (idx) => {
+      if (navSwitchLocked()) return;
       setMode("nav");
       setFocused(idx, { focus: true, scroll: true });
       setActive(focusedIndex, { navigate: true });
     },
     move: (dir) => {
+      if (navSwitchLocked()) return;
       setMode("nav");
       setFocused(focusedIndex + dir, { focus: true, scroll: true });
       setActive(focusedIndex, { navigate: true });
     },
     switchRelative,
     focusCurrent: () => setFocused(focusedIndex ?? activeIndex, { focus: true, scroll: true }),
+    getOrder: () => items.map((x) => x?.dataset?.page).filter(Boolean),
+    setOrder: (order) => {
+      applyNavOrder(order, { persist: true });
+      const view = getView();
+      activeIndex = items.findIndex((i) => i?.dataset?.page === view);
+      if (activeIndex < 0) activeIndex = 0;
+      focusedIndex = activeIndex;
+      setActive(activeIndex, { navigate: false });
+      setFocused(activeIndex, { focus: false, scroll: true });
+    },
+    resetOrder: () => {
+      try {
+        localStorage.removeItem(LS_NAV_ORDER);
+      } catch {
+        // ignore
+      }
+      applyNavOrder(DEFAULT_ORDER, { persist: false });
+      const view = getView();
+      activeIndex = items.findIndex((i) => i?.dataset?.page === view);
+      if (activeIndex < 0) activeIndex = 0;
+      focusedIndex = activeIndex;
+      setActive(activeIndex, { navigate: false });
+      setFocused(activeIndex, { focus: false, scroll: true });
+    },
   };
 
-  items.forEach((item, idx) => {
+  items.forEach((item) => {
     item.addEventListener("click", () => {
       if (document.body.classList.contains("booting")) return;
+      const idx = items.indexOf(item);
+      if (idx < 0) return;
+      const pageName = item.dataset.page || "";
+      if (pageName === "quest") setNavLock(650);
       setMode("nav");
       setFocused(idx, { focus: true, scroll: true });
       setActive(idx, { navigate: true });
     });
-    item.addEventListener("focus", () => setFocused(idx, { focus: false, scroll: true }));
+    item.addEventListener("focus", () => {
+      const idx = items.indexOf(item);
+      if (idx < 0) return;
+      setFocused(idx, { focus: false, scroll: true });
+    });
   });
 
   carousel.addEventListener(
     "wheel",
     (e) => {
       if (document.body.classList.contains("booting")) return;
+      if (navSwitchLocked()) {
+        e.preventDefault();
+        return;
+      }
       if (Math.abs(e.deltaY) < 2 && Math.abs(e.deltaX) < 2) return;
       e.preventDefault();
 
@@ -1252,6 +1931,7 @@ const SFX = (() => {
 
 (function initContentBindings() {
   const enterContentMode = () => {
+    if (getView() === "quest" && navLockActive()) return;
     setMode("grid");
     if (typeof window.clearNavFocus === "function") window.clearNavFocus();
   };
@@ -1295,10 +1975,37 @@ const SFX = (() => {
 
       el.addEventListener("focus", () => {
         const view = getView();
-        lastByView[view] = el.getAttribute("data-focus") || "";
+        const key = el.getAttribute("data-focus") || "";
+        if (view === "quest" && navLockActive()) {
+          requestAnimationFrame(() => {
+            try {
+              window.setMode?.("nav");
+              window.focusNavMenu?.();
+            } catch {
+              // ignore
+            }
+          });
+          return;
+        }
+        lastByView[view] = key;
         enterContentMode();
+
+        // Dashboard calendar widget: focusing the container should enter the controls.
+        if (key === "dashboard.widget") {
+          const target = el.querySelector?.('[data-focus="dashboard.widget.today"]');
+          if (target) {
+            requestAnimationFrame(() => {
+              try {
+                target.focus({ preventScroll: true });
+              } catch {
+                target.focus();
+              }
+            });
+          }
+        }
       });
       el.addEventListener("pointerdown", () => {
+        clearNavLock();
         if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
         enterContentMode();
       });
@@ -1317,6 +2024,29 @@ const SFX = (() => {
 
   window.studiumReinitContent = () => bindGrid();
   bindGrid();
+
+  // Guard: Next.js may move focus into newly-mounted route content on navigation.
+  // When entering Quest, keep the navbar open/focused unless the user explicitly clicks the content.
+  document.addEventListener(
+    "focusin",
+    (e) => {
+      if (getView() !== "quest") return;
+      if (!navLockActive()) return;
+      const t = e.target;
+      if (!t || typeof t !== "object") return;
+      if (typeof t.closest !== "function") return;
+      if (!t.closest("#routeOutlet")) return;
+      requestAnimationFrame(() => {
+        try {
+          window.setMode?.("nav");
+          window.focusNavMenu?.();
+        } catch {
+          // ignore
+        }
+      });
+    },
+    true
+  );
 })();
 
 (function initKeyboardRouterHybrid() {
@@ -1329,14 +2059,17 @@ const SFX = (() => {
     study: "study.launcher",
     pomodoro: "pomodoro.timer",
     battle: "battle.lobby",
-    guild: "guild.overview",
-    match: "match.events",
+    guild: "battle.lobby",
+    match: "match.system.nav",
   };
 
   const overrideByView = {
     notes: {
       "notes.inbox:right": "notes.preview",
       "notes.preview:left": "notes.recent1",
+    },
+    battle: {
+      "battle.leaderboard:down": "battle.lb.scope.global",
     },
   };
 
@@ -1367,6 +2100,7 @@ const SFX = (() => {
   };
 
   const focusContentEntry = () => {
+    if (getView() === "quest") clearNavLock();
     const view = getView();
     const key = entryByView[view];
     if (key && focusByKey(key)) return true;
@@ -1388,17 +2122,39 @@ const SFX = (() => {
 
   const getZone = () => {
     if (document.body.classList.contains("drawer-open")) return "drawer";
+    if (document.body.classList.contains("modal-open")) return "modal";
     const ae = document.activeElement;
+    if (ae?.closest?.(".studiumModal")) return "modal";
     if (ae?.closest?.("#profileDrawer")) return "drawer";
     if (ae?.id === "userMenuBtn" || ae?.id === "viewLabel") return "header";
-    if (ae?.closest?.("#routeOutlet") && ae?.getAttribute?.("data-focus")) return "grid";
-    if (ae?.classList?.contains("gridCard")) return "grid";
+    if (ae?.closest?.("#routeOutlet") && (ae?.getAttribute?.("data-focus") || ae?.classList?.contains("gridCard") || ae?.closest?.(".gridCard")))
+      return "grid";
     return "nav";
   };
 
   const drawerMove = (dir) => {
     const api = window.profileDrawerApi;
     const focusables = api?.focusables?.() || [];
+    if (focusables.length === 0) return;
+    const idx = focusables.indexOf(document.activeElement);
+    const cur = idx >= 0 ? idx : 0;
+    const next = (cur + dir + focusables.length) % focusables.length;
+    focusEl(focusables[next]);
+  };
+
+  const modalFocusables = () => {
+    const root = document.querySelector("#routeOutlet .studiumModal");
+    if (!root) return [];
+    const nodes = Array.from(
+      root.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+    );
+    return nodes.filter(isVisible);
+  };
+
+  const modalMove = (dir) => {
+    const focusables = modalFocusables();
     if (focusables.length === 0) return;
     const idx = focusables.indexOf(document.activeElement);
     const cur = idx >= 0 ? idx : 0;
@@ -1421,65 +2177,134 @@ const SFX = (() => {
 
   const overlap1d = (a1, a2, b1, b2) => Math.max(0, Math.min(a2, b2) - Math.max(a1, b1));
 
+  let gridRectCache = null;
+  let gridCacheTimer = null;
+  let lastXMemory = null;
+
+  const invalidateGridCache = () => { gridRectCache = null; };
+  window.addEventListener('resize', invalidateGridCache);
+
+  const getCachedRects = (candidates) => {
+    if (gridRectCache && gridRectCache.length === candidates.length) return gridRectCache;
+    gridRectCache = candidates.map(el => ({ el, rect: el.getBoundingClientRect(), center: centerOf(el.getBoundingClientRect()) }));
+    return gridRectCache;
+  };
+
   const spatialNext = (current, dir, candidates) => {
     if (!current) return null;
+    if (gridCacheTimer) clearTimeout(gridCacheTimer);
+    gridCacheTimer = setTimeout(invalidateGridCache, 500);
+
     const curRect = current.getBoundingClientRect();
     const cur = centerOf(curRect);
 
+    if (dir === 'up' || dir === 'down') {
+      if (lastXMemory === null) lastXMemory = cur.x;
+    } else {
+      lastXMemory = null;
+    }
+
+    const targetX = lastXMemory !== null ? lastXMemory : cur.x;
     let best = null;
     let bestScore = Infinity;
+    const items = getCachedRects(candidates);
 
-    for (const el of candidates) {
+    for (const item of items) {
+      const el = item.el;
       if (!el || el === current) continue;
-      const r = el.getBoundingClientRect();
-      const c = centerOf(r);
+      const r = item.rect;
+      const c = item.center;
+      
       const dx = c.x - cur.x;
       const dy = c.y - cur.y;
 
-      if (dir === "left" && dx >= -6) continue;
-      if (dir === "right" && dx <= 6) continue;
-      if (dir === "up" && dy >= -6) continue;
-      if (dir === "down" && dy <= 6) continue;
+      if (dir === 'left' && dx >= -6) continue;
+      if (dir === 'right' && dx <= 6) continue;
+      if (dir === 'up' && dy >= -6) continue;
+      if (dir === 'down' && dy <= 6) continue;
 
-      const primary = dir === "left" || dir === "right" ? Math.abs(dx) : Math.abs(dy);
-      const secondary = dir === "left" || dir === "right" ? Math.abs(dy) : Math.abs(dx);
+      const primary = dir === 'left' || dir === 'right' ? Math.abs(dx) : Math.abs(dy);
+      const secondaryRaw = dir === 'left' || dir === 'right' ? Math.abs(dy) : Math.abs(c.x - targetX);
+      const secondary = secondaryRaw;
+
       let score = primary * primary + secondary * secondary * 2.2;
 
-      const overlap =
-        dir === "left" || dir === "right"
+      const overlap = dir === 'left' || dir === 'right'
           ? overlap1d(curRect.top, curRect.bottom, r.top, r.bottom)
           : overlap1d(curRect.left, curRect.right, r.left, r.right);
       if (overlap > 0) score *= 0.62;
 
-      if (score < bestScore) {
-        bestScore = score;
-        best = el;
-      }
+      if (score < bestScore) { bestScore = score; best = el; }
     }
-
     return best;
   };
 
-  const gridCandidates = () =>
-    (window.studiumGridApi?.list ? window.studiumGridApi.list() : Array.from(document.querySelectorAll("#routeOutlet [data-focus]"))).filter(
-      isVisible
-    );
+  const gridCandidatesAll = () =>
+    (window.studiumGridApi?.list ? window.studiumGridApi.list() : Array.from(document.querySelectorAll("#routeOutlet [data-focus]"))).filter(isVisible);
+
+  const gridCandidateSets = () => {
+    const all = gridCandidatesAll();
+    const battleLeaderboard = document.getElementById("battle-leaderboard");
+    const widget = document.getElementById("grid-widget");
+    const ae = document.activeElement;
+
+    if (battleLeaderboard && ae && battleLeaderboard.contains(ae)) {
+      const scoped = all.filter((el) => battleLeaderboard.contains(el));
+      return { primary: scoped.length ? scoped : all, fallback: all };
+    }
+
+    if (widget && ae && widget.contains(ae)) {
+      const scoped = all.filter((el) => widget.contains(el));
+      return { primary: scoped.length ? scoped : all, fallback: all };
+    }
+    return { primary: all, fallback: all };
+  };
+
+  const applyRovingTabindex = (activeEl) => {
+    const all = gridCandidatesAll();
+    for (const el of all) { if (el === activeEl) { el.setAttribute('tabindex', '0'); } else { el.setAttribute('tabindex', '-1'); } }
+  };
+
+  const ensureVisibleSmooth = (el) => {
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const pad = 120;
+    const vh = window.innerHeight;
+    if (r.top < pad) { if (window.scrollBy) window.scrollBy({ top: r.top - pad, behavior: 'smooth' }); }
+    else if (r.bottom > vh - pad) { if (window.scrollBy) window.scrollBy({ top: r.bottom - vh + pad, behavior: 'smooth' }); }
+  };
 
   const moveInGrid = (dir) => {
     const view = getView();
-    const cur = document.activeElement;
-    const fromKey = cur?.getAttribute?.("data-focus") || "";
-    const override = overrideByView?.[view]?.[`${fromKey}:${dir}`];
+    const curRaw = document.activeElement;
+    const curHasKey = !!curRaw?.getAttribute?.("data-focus") || !!curRaw?.classList?.contains?.("gridCard");
+    const cur = curHasKey ? curRaw : curRaw?.closest?.(".gridCard") || curRaw;
+    const fromKey = cur?.getAttribute?.('data-focus') || curRaw?.getAttribute?.('data-focus') || '';
+    const override = overrideByView?.[view]?.[fromKey + ':' + dir];
+    
     if (override) {
       const moved = focusByKey(override);
-      if (moved && typeof SFX?.playGridMove === "function") SFX.playGridMove();
+      if (moved) {
+        if (typeof SFX?.playGridMove === 'function') SFX.playGridMove();
+        applyRovingTabindex(document.activeElement);
+        ensureVisibleSmooth(document.activeElement);
+      }
       return moved;
     }
 
-    const next = spatialNext(cur, dir, gridCandidates());
-    if (!next) return false;
+    const { primary, fallback } = gridCandidateSets();
+    const next = spatialNext(cur, dir, primary) || (fallback !== primary ? spatialNext(cur, dir, fallback) : null);
+    if (!next) {
+       if (dir === 'up' || dir === 'down') lastXMemory = null;
+       return false;
+    }
+    
     const moved = focusEl(next);
-    if (moved && typeof SFX?.playGridMove === "function") SFX.playGridMove();
+    if (moved) {
+      if (typeof SFX?.playGridMove === 'function') SFX.playGridMove();
+      applyRovingTabindex(next);
+      ensureVisibleSmooth(next);
+    }
     return moved;
   };
 
@@ -1499,20 +2324,80 @@ const SFX = (() => {
     (e) => {
       if (document.body.classList.contains("booting")) return;
       if (e.altKey || e.ctrlKey || e.metaKey) return;
-      if (isTypingTarget(document.activeElement)) return;
 
       const key = e.key;
       const isArrow = key === "ArrowLeft" || key === "ArrowRight" || key === "ArrowUp" || key === "ArrowDown" || key === "Escape";
       if (!isArrow) return;
 
       const zone = getZone();
+      const ae = document.activeElement;
+      const typing = isTypingTarget(ae);
 
-      // Drawer
-      if (zone === "drawer") {
+      // Don't steal arrow keys from typing targets (let caret/value navigation work).
+      // Escape is still handled for closing modals/drawers.
+      if (typing && key !== "Escape") return;
+
+      // Modal
+      if (zone === "modal") {
+        // Let native widgets keep their arrow-key behavior.
+        if (key !== "Escape") {
+          const tag = ae?.tagName ? String(ae.tagName).toLowerCase() : "";
+          const type = tag === "input" ? String(ae.getAttribute?.("type") || "text").toLowerCase() : "";
+          const valueControl =
+            tag === "select" ||
+            (tag === "input" && (type === "time" || type === "date" || type === "datetime-local" || type === "number" || type === "month" || type === "week"));
+
+          // Keep up/down for changing values, but allow left/right to keep navigating between controls.
+          if (valueControl && (key === "ArrowUp" || key === "ArrowDown")) return;
+        }
+
         e.preventDefault();
         e.stopPropagation();
 
-        const ae = document.activeElement;
+        const isRange =
+          ae?.tagName &&
+          String(ae.tagName).toLowerCase() === "input" &&
+          String(ae.getAttribute("type") || "").toLowerCase() === "range";
+        if (isRange && (key === "ArrowLeft" || key === "ArrowRight")) {
+          const input = ae;
+          const min = Number(input.min || 0);
+          const max = Number(input.max || 100);
+          const step = Number(input.step || 1);
+          const cur = Number(input.value || 0);
+          const next = Math.max(min, Math.min(max, cur + (key === "ArrowRight" ? step : -step)));
+          input.value = String(next);
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          return;
+        }
+
+        if (key === "Escape") {
+          if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+          window.studiumModalApi?.close?.();
+          return;
+        }
+
+        if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
+        if (key === "ArrowDown" || key === "ArrowRight") modalMove(1);
+        else if (key === "ArrowUp" || key === "ArrowLeft") modalMove(-1);
+        return;
+      }
+
+      // Drawer
+      if (zone === "drawer") {
+        // Let native widgets keep their arrow-key behavior.
+        if (key !== "Escape") {
+          const tag = ae?.tagName ? String(ae.tagName).toLowerCase() : "";
+          const type = tag === "input" ? String(ae.getAttribute?.("type") || "text").toLowerCase() : "";
+          const valueControl =
+            tag === "select" ||
+            (tag === "input" && (type === "time" || type === "date" || type === "datetime-local" || type === "number" || type === "month" || type === "week"));
+
+          if (valueControl && (key === "ArrowUp" || key === "ArrowDown")) return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
         const isRange = ae?.tagName && String(ae.tagName).toLowerCase() === "input" && String(ae.getAttribute("type") || "").toLowerCase() === "range";
         if (isRange && (key === "ArrowLeft" || key === "ArrowRight")) {
           const input = ae;
@@ -1583,6 +2468,17 @@ const SFX = (() => {
 
       // Grid (any view)
       if (zone === "grid") {
+        // Let native widgets keep up/down arrows for changing values,
+        // but keep left/right for spatial navigation.
+        if (key !== "Escape") {
+          const tag = ae?.tagName ? String(ae.tagName).toLowerCase() : "";
+          const type = tag === "input" ? String(ae.getAttribute?.("type") || "text").toLowerCase() : "";
+          const valueControl =
+            tag === "select" ||
+            (tag === "input" && (type === "time" || type === "date" || type === "datetime-local" || type === "number" || type === "month" || type === "week"));
+          if (valueControl && (key === "ArrowUp" || key === "ArrowDown")) return;
+        }
+
         e.preventDefault();
         e.stopPropagation();
 
@@ -1645,6 +2541,7 @@ const SFX = (() => {
   if (!root) return;
 
   const shouldIgnoreTarget = (target) => {
+    if (target?.isContentEditable) return true;
     const el = target?.closest?.(
       "#carousel, .navbar, #profileDrawer, #profileOverlay, .drawer, .drawerOverlay"
     );
@@ -1673,6 +2570,7 @@ const SFX = (() => {
     (e) => {
       if (document.body.classList.contains("booting")) return;
       if (document.body.classList.contains("drawer-open")) return;
+      if (navSwitchLocked()) return;
       if (e.touches.length !== 1) return;
       if (shouldIgnoreTarget(e.target)) return;
 
@@ -1701,6 +2599,7 @@ const SFX = (() => {
       if (Math.abs(dx) < 60) return;
       if (Math.abs(dx) < Math.abs(dy) * 1.2) return;
       if (dt > 900) return; // too slow: likely scroll/drag
+      if (navSwitchLocked()) return;
 
       const dir = dx < 0 ? 1 : -1; // swipe left -> next
       const preserveMode = document.body.classList.contains("grid-mode");

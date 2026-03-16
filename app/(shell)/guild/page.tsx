@@ -1,11 +1,5 @@
-import GuildGrid from "../../../components/grids/guild-grid";
-import ViewMarker from "../../../components/view-marker";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return (
-    <>
-      <ViewMarker view="guild" label="Guild" desc="Group study rooms, co-focus, chat, accountability." />
-      <GuildGrid />
-    </>
-  );
+  redirect("/battle");
 }

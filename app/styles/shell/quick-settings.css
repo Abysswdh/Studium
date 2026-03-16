@@ -8,6 +8,7 @@
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge legacy */
   padding-right: 0;
+  overflow-x: hidden;
 }
 
 .drawerBody::-webkit-scrollbar {
@@ -39,6 +40,28 @@
   background: rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.10);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.drawerUser {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 54px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.drawerUser:hover {
+  filter: brightness(1.06);
+}
+
+.drawerUserChevron {
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .qsMenuBtn:hover {
@@ -269,35 +292,53 @@
 }
 
 .qsAudioBar {
-  margin-top: 14px;
-  border-radius: 20px;
-  padding: 14px;
-  background: rgba(0, 0, 0, 0.20);
+  margin-top: 0;
+  border-radius: 22px;
+  padding: 12px 12px;
+  background: rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.10);
-  display: grid;
-  gap: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
 }
 
-.qsAudioLeft {
-  display: flex;
-  align-items: center;
+.qsPlayer {
+  display: grid;
+  grid-template-columns: 54px 1fr;
   gap: 12px;
+  align-items: center;
+  min-width: 0;
 }
 
 .qsMusicIcon {
-  width: 52px;
-  height: 52px;
+  width: 54px;
+  height: 54px;
   border-radius: 18px;
-  background: rgba(88, 216, 255, 0.32);
+  background: rgb(var(--glass-tint) / 0.18);
   border: 1px solid rgba(255, 255, 255, 0.14);
   display: grid;
   place-items: center;
   color: rgba(255, 255, 255, 0.92);
   flex: 0 0 auto;
+  transform: scale(calc(1 + var(--qs-beat, 0) * 0.22));
+  transition: transform 70ms ease-out;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+  position: relative;
+}
+
+.qsMusicIcon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.13), 0 0 40px rgba(255, 255, 255, 0.10);
+  opacity: calc(0.55 + var(--qs-beat, 0) * 0.55);
+  transition: opacity 120ms ease-out;
 }
 
 .qsMusicIcon i {
   font-size: 22px;
+  position: relative;
+  z-index: 1;
 }
 
 .qsTrack {
@@ -308,34 +349,49 @@
   font-family: var(--font-display);
   font-weight: 900;
   color: rgba(255, 255, 255, 0.92);
-  font-size: 13px;
+  font-size: 16px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .qsTrackSub {
-  margin-top: 4px;
-  color: rgba(255, 255, 255, 0.55);
-  font-weight: 800;
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: none;
 }
 
-.qsAudioControls {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.qsPlayerMain {
+  min-width: 0;
+  display: grid;
   gap: 8px;
 }
 
+.qsPlayerControls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.qsPillBtn {
+  display: none;
+}
+
+.qsPillBtn i {
+  font-size: 14px;
+}
+
+.qsPillBtn--off {
+  opacity: 0.65;
+  filter: saturate(0.75);
+}
+
 .qsCtl {
-  width: 44px;
-  height: 40px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.07);
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.10);
   display: grid;
   place-items: center;
@@ -346,46 +402,62 @@
   font-size: 16px;
 }
 
-.qsAudioRight {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
+.qsSeek {
+  width: 100%;
+  height: 14px;
+  accent-color: rgba(255, 255, 255, 0.92);
+  background: transparent;
 }
 
-.qsPillBtn {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 86, 86, 0.70);
-  color: rgba(255, 255, 255, 0.96);
-  border-radius: 16px;
-  padding: 10px 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--font-display);
-  font-weight: 900;
+.qsSeek::-webkit-slider-runnable-track {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.20);
 }
 
-.qsPillBtn--off {
-  background: rgba(255, 255, 255, 0.10);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.80);
+.qsSeek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  margin-top: -3px;
 }
 
-.qsPillBtn i {
-  font-size: 16px;
+.qsSeek::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
 }
 
-.qsPillBtn__label {
-  font-size: 12px;
-  letter-spacing: 0.12em;
+.qsSeek::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.35);
 }
 
-.qsMusicVol {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  align-items: center;
+.qsMusicOnIcon,
+.qsMusicOffIcon {
+  position: absolute;
+  opacity: 0;
+}
+
+#toggleMusicBtn {
+  position: relative;
+}
+
+#toggleMusicBtn[aria-pressed="true"] .qsMusicOnIcon {
+  opacity: 1;
+  position: static;
+}
+
+#toggleMusicBtn[aria-pressed="false"] .qsMusicOffIcon {
+  opacity: 1;
+  position: static;
 }
 
 /* Background adjustments driven by quick settings vars. */
@@ -443,14 +515,14 @@
     padding: 12px;
   }
   .qsMusicIcon {
-    width: 46px;
-    height: 46px;
-    border-radius: 16px;
+    width: 50px;
+    height: 50px;
+    border-radius: 18px;
   }
   .qsCtl {
-    width: 42px;
-    height: 38px;
-    border-radius: 14px;
+    width: 32px;
+    height: 32px;
+    border-radius: 12px;
   }
 }
 

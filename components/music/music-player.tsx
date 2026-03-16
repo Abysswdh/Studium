@@ -412,8 +412,7 @@ export default function MusicPlayer({ tracks }: Props) {
 
       {!list.length ? (
         <div className="text-xs font-[800] text-white/55">
-          No tracks found. Add audio files to <span className="text-white/75">public/sound/playlist</span> (deploy requires they exist on Vercel), or edit{" "}
-          <span className="text-white/75">/sound/playlist/manifest.json</span>.
+          No tracks loaded.
         </div>
       ) : null}
     </div>
