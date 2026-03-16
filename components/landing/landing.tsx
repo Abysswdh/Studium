@@ -258,9 +258,9 @@ export default function Landing() {
 
           <aside className="relative overflow-hidden rounded-3xl border border-white/12 bg-white/10 p-6 shadow-[0_30px_120px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
             <div className="absolute inset-0 opacity-75 [background:radial-gradient(700px_500px_at_20%_20%,rgba(34,211,238,0.20),transparent_60%),radial-gradient(900px_650px_at_75%_35%,rgba(168,85,247,0.20),transparent_60%),radial-gradient(900px_650px_at_60%_90%,rgba(251,191,36,0.10),transparent_60%)]" />
-            <div className="pointer-events-none absolute -right-10 -top-6 opacity-95">
-              <div className="floaty relative h-[220px] w-[220px] md:h-[260px] md:w-[260px]">
-                <Image src="/blockyPng/greetings.png" alt="" fill className="object-contain drop-shadow-[0_30px_80px_rgba(0,0,0,0.45)]" priority />
+            <div className="pointer-events-none absolute right-4 top-3 z-10 opacity-95 md:right-6 md:top-4">
+              <div className="floaty relative h-[92px] w-[92px] md:h-[120px] md:w-[120px]">
+                <Image src="/blockyPng/greetings.png" alt="" fill className="object-contain drop-shadow-[0_25px_70px_rgba(0,0,0,0.45)]" priority />
               </div>
             </div>
             <div className="relative flex flex-col gap-5">
