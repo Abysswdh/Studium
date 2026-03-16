@@ -479,6 +479,38 @@ try {
   const logo = document.getElementById("bootLogo");
   if (!overlay || !logo) return;
 
+  const WELCOME_KEY = "studium:welcome_focus_mode_once";
+
+  function notifyIslandWhenReady(detail, maxWaitMs) {
+    const start = Date.now();
+    const limit = Math.max(300, Number(maxWaitMs || 2500));
+
+    const tick = () => {
+      try {
+        const fn = window.studiumNotify;
+        if (typeof fn === "function") {
+          fn(detail);
+          return;
+        }
+      } catch {
+        // ignore
+      }
+
+      if (Date.now() - start > limit) {
+        try {
+          window.dispatchEvent(new CustomEvent("studium:notify", { detail }));
+        } catch {
+          // ignore
+        }
+        return;
+      }
+
+      setTimeout(tick, 120);
+    };
+
+    tick();
+  }
+
   const cleanup = () => {
     try {
       overlay.classList.add("bootOverlay--hide");
@@ -488,6 +520,25 @@ try {
     try {
       document.body.classList.remove("booting");
       document.documentElement.classList.remove("booting");
+    } catch {
+      // ignore
+    }
+
+    try {
+      if (!sessionStorage.getItem(WELCOME_KEY)) {
+        sessionStorage.setItem(WELCOME_KEY, String(Date.now()));
+        setTimeout(() => {
+          notifyIslandWhenReady(
+            {
+              title: "Hello! Welcome to Studium Focus Mode",
+              message: "Your routine is ready. Press Enter anytime to dive in.",
+              kind: "success",
+              durationMs: 3000,
+            },
+            3500
+          );
+        }, 220);
+      }
     } catch {
       // ignore
     }
