@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import FloatingLines from "./FloatingLines";
-import PixelBlast from "./PixelBlast";
+import Threads from "./Threads";
 
 function readGlassTint() {
   if (typeof window === "undefined") return "255 255 255";
@@ -23,14 +23,14 @@ function rgbToHex(r: number, g: number, b: number) {
   return `#${rr}${gg}${bb}`;
 }
 
-function tintToPixelColor(tint: string) {
+function tintToThreadsColor(tint: string) {
   const parts = tint.split(/\s+/).map((x) => Number(x));
   if (parts.length < 3) return "#b19eef";
   const [r, g, b] = parts;
 
-  // Match page tint, but keep it subtle so PixelBlast isn't distracting.
-  const mixWithWhite = 0.42;
-  const dim = 0.82;
+  // Match page tint, but keep it subtle so the threads aren't distracting.
+  const mixWithWhite = 0.76;
+  const dim = 0.62;
   const rr = (r * (1 - mixWithWhite) + 255 * mixWithWhite) * dim;
   const gg = (g * (1 - mixWithWhite) + 255 * mixWithWhite) * dim;
   const bb = (b * (1 - mixWithWhite) + 255 * mixWithWhite) * dim;
@@ -80,28 +80,13 @@ export default function ShellBackground() {
   }, []);
 
   const backgroundStrength = Math.min(0.32, Math.max(0.16, glassAlphaStrong * 0.9));
-  const pixelColor = tintToPixelColor(glassTint);
+  const threadsColor = tintToThreadsColor(glassTint);
 
   return (
     <>
       {questDetail ? (
-        <div className="bg__pixel-blast" aria-hidden="true">
-          <PixelBlast
-            variant="square"
-            pixelSize={3}
-            color={pixelColor}
-            className="bg__pixel-blast__inner"
-            style={{ width: "100%", height: "100%" }}
-            patternScale={2}
-            patternDensity={1}
-            enableRipples
-            rippleSpeed={0.3}
-            rippleThickness={0.1}
-            rippleIntensityScale={1}
-            speed={0.5}
-            transparent
-            edgeFade={0.5}
-          />
+        <div className="bg__threads" aria-hidden="true">
+          <Threads backgroundColor={glassTint} lineColor={threadsColor} lineAlpha={0.12} warpAlpha={0.16} interactive />
         </div>
       ) : (
         <div className="bg__floating-lines" aria-hidden="true">

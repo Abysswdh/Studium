@@ -120,20 +120,21 @@ body[data-view="match"] { --glass-tint: 220 220 220; }
   filter: brightness(0.9);
 }
 
-.bg__pixel-blast {
+.bg__threads {
   position: absolute;
   inset: 0;
-  opacity: 0.9;
-  filter: saturate(0.95) brightness(0.9);
+  opacity: 1;
+  filter: saturate(0.95) brightness(0.95);
   pointer-events: none;
 }
 
-.bg__pixel-blast canvas {
-  filter: brightness(0.86) saturate(0.9);
-}
-
-body.quest-detail .bg__pixel-blast canvas {
-  filter: brightness(0.78) saturate(0.85);
+body.quest-detail .bg__threads {
+  background: radial-gradient(
+    1200px circle at 30% 20%,
+    rgb(var(--glass-tint) / 0.26),
+    rgb(0 0 0 / 0.18) 72%
+  );
+  filter: saturate(0.98) brightness(1);
 }
 
 .bg__video {
