@@ -256,45 +256,19 @@ export default function Landing() {
             </div>
           </section>
 
-          <aside className="relative overflow-hidden rounded-3xl border border-white/12 bg-white/10 p-6 shadow-[0_30px_120px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
+          <aside className="relative overflow-hidden rounded-3xl border border-white/12 bg-white/10 p-0 shadow-[0_30px_120px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
             <div className="absolute inset-0 opacity-75 [background:radial-gradient(700px_500px_at_20%_20%,rgba(34,211,238,0.20),transparent_60%),radial-gradient(900px_650px_at_75%_35%,rgba(168,85,247,0.20),transparent_60%),radial-gradient(900px_650px_at_60%_90%,rgba(251,191,36,0.10),transparent_60%)]" />
-            <div className="pointer-events-none absolute right-4 top-3 z-10 opacity-95 md:right-6 md:top-4">
-              <div className="floaty relative h-[92px] w-[92px] md:h-[120px] md:w-[120px]">
-                <Image src="/blockyPng/greetings.png" alt="" fill className="object-contain drop-shadow-[0_25px_70px_rgba(0,0,0,0.45)]" priority />
-              </div>
-            </div>
-            <div className="relative flex flex-col gap-5">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-[900] tracking-wide text-white/85">Today’s Routine</div>
-                <div className="rounded-full border border-white/12 bg-black/20 px-3 py-1 text-[11px] font-[900] text-white/70 backdrop-blur-xl">
-                  Demo
+            <div className="relative h-[340px] w-full md:h-[420px]" aria-hidden="true">
+              <div className="pointer-events-none absolute -right-12 -top-12 opacity-95">
+                <div className="floaty relative h-[380px] w-[380px] md:h-[480px] md:w-[480px]">
+                  <Image
+                    src="/blockyPng/greetings.png"
+                    alt=""
+                    fill
+                    className="object-contain drop-shadow-[0_40px_120px_rgba(0,0,0,0.55)]"
+                    priority
+                  />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { t: "Now", d: "Focus 25 | Calculus", xp: "+120 XP" },
-                  { t: "Next", d: "Battle warmup", xp: "+60 XP" },
-                  { t: "Later", d: "Capture notes", xp: "+40 XP" },
-                  { t: "Plan", d: "Guild co-focus", xp: "+80 XP" },
-                ].map((x) => (
-                  <div key={x.t} className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-xl">
-                    <div className="text-xs font-[900] text-white/60">{x.t}</div>
-                    <div className="mt-2 text-sm font-[900] text-white/90">{x.d}</div>
-                    <div className="mt-3 text-xs font-[900] text-white/55">{x.xp}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/25 px-4 py-3 backdrop-blur-xl">
-                <div className="flex items-center gap-3">
-                  <i className="fa-solid fa-fire-flame-curved text-white/80" aria-hidden="true"></i>
-                  <div>
-                    <div className="text-xs font-[900] text-white/55">Streak</div>
-                    <div className="text-sm font-[900] text-white/90">12 days</div>
-                  </div>
-                </div>
-                <div className="text-xs font-[900] text-white/60">Press Enter to start</div>
               </div>
             </div>
           </aside>
