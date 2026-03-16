@@ -20,65 +20,72 @@ export default function DashboardGrid() {
           <img className="dashHeroMascot" src="/blockyPng/idle.png" alt="" aria-hidden="true" />
         </div>
         <div className="gridContainerLeftBottom">
-          <div
-            className="gridContainerLeftBottomLeft gridCard"
-            id="grid-streak"
-            data-focus="dashboard.streak"
-            tabIndex={0}
-            role="button"
-            aria-label="Streak info"
-          >
-            <DashboardStreakCard />
+          <div className="dashBottomLeft" aria-label="Streak section">
+            <div className="dashSectionLabel">Streak</div>
+            <div
+              className="dashStreakTile gridCard"
+              id="grid-streak"
+              data-focus="dashboard.streak"
+              tabIndex={0}
+              role="button"
+              aria-label="Streak info"
+            >
+              <DashboardStreakCard />
+            </div>
           </div>
-          <div className="dashQuickGrid" aria-label="Quick actions">
-            <Link
-              href="/notes"
-              className="dashQuickTile gridCard"
-              id="grid-quickNote"
-              data-focus="dashboard.quick.note"
-              aria-label="Quick Note"
-            >
-              <div className="dashQuickInner" aria-hidden="true">
-                <i className="fa-solid fa-note-sticky" aria-hidden="true"></i>
-                <div className="dashQuickTitle">Quick Note</div>
-              </div>
-            </Link>
-            <Link
-              href="/battle"
-              className="dashQuickTile gridCard"
-              id="grid-quickBattle"
-              data-focus="dashboard.quick.battle"
-              aria-label="Quick Battle"
-            >
-              <div className="dashQuickInner" aria-hidden="true">
-                <i className="fa-solid fa-fire" aria-hidden="true"></i>
-                <div className="dashQuickTitle">Quick Battle</div>
-              </div>
-            </Link>
-            <Link
-              href="/schedules"
-              className="dashQuickTile gridCard"
-              id="grid-todayEvent"
-              data-focus="dashboard.quick.today"
-              aria-label="Today's Event"
-            >
-              <div className="dashQuickInner" aria-hidden="true">
-                <i className="fa-solid fa-calendar-days" aria-hidden="true"></i>
-                <div className="dashQuickTitle">Today's Event</div>
-              </div>
-            </Link>
-            <Link
-              href="/pomodoro"
-              className="dashQuickTile gridCard"
-              id="grid-pomodoro"
-              data-focus="dashboard.quick.pomodoro"
-              aria-label="Pomodoro"
-            >
-              <div className="dashQuickInner" aria-hidden="true">
-                <i className="fa-solid fa-stopwatch" aria-hidden="true"></i>
-                <div className="dashQuickTitle">Pomodoro</div>
-              </div>
-            </Link>
+
+          <div className="dashBottomRight" aria-label="Shortcuts section">
+            <div className="dashSectionLabel">Shortcut</div>
+            <div className="dashQuickGrid" aria-label="Quick actions">
+              <Link
+                href="/notes"
+                className="dashQuickTile gridCard"
+                id="grid-quickNote"
+                data-focus="dashboard.quick.note"
+                aria-label="Quick Note"
+              >
+                <div className="dashQuickInner" aria-hidden="true">
+                  <i className="fa-solid fa-note-sticky" aria-hidden="true"></i>
+                  <div className="dashQuickTitle">Quick Note</div>
+                </div>
+              </Link>
+              <Link
+                href="/battle"
+                className="dashQuickTile gridCard"
+                id="grid-quickBattle"
+                data-focus="dashboard.quick.battle"
+                aria-label="Quick Battle"
+              >
+                <div className="dashQuickInner" aria-hidden="true">
+                  <i className="fa-solid fa-fire" aria-hidden="true"></i>
+                  <div className="dashQuickTitle">Quick Battle</div>
+                </div>
+              </Link>
+              <Link
+                href="/schedules"
+                className="dashQuickTile gridCard"
+                id="grid-todayEvent"
+                data-focus="dashboard.quick.today"
+                aria-label="Today's Event"
+              >
+                <div className="dashQuickInner" aria-hidden="true">
+                  <i className="fa-solid fa-calendar-days" aria-hidden="true"></i>
+                  <div className="dashQuickTitle">Today's Event</div>
+                </div>
+              </Link>
+              <Link
+                href="/pomodoro"
+                className="dashQuickTile gridCard"
+                id="grid-pomodoro"
+                data-focus="dashboard.quick.pomodoro"
+                aria-label="Pomodoro"
+              >
+                <div className="dashQuickInner" aria-hidden="true">
+                  <i className="fa-solid fa-stopwatch" aria-hidden="true"></i>
+                  <div className="dashQuickTitle">Pomodoro</div>
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
