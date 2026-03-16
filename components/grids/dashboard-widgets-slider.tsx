@@ -50,28 +50,9 @@ export default function DashboardWidgetsSlider() {
   const next = () => setIdx((i) => (i + 1) % slides.length);
 
   return (
-    <section
-      className={`gridContainerRightRight gridCard ${styles.root}`}
-      id="grid-widget"
-      data-focus="dashboard.widget"
-      tabIndex={0}
-      role="region"
-      aria-label="Widgets"
-      onKeyDown={(e) => {
-        if (e.defaultPrevented) return;
-        if (e.currentTarget !== e.target) return;
-        if (e.key === "ArrowLeft") {
-          e.preventDefault();
-          prev();
-        }
-        if (e.key === "ArrowRight") {
-          e.preventDefault();
-          next();
-        }
-      }}
-    >
-      <div className={styles.topBar}>
-        <div className={styles.label}>Widgets</div>
+    <div className={styles.wrap} aria-label="Widgets">
+      <div className={styles.headerRow}>
+        <div className={styles.headerLabel}>Widgets</div>
         <div className={styles.controls}>
           <button type="button" className={styles.navBtn} onClick={prev} aria-label="Previous widget">
             <i className="fa-solid fa-chevron-left" aria-hidden="true" />
@@ -82,15 +63,36 @@ export default function DashboardWidgetsSlider() {
         </div>
       </div>
 
-      <div className={styles.viewport}>
-        <div className={styles.track} style={{ transform: `translateX(-${idx * 100}%)` }}>
-          {slides.map((s) => (
-            <div key={s.key} className={styles.slide} aria-label={s.label}>
-              {s.node}
-            </div>
-          ))}
+      <section
+        className={`gridContainerRightRight gridCard ${styles.card}`}
+        id="grid-widget"
+        data-focus="dashboard.widget"
+        tabIndex={0}
+        role="region"
+        aria-label="Widgets panel"
+        onKeyDown={(e) => {
+          if (e.defaultPrevented) return;
+          if (e.currentTarget !== e.target) return;
+          if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            prev();
+          }
+          if (e.key === "ArrowRight") {
+            e.preventDefault();
+            next();
+          }
+        }}
+      >
+        <div className={styles.viewport}>
+          <div className={styles.track} style={{ transform: `translateX(-${idx * 100}%)` }}>
+            {slides.map((s) => (
+              <div key={s.key} className={styles.slide} aria-label={s.label}>
+                {s.node}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
