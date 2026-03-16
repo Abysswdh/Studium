@@ -91,3 +91,10 @@
     transition: none;
   }
 }
+
+@media (max-width: 900px) {
+  .wrap {
+    width: 100%;
+    height: auto;
+  }
+}
