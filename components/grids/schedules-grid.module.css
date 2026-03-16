@@ -1,12 +1,13 @@
 .page {
   height: 100%;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: clamp(14px, 2vw, 18px);
-  border-radius: 22px;
+  gap: var(--shell-gap);
+  padding: 0;
+  border-radius: 0px;
   background: transparent;
   border: none;
   box-shadow: none;
@@ -67,7 +68,7 @@
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(300px, 1fr) minmax(320px, 1fr);
-  gap: 14px;
+  gap: var(--shell-gap);
 }
 
 .left,

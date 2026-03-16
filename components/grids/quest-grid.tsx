@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 
 import styles from "./quest-grid.module.css";
-import type { Quest, QuestPriority, QuestType } from "./planner-storage";
+import type { Quest, QuestPriority, QuestStage, QuestType } from "./planner-storage";
 import type { PlannerEvent } from "./planner-storage";
 import { addQuest, createQuest, deleteQuest, loadEvents, loadQuests, onPlannerUpdated, toggleStageDone } from "./planner-storage";
 
@@ -61,6 +61,8 @@ function scrollNearest(el: HTMLElement | null) {
 }
 
 type QuestView = "hub" | "detail";
+type DetailMode = "board" | "table" | "list";
+type DetailFilter = "all" | "remaining" | "done" | "dueSoon" | "overdue";
 
 export default function QuestGrid() {
   const [quests, setQuests] = useState<Quest[]>([]);
@@ -77,6 +79,23 @@ export default function QuestGrid() {
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const titleRef = useRef<HTMLInputElement | null>(null);
   const didViewAutofocus = useRef(false);
+
+  const [detailMode, setDetailMode] = useState<DetailMode>("board");
+  const [detailFilter, setDetailFilter] = useState<DetailFilter>("all");
+  const [detailQuery, setDetailQuery] = useState("");
+
+  const [toasts, setToasts] = useState<Array<{ id: string; title: string; body?: string }>>([]);
+  const [drag, setDrag] = useState<{
+    stageId: string;
+    title: string;
+    done: boolean;
+    x: number;
+    y: number;
+    dx: number;
+    dy: number;
+  } | null>(null);
+  const [dropCol, setDropCol] = useState<"todo" | "done" | null>(null);
+  const suppressClickRef = useRef<{ id: string; until: number } | null>(null);
 
   useEffect(() => {
     const sync = () => {
@@ -109,11 +128,40 @@ export default function QuestGrid() {
     return { p, progress, rank: rankFrom(selected.type, p), potential, earned };
   }, [selected]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (view === "detail") document.body.classList.add("quest-detail");
     else document.body.classList.remove("quest-detail");
     return () => document.body.classList.remove("quest-detail");
   }, [view]);
+
+  useEffect(() => {
+    if (view !== "detail") return;
+    const prefersCompact = window.matchMedia?.("(max-width: 640px)")?.matches ?? false;
+    setDetailMode(prefersCompact ? "list" : "board");
+    setDetailFilter("all");
+    setDetailQuery("");
+  }, [view, selectedId]);
+
+  const notify = useCallback((title: string, body?: string) => {
+    const id = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    setToasts((prev) => [{ id, title, body }, ...prev].slice(0, 3));
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 2200);
+  }, []);
+
+  useEffect(() => {
+    if (view !== "detail") return;
+    try {
+      const k = "studium.quest.detail.tip.v1";
+      if (window.localStorage.getItem(k) !== "1") {
+        notify("Tip", "Drag objectives between To do ↔ Done");
+        window.localStorage.setItem(k, "1");
+      }
+    } catch {
+      // ignore
+    }
+  }, [view, notify]);
 
   useEffect(() => {
     if (!didViewAutofocus.current) {
@@ -179,7 +227,9 @@ export default function QuestGrid() {
 
   const openDetail = () => {
     if (!selected) return;
-    setView("detail");
+    const anyDoc = document as any;
+    if (typeof anyDoc?.startViewTransition === "function") anyDoc.startViewTransition(() => setView("detail"));
+    else setView("detail");
   };
 
   const completed = selected ? selected.stages.every((s) => s.done) : false;
@@ -190,17 +240,147 @@ export default function QuestGrid() {
       .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
   }, [events, selected]);
 
-  const nextMilestones = useMemo(() => {
-    if (!selected) return [];
-    return selected.stages
-      .filter((s) => !s.done)
-      .sort((a, b) => new Date(a.dueAt || 0).getTime() - new Date(b.dueAt || 0).getTime())
-      .slice(0, 3);
-  }, [selected]);
-
-  const activeStages = useMemo(() => (selected ? selected.stages.filter((s) => !s.done) : []), [selected]);
-  const doneStages = useMemo(() => (selected ? selected.stages.filter((s) => s.done) : []), [selected]);
   const stageXp = selected && selectedMeta ? Math.max(10, Math.round(selectedMeta.potential / Math.max(1, selected.stages.length))) : 10;
+
+  const filteredStages = useMemo(() => {
+    const q = detailQuery.trim().toLowerCase();
+    const now = Date.now();
+    const soonCutoff = now + 3 * 24 * 60 * 60 * 1000;
+
+    const matchesQuery = (s: QuestStage) => (q ? s.title.toLowerCase().includes(q) : true);
+    const dueTs = (s: QuestStage) => (s.dueAt ? new Date(s.dueAt).getTime() : Number.POSITIVE_INFINITY);
+    const isOverdue = (s: QuestStage) => !s.done && Number.isFinite(dueTs(s)) && dueTs(s) < now;
+    const isDueSoon = (s: QuestStage) => !s.done && Number.isFinite(dueTs(s)) && dueTs(s) >= now && dueTs(s) <= soonCutoff;
+
+    const base = selected?.stages ?? [];
+    const afterQuery = base.filter(matchesQuery);
+
+    const applyFilter = (s: QuestStage) => {
+      if (detailFilter === "remaining") return !s.done;
+      if (detailFilter === "done") return s.done;
+      if (detailFilter === "overdue") return isOverdue(s);
+      if (detailFilter === "dueSoon") return isDueSoon(s);
+      return true;
+    };
+
+    const list = afterQuery.filter(applyFilter);
+    const remaining = list.filter((s) => !s.done).sort((a, b) => dueTs(a) - dueTs(b));
+    const done = list.filter((s) => s.done).sort((a, b) => dueTs(a) - dueTs(b));
+
+    const nextUp = remaining.slice(0, 4).map((s) => s.id);
+    const next = remaining.filter((s) => nextUp.includes(s.id));
+    const todo = remaining.filter((s) => !nextUp.includes(s.id));
+
+    return { list, remaining, done, next, todo };
+  }, [selected, detailFilter, detailQuery]);
+
+  useEffect(() => {
+    if (view !== "detail") return;
+    // Keep the ambient background static (no cursor-follow blur), to avoid distraction and performance issues.
+    return;
+  }, [view]);
+
+  const beginDrag = (e: ReactPointerEvent, s: QuestStage) => {
+    if (view !== "detail" || detailMode !== "board") return;
+    if (e.button !== 0) return;
+    const target = e.currentTarget as HTMLElement | null;
+    if (!target) return;
+
+    let startTimer = 0;
+    let dragging = false;
+    let currentDrop: "todo" | "done" | null = null;
+    const pointerType = e.pointerType;
+    const pointerId = e.pointerId;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const rect = target.getBoundingClientRect();
+    const dx = startX - rect.left;
+    const dy = startY - rect.top;
+
+    const cleanup = () => {
+      if (startTimer) window.clearTimeout(startTimer);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      try {
+        if (target.hasPointerCapture?.(pointerId)) target.releasePointerCapture(pointerId);
+      } catch {
+        // ignore
+      }
+    };
+
+    const startDragging = (x: number, y: number) => {
+      dragging = true;
+      suppressClickRef.current = { id: s.id, until: performance.now() + 900 };
+      setDrag({ stageId: s.id, title: s.title, done: s.done, x, y, dx, dy });
+    };
+
+    const onMove = (ev: PointerEvent) => {
+      if (!dragging) {
+        const dxm = ev.clientX - startX;
+        const dym = ev.clientY - startY;
+        const dist = Math.hypot(dxm, dym);
+        // Mouse/pen: drag should start immediately on a small movement.
+        if (pointerType !== "touch" && dist > 4) {
+          startDragging(ev.clientX, ev.clientY);
+        } else if (pointerType === "touch" && dist > 10) {
+          // Touch: if the user moves before long-press, treat it as a scroll/gesture and cancel.
+          cleanup();
+        }
+        return;
+      }
+
+      if (ev.cancelable) ev.preventDefault();
+      setDrag((prev) => (prev ? { ...prev, x: ev.clientX, y: ev.clientY } : prev));
+
+      const el = document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null;
+      const col = el?.closest?.("[data-drop-col]")?.getAttribute?.("data-drop-col") as "todo" | "done" | null;
+      currentDrop = col;
+      setDropCol(col);
+    };
+
+    const onUp = () => {
+      cleanup();
+      if (dragging && selected) {
+        if (currentDrop === "done" && !s.done) {
+          toggleStageDone(selected.id, s.id);
+          notify("Objective completed", `+${stageXp} XP`);
+        } else if (currentDrop === "todo" && s.done) {
+          toggleStageDone(selected.id, s.id);
+          notify("Moved back to To do");
+        } else if (currentDrop) {
+          notify("Dropped");
+        }
+      }
+      setDropCol(null);
+      setDrag(null);
+    };
+
+    try {
+      target.setPointerCapture?.(pointerId);
+    } catch {
+      // ignore
+    }
+
+    window.addEventListener("pointermove", onMove, { passive: false });
+    window.addEventListener("pointerup", onUp, { passive: true });
+    window.addEventListener("pointercancel", onUp, { passive: true });
+
+    if (pointerType === "touch") {
+      startTimer = window.setTimeout(() => startDragging(startX, startY), 180);
+    }
+  };
+
+  const onTaskClick = (s: QuestStage) => {
+    if (!selected) return;
+    const sup = suppressClickRef.current;
+    if (sup && sup.id === s.id && performance.now() < sup.until) {
+      suppressClickRef.current = null;
+      return;
+    }
+    toggleStageDone(selected.id, s.id);
+    notify(s.done ? "Moved back to To do" : "Objective completed", s.done ? undefined : `+${stageXp} XP`);
+  };
 
   return (
     <div className={[styles.page, view === "detail" ? styles.pageDetail : ""].join(" ")} aria-label="Quest page">
@@ -361,23 +541,194 @@ export default function QuestGrid() {
         </div>
       ) : (
         <div className={styles.detail} aria-label="Mission details page">
-          <div className={styles.detailTopBar}>
-            <button className={styles.backBtn} type="button" onClick={() => setView("hub")} aria-label="Back to quest hub" data-focus="quest.back">
-              <i className="fa-solid fa-arrow-left" aria-hidden="true"></i>
-              Back
-            </button>
-            <div className={styles.detailTitleWrap}>
-              <div className={styles.detailKicker}>Mission details</div>
-              <div className={styles.detailTitle}>{selected?.title || "Mission"}</div>
-            </div>
-            <div />
-          </div>
+          <div className={styles.ambient} aria-hidden="true" />
+          <button
+            className={styles.fabBack}
+            type="button"
+            onClick={() => {
+              const anyDoc = document as any;
+              if (typeof anyDoc?.startViewTransition === "function") anyDoc.startViewTransition(() => setView("hub"));
+              else setView("hub");
+            }}
+            aria-label="Back to quest hub"
+            data-focus="quest.back"
+          >
+            <i className="fa-solid fa-arrow-left" aria-hidden="true"></i>
+          </button>
 
           {selected && selectedMeta ? (
-            <div className={styles.detailBody}>
-              <div className={styles.detailLeft} aria-label="Mission overview and completed">
-                <div className={styles.detailSummary} data-type={selected.type} data-priority={selectedMeta.p}>
-                  <div className={styles.summaryRow}>
+            <div className={styles.detailLayout} aria-label="Quest detail workspace">
+              <main className={styles.detailMain} aria-label="Quest detail content">
+                {detailMode === "board" ? (
+                  <div className={styles.board} aria-label="Kanban board">
+                    {detailFilter === "done" ? null : (
+                      <>
+                        <section className={styles.col} aria-label="Next up" data-drop-col="todo" data-drop-active={dropCol === "todo" ? "1" : "0"}>
+                          <div className={styles.colHead}>
+                            <div className={styles.colTitle}>Next up</div>
+                            <div className={styles.colCount}>{filteredStages.next.length}</div>
+                          </div>
+                          <div className={styles.colBody}>
+                            {filteredStages.next.length === 0 ? <div className={styles.colEmpty}>Nothing due soon.</div> : null}
+                            {filteredStages.next.map((s, idx) => (
+                              <button
+                                key={s.id}
+                                type="button"
+                                className={styles.taskCard}
+                                data-state="todo"
+                                onClick={() => onTaskClick(s)}
+                                aria-label={`Mark ${s.title} as done`}
+                                data-focus={`quest.next.${idx + 1}`}
+                                onFocus={(e) => scrollNearest(e.currentTarget)}
+                                onPointerDown={(e) => beginDrag(e, s)}
+                                data-dragging={drag?.stageId === s.id ? "1" : "0"}
+                              >
+                                <div className={styles.taskTop}>
+                                  <span className={styles.taskCheck} aria-hidden="true" data-state="todo" />
+                                  <div className={styles.taskTitle}>{s.title}</div>
+                                  <div className={styles.taskXp}>+{stageXp}</div>
+                                </div>
+                                <div className={styles.taskMeta}>Target {formatShort(s.dueAt)}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </section>
+
+                        <section className={styles.col} aria-label="To do" data-drop-col="todo" data-drop-active={dropCol === "todo" ? "1" : "0"}>
+                          <div className={styles.colHead}>
+                            <div className={styles.colTitle}>To do</div>
+                            <div className={styles.colCount}>{filteredStages.todo.length}</div>
+                          </div>
+                          <div className={styles.colBody}>
+                            {filteredStages.todo.length === 0 ? <div className={styles.colEmpty}>All clear.</div> : null}
+                            {filteredStages.todo.map((s, idx) => (
+                              <button
+                                key={s.id}
+                                type="button"
+                                className={styles.taskCard}
+                                data-state="todo"
+                                onClick={() => onTaskClick(s)}
+                                aria-label={`Mark ${s.title} as done`}
+                                data-focus={`quest.todo.${idx + 1}`}
+                                onFocus={(e) => scrollNearest(e.currentTarget)}
+                                onPointerDown={(e) => beginDrag(e, s)}
+                                data-dragging={drag?.stageId === s.id ? "1" : "0"}
+                              >
+                                <div className={styles.taskTop}>
+                                  <span className={styles.taskCheck} aria-hidden="true" data-state="todo" />
+                                  <div className={styles.taskTitle}>{s.title}</div>
+                                  <div className={styles.taskXp}>+{stageXp}</div>
+                                </div>
+                                <div className={styles.taskMeta}>Target {formatShort(s.dueAt)}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </section>
+                      </>
+                    )}
+
+                    {detailFilter === "remaining" || detailFilter === "dueSoon" || detailFilter === "overdue" ? null : (
+                      <section className={styles.col} aria-label="Done" data-drop-col="done" data-drop-active={dropCol === "done" ? "1" : "0"}>
+                        <div className={styles.colHead}>
+                          <div className={styles.colTitle}>Done</div>
+                          <div className={styles.colCount}>{filteredStages.done.length}</div>
+                        </div>
+                        <div className={styles.colBody}>
+                          {filteredStages.done.length === 0 ? <div className={styles.colEmpty}>No completed items yet.</div> : null}
+                          {filteredStages.done.map((s, idx) => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              className={styles.taskCard}
+                              data-state="done"
+                              onClick={() => onTaskClick(s)}
+                              aria-label={`Mark ${s.title} as not done`}
+                              data-focus={`quest.done.${idx + 1}`}
+                              onFocus={(e) => scrollNearest(e.currentTarget)}
+                              onPointerDown={(e) => beginDrag(e, s)}
+                              data-dragging={drag?.stageId === s.id ? "1" : "0"}
+                            >
+                              <div className={styles.taskTop}>
+                                <span className={styles.taskCheck} aria-hidden="true" data-state="done" />
+                                <div className={styles.taskTitle}>{s.title}</div>
+                                <div className={styles.taskXp}>+{stageXp}</div>
+                              </div>
+                              <div className={styles.taskMeta}>Completed</div>
+                            </button>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+                  </div>
+                ) : null}
+
+                {detailMode === "table" ? (
+                  <div className={styles.table} aria-label="Objectives table">
+                    <div className={styles.tableHead} aria-hidden="true">
+                      <div>Status</div>
+                      <div>Objective</div>
+                      <div>Due</div>
+                      <div>XP</div>
+                    </div>
+                    {filteredStages.list.length === 0 ? <div className={styles.tableEmpty}>No objectives found.</div> : null}
+                    {filteredStages.list.map((s, idx) => {
+                      const status = s.done ? "Done" : filteredStages.next.some((x) => x.id === s.id) ? "Next" : "Todo";
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          className={styles.tableRow}
+                          onClick={() => toggleStageDone(selected.id, s.id)}
+                          aria-label={`${s.done ? "Mark not done" : "Mark done"}: ${s.title}`}
+                          data-focus={`quest.table.${idx + 1}`}
+                          onFocus={(e) => scrollNearest(e.currentTarget)}
+                          data-state={s.done ? "done" : "todo"}
+                        >
+                          <div className={styles.tableCell}>
+                            <span className={styles.badge} data-badge={status.toLowerCase()}>
+                              {status}
+                            </span>
+                          </div>
+                          <div className={styles.tableCell}>
+                            <span className={styles.rowCheck} aria-hidden="true" data-state={s.done ? "done" : "todo"} />
+                            <span className={styles.rowTitle}>{s.title}</span>
+                          </div>
+                          <div className={styles.tableCell}>{s.done ? "—" : formatShort(s.dueAt)}</div>
+                          <div className={styles.tableCell}>+{stageXp}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+
+                {detailMode === "list" ? (
+                  <div className={styles.list} aria-label="Objectives list">
+                    {filteredStages.list.length === 0 ? <div className={styles.listEmpty}>No objectives found.</div> : null}
+                    {filteredStages.list.map((s, idx) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        className={styles.listItem}
+                        data-state={s.done ? "done" : "todo"}
+                        onClick={() => toggleStageDone(selected.id, s.id)}
+                        aria-label={`${s.done ? "Mark not done" : "Mark done"}: ${s.title}`}
+                        data-focus={`quest.list.${idx + 1}`}
+                        onFocus={(e) => scrollNearest(e.currentTarget)}
+                      >
+                        <span className={styles.rowCheck} aria-hidden="true" data-state={s.done ? "done" : "todo"} />
+                        <span className={styles.rowTitle}>{s.title}</span>
+                        <span className={styles.rowMeta}>{s.done ? "Done" : `Due ${formatShort(s.dueAt)}`}</span>
+                        <span className={styles.rowXp}>+{stageXp}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </main>
+
+              <aside className={styles.detailSide} aria-label="Mission info">
+                <div className={[styles.sideCard, styles.controlCard].join(" ")} aria-label="Mission controls">
+                  <div className={styles.kanbanTitle}>{selected.title}</div>
+                  <div className={styles.kanbanMeta}>
                     <span className={styles.pill} data-rank={selectedMeta.rank}>
                       Rank {selectedMeta.rank}
                     </span>
@@ -395,131 +746,84 @@ export default function QuestGrid() {
                     ) : null}
                   </div>
 
-                  {selected.context ? <div className={styles.noteBox}>{selected.context}</div> : null}
-
-                  <div className={styles.bigProgress} aria-hidden="true">
-                    <div className={styles.bigPct}>{selectedMeta.progress}%</div>
-                    <div className={styles.rail}>
-                      <div className={styles.fill} style={{ width: `${selectedMeta.progress}%` }} />
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles.completedCard} aria-label="Completed objectives" data-type={selected.type} data-priority={selectedMeta.p}>
-                  <div className={styles.objectivesHead}>
-                    <div className={styles.objectivesTitle}>Completed</div>
-                    <div className={styles.objectivesMeta}>{doneStages.length}/{selected.stages.length}</div>
-                  </div>
-                  <div className={styles.objectivesList}>
-                    {doneStages.length === 0 ? <div className={styles.completedEmpty}>No completed objectives yet.</div> : null}
-                    {doneStages.map((s, idx) => (
+                  <div className={styles.controlGrid} aria-label="View and filters">
+                    <div className={styles.segmented} role="tablist" aria-label="Detail view mode">
                       <button
-                        key={s.id}
                         type="button"
-                        className={styles.objectiveBtn}
-                        data-done="1"
-                        role="checkbox"
-                        aria-checked={true}
-                        onClick={() => toggleStageDone(selected.id, s.id)}
-                        aria-label={`Mark ${s.title} as not done`}
-                        data-focus={`quest.done${idx + 1}`}
-                        onFocus={(e) => scrollNearest(e.currentTarget)}
+                        className={styles.segBtn}
+                        data-active={detailMode === "board" ? "1" : "0"}
+                        onClick={() => setDetailMode("board")}
+                        aria-label="Board view"
+                        data-focus="quest.view.board"
                       >
-                        <span className={styles.checkMark} aria-hidden="true">
-                          <i className="fa-solid fa-check"></i>
-                        </span>
-                        <span className={styles.objectiveText}>
-                          <span className={styles.objectiveTitle}>{s.title}</span>
-                          <span className={styles.objectiveMeta}>Target {formatShort(s.dueAt)}</span>
-                        </span>
-                        <span className={styles.objectiveXp} aria-hidden="true">
-                          +{stageXp} XP
-                        </span>
+                        <i className="fa-solid fa-columns" aria-hidden="true"></i>
+                        Board
                       </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.objectives} aria-label="Active objectives list" data-type={selected.type} data-priority={selectedMeta.p}>
-                <div className={styles.objectivesHead}>
-                  <div className={styles.objectivesTitle}>Objectives</div>
-                  <div className={styles.objectivesMeta}>Finish to clear Schedule milestones</div>
-                </div>
-                <div className={styles.objectivesList}>
-                  {activeStages.length === 0 ? <div className={styles.completedEmpty}>All objectives complete.</div> : null}
-                  {activeStages.map((s, idx) => (
                       <button
-                        key={s.id}
                         type="button"
-                        className={styles.objectiveBtn}
-                        data-done="0"
-                        role="checkbox"
-                        aria-checked={false}
-                        onClick={() => toggleStageDone(selected.id, s.id)}
-                        aria-label={`Mark ${s.title} as done`}
-                        data-focus={`quest.obj${idx + 1}`}
-                        onFocus={(e) => scrollNearest(e.currentTarget)}
+                        className={styles.segBtn}
+                        data-active={detailMode === "table" ? "1" : "0"}
+                        onClick={() => setDetailMode("table")}
+                        aria-label="Table view"
+                        data-focus="quest.view.table"
                       >
-                      <span className={styles.checkMark} aria-hidden="true" data-state="off">
-                        <span className={styles.checkInner} />
-                      </span>
-                      <span className={styles.objectiveText}>
-                        <span className={styles.objectiveTitle}>{s.title}</span>
-                        <span className={styles.objectiveMeta}>Target {formatShort(s.dueAt)}</span>
-                      </span>
-                      <span className={styles.objectiveXp} aria-hidden="true">
-                        +{stageXp} XP
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                        <i className="fa-solid fa-table" aria-hidden="true"></i>
+                        Table
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.segBtn}
+                        data-active={detailMode === "list" ? "1" : "0"}
+                        onClick={() => setDetailMode("list")}
+                        aria-label="List view"
+                        data-focus="quest.view.list"
+                      >
+                        <i className="fa-solid fa-list-check" aria-hidden="true"></i>
+                        List
+                      </button>
+                    </div>
 
-                <div className={styles.detailActions}>
-                  <button className={styles.dangerBtn} type="button" onClick={() => deleteQuest(selected.id)} aria-label="Delete mission" data-focus="quest.delete">
-                    <i className="fa-solid fa-trash" aria-hidden="true"></i>
-                    Delete mission
-                  </button>
-                </div>
-              </div>
+                    <div className={styles.selectWrap} aria-label="Filter control">
+                      <select
+                        className={styles.filterSelect}
+                        value={detailFilter}
+                        onChange={(e) => setDetailFilter(e.target.value as DetailFilter)}
+                        aria-label="Filter tasks"
+                        data-focus="quest.filter"
+                      >
+                        <option value="all">All</option>
+                        <option value="remaining">Remaining</option>
+                        <option value="done">Done</option>
+                        <option value="dueSoon">Due soon</option>
+                        <option value="overdue">Overdue</option>
+                      </select>
+                      <i className={["fa-solid fa-chevron-down", styles.selectIcon].join(" ")} aria-hidden="true"></i>
+                    </div>
 
-              <aside className={styles.detailSide} aria-label="Mission intel">
-                <div className={styles.sideCard}>
-                  <div className={styles.sideTitle}>Mission intel</div>
-                  <div className={styles.sideRows}>
-                    <div className={styles.sideRow}>
-                      <span className={styles.sideLabel}>Type</span>
-                      <span className={styles.sideValue}>{typeLabel(selected.type)}</span>
-                    </div>
-                    <div className={styles.sideRow}>
-                      <span className={styles.sideLabel}>Priority</span>
-                      <span className={styles.sideValue}>{priorityLabel(selectedMeta.p)}</span>
-                    </div>
-                    <div className={styles.sideRow}>
-                      <span className={styles.sideLabel}>Created</span>
-                      <span className={styles.sideValue}>{formatShort(selected.createdAt)}</span>
-                    </div>
-                    <div className={styles.sideRow}>
-                      <span className={styles.sideLabel}>Due</span>
-                      <span className={styles.sideValue}>{formatShort(selected.dueAt)}</span>
+                    <div className={styles.search}>
+                      <i className="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                      <input
+                        className={styles.searchInput}
+                        value={detailQuery}
+                        onChange={(e) => setDetailQuery(e.target.value)}
+                        placeholder="Search objectives…"
+                        aria-label="Search objectives"
+                        data-focus="quest.search"
+                      />
                     </div>
                   </div>
                 </div>
 
-                <div className={styles.sideCard}>
-                  <div className={styles.sideTitle}>Next objectives</div>
-                  <div className={styles.miniList}>
-                    {nextMilestones.length === 0 ? <div className={styles.miniEmpty}>All objectives complete.</div> : null}
-                    {nextMilestones.map((s) => (
-                      <div key={s.id} className={styles.miniItem}>
-                        <span className={styles.miniDot} aria-hidden="true" />
-                        <span className={styles.miniText}>{s.title}</span>
-                        <span className={styles.miniMeta}>{formatShort(s.dueAt)}</span>
-                      </div>
-                    ))}
+                {selected.context ? <div className={styles.noteCard}>{selected.context}</div> : null}
+                <div className={styles.progressCard} aria-hidden="true">
+                  <div className={styles.progressTop}>
+                    <div className={styles.progressPct}>{selectedMeta.progress}%</div>
+                    <div className={styles.progressHint}>Progress</div>
+                  </div>
+                  <div className={styles.rail}>
+                    <div className={styles.fill} style={{ width: `${selectedMeta.progress}%` }} />
                   </div>
                 </div>
-
                 <div className={styles.sideCard}>
                   <div className={styles.sideTitle}>Schedule sync</div>
                   <div className={styles.sideHint}>Quest milestones are added to Schedule automatically. Completing the mission removes them.</div>
@@ -534,6 +838,16 @@ export default function QuestGrid() {
                     </div>
                   </div>
                 </div>
+                <button
+                  className={styles.dangerBtn}
+                  type="button"
+                  onClick={() => deleteQuest(selected.id)}
+                  aria-label="Delete mission"
+                  data-focus="quest.delete"
+                >
+                  <i className="fa-solid fa-trash" aria-hidden="true"></i>
+                  Delete mission
+                </button>
               </aside>
             </div>
           ) : (
@@ -542,6 +856,30 @@ export default function QuestGrid() {
               <div className={styles.emptySub}>Go back and select a mission.</div>
             </div>
           )}
+
+          {drag ? (
+            <div className={styles.dragOverlay} aria-hidden="true">
+              <div
+                className={styles.dragGhost}
+                style={{ left: `${drag.x - drag.dx}px`, top: `${drag.y - drag.dy}px` }}
+                data-drop={dropCol || ""}
+              >
+                <div className={styles.dragTitle}>{drag.title}</div>
+                <div className={styles.dragMeta}>{drag.done ? "Done" : "To do"}</div>
+              </div>
+            </div>
+          ) : null}
+
+          {toasts.length ? (
+            <div className={styles.toastWrap} aria-live="polite" aria-label="Notifications">
+              {toasts.map((t) => (
+                <div key={t.id} className={styles.toast}>
+                  <div className={styles.toastTitle}>{t.title}</div>
+                  {t.body ? <div className={styles.toastBody}>{t.body}</div> : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       )}
 
