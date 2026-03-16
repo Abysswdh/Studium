@@ -406,19 +406,21 @@ export default function NotesHub() {
                     <span className="notesSidebarItem__label">{f.label}</span>
                     <span className="notesSidebarItem__count">{folderCounts[f.id] || 0}</span>
                   </button>
-                  <button
-                    type="button"
-                    className={["notesInlineIconBtn gridCard", styles.hoverRevealBtn].join(" ")}
-                    aria-label={`Delete folder ${f.label}`}
-                    title="Delete folder"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      deleteFolder(f.id);
-                    }}
-                  >
-                    <i className="fa-solid fa-trash" aria-hidden="true" />
-                  </button>
+                  <div className={styles.hoverRowActions}>
+                    <button
+                      type="button"
+                      className={["notesInlineIconBtn gridCard", styles.hoverRevealBtn].join(" ")}
+                      aria-label={`Delete folder ${f.label}`}
+                      title="Delete folder"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        deleteFolder(f.id);
+                      }}
+                    >
+                      <i className="fa-solid fa-trash" aria-hidden="true" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -463,19 +465,21 @@ export default function NotesHub() {
                     <span className="notesRowItem">{t.label}</span>
                     <span className="notesSidebarItem__count">{tagCounts[t.id] || 0}</span>
                   </button>
-                  <button
-                    type="button"
-                    className={["notesInlineIconBtn gridCard", styles.hoverRevealBtn].join(" ")}
-                    aria-label={`Delete tag ${t.label}`}
-                    title="Delete tag"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      deleteTag(t.id);
-                    }}
-                  >
-                    <i className="fa-solid fa-trash" aria-hidden="true" />
-                  </button>
+                  <div className={styles.hoverRowActions}>
+                    <button
+                      type="button"
+                      className={["notesInlineIconBtn gridCard", styles.hoverRevealBtn].join(" ")}
+                      aria-label={`Delete tag ${t.label}`}
+                      title="Delete tag"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        deleteTag(t.id);
+                      }}
+                    >
+                      <i className="fa-solid fa-trash" aria-hidden="true" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
