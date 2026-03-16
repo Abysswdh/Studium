@@ -23,14 +23,19 @@ function normalizeInput(input: IslandNotificationInput): Queued | null {
   const title = String(input?.title ?? "").trim();
   if (!title) return null;
 
-  const durationMs = Math.max(1200, Math.min(12000, Number(input.durationMs ?? 3000)));
+  const rawMessage = input.message ? String(input.message) : "";
+  const autoMs = 2600 + (title.length + rawMessage.length) * 38;
+  const fallbackMs = Math.max(3500, Math.min(10000, autoMs));
+  const durationMs = Number.isFinite(Number(input.durationMs))
+    ? Math.max(1200, Math.min(12000, Number(input.durationMs)))
+    : fallbackMs;
   const kind = (input.kind ?? "info") as IslandNotificationKind;
 
   return {
     id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
     createdAt: Date.now(),
     title,
-    message: input.message ? String(input.message) : undefined,
+    message: rawMessage ? rawMessage : undefined,
     iconClass: input.iconClass ? String(input.iconClass) : undefined,
     href: input.href ? String(input.href) : undefined,
     durationMs,
@@ -130,11 +135,22 @@ export default function NotificationIsland() {
         style={{ ["--island-duration" as any]: `${current.durationMs}ms` }}
         onClick={onClick}
       >
-        <svg key={current.id} className={styles.ring} viewBox="0 0 360 64" aria-hidden="true">
-          <path
+        <svg
+          key={current.id}
+          className={styles.ring}
+          viewBox="0 0 360 64"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <rect
             className={[styles.ringPath, ringClass].join(" ")}
             pathLength={100}
-            d="M32 2H328a30 30 0 0 1 30 30v0a30 30 0 0 1-30 30H32A30 30 0 0 1 2 32v0A30 30 0 0 1 32 2Z"
+            x="2"
+            y="2"
+            width="356"
+            height="60"
+            rx="30"
+            ry="30"
           />
         </svg>
 

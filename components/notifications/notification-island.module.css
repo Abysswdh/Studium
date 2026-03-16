@@ -3,7 +3,7 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  z-index: 30;
+  z-index: 9999;
   pointer-events: none;
 }
 
@@ -16,11 +16,11 @@
   max-width: min(560px, calc(100vw - 220px));
   padding: 10px 14px;
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(16, 18, 28, 0.55);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   transform: translateY(-6px) scale(0.96);
   opacity: 0;
   transition: transform 220ms ease, opacity 220ms ease;
@@ -45,8 +45,8 @@
 }
 
 .ringPath {
-  stroke: rgba(34, 211, 238, 0.65);
-  stroke-width: 2.5;
+  stroke: rgba(34, 211, 238, 0.7);
+  stroke-width: 3;
   stroke-linecap: round;
   fill: none;
   stroke-dasharray: 100 0;
@@ -96,4 +96,3 @@
     animation: none;
   }
 }
-

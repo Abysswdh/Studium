@@ -533,7 +533,6 @@ try {
               title: "Hello! Welcome to Studium Focus Mode",
               message: "Your routine is ready. Press Enter anytime to dive in.",
               kind: "success",
-              durationMs: 3000,
             },
             3500
           );
