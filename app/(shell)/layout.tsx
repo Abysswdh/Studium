@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function ShellLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
+  if (!user.onboardingCompletedAt) redirect("/onboarding");
 
   return (
     <main className="shellRoot" data-user-id={user.id}>

@@ -2,8 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { clearSessionCookie, createSession, deleteSession, readSessionTokenAsync, setSessionCookie } from "../../lib/auth/session";
-import { authenticate, createUser, getUserByEmail } from "../../lib/auth/user";
+import { authenticate, completeOnboarding, createUser, getUserByEmail, skipOnboarding } from "../../lib/auth/user";
 import { hashPassword } from "../../lib/auth/password";
+import { getCurrentUser } from "../../lib/auth/current-user";
 
 function cleanEmail(v: unknown) {
   return String(v ?? "").trim().toLowerCase();
@@ -28,7 +29,7 @@ export async function registerAction(formData: FormData) {
   const user = createUser({ email, displayName, passwordHash: hashPassword(password) });
   const token = createSession(user.id);
   await setSessionCookie(token);
-  redirect("/dashboard");
+  redirect("/onboarding");
 }
 
 export async function signInAction(formData: FormData) {
@@ -42,7 +43,7 @@ export async function signInAction(formData: FormData) {
 
   const token = createSession(user.id);
   await setSessionCookie(token);
-  redirect("/dashboard");
+  redirect("/onboarding");
 }
 
 export async function signOutAction() {
@@ -50,4 +51,53 @@ export async function signOutAction() {
   if (token) deleteSession(token);
   await clearSessionCookie();
   redirect("/");
+}
+
+function cleanOptionalText(v: unknown): string | null {
+  const s = String(v ?? "").trim();
+  return s ? s : null;
+}
+
+function cleanOptionalNumber(v: unknown): number | null {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+async function requireUserId(): Promise<number> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/sign-in");
+  return user.id;
+}
+
+export async function completeOnboardingAction(formData: FormData) {
+  const userId = await requireUserId();
+
+  const university = cleanOptionalText(formData.get("university"));
+  const major = cleanOptionalText(formData.get("major"));
+  const cohort = cleanOptionalText(formData.get("cohort"));
+  const focusGoal = cleanOptionalText(formData.get("focusGoal"));
+  const focusSessionMins = cleanOptionalNumber(formData.get("focusSessionMins"));
+
+  const prefersBattles = formData.get("prefersBattles") ? true : false;
+  const prefersGuild = formData.get("prefersGuild") ? true : false;
+
+  completeOnboarding(userId, {
+    university,
+    major,
+    cohort,
+    focusGoal,
+    focusSessionMins,
+    prefersBattles,
+    prefersGuild,
+  });
+
+  redirect("/dashboard");
+}
+
+export async function skipOnboardingAction(_formData?: FormData) {
+  const userId = await requireUserId();
+  skipOnboarding(userId);
+  redirect("/dashboard");
 }

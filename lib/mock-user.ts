@@ -20,6 +20,11 @@ export function guestUser(): User {
     university: null,
     major: null,
     cohort: null,
+    onboardingCompletedAt: null,
+    focusGoal: null,
+    focusSessionMins: null,
+    prefersBattles: true,
+    prefersGuild: true,
     avatarUrl: "/blockyPng/profilePicture.png",
   };
 }
