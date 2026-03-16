@@ -396,8 +396,10 @@ const SFX = (() => {
     }
     if (pendingBoot) {
       pendingBoot = false;
-      lastBootAt = Date.now();
-      tryPlay(boot);
+      const booting = !!document.body && document.body.classList.contains("booting");
+      const elapsed = Date.now() - (Number(lastBootAt) || 0);
+      // Avoid the "random boot sound" effect when the user only interacts after the boot overlay is gone.
+      if (booting && elapsed < 9000) tryPlay(boot);
     }
   };
 
