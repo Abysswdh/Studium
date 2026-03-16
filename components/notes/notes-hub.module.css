@@ -110,16 +110,36 @@
   flex-direction: column;
 }
 
+.hoverRow {
+  position: relative;
+}
+
 .hoverRow:hover .hoverRevealBtn,
 .hoverRow:focus-within .hoverRevealBtn {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateY(-50%) translateX(0);
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.hoverRow:hover .hoverRowMain,
+.hoverRow:focus-within .hoverRowMain {
+  margin-right: 44px;
+}
+
+.hoverRowMain {
+  transition: margin-right 140ms ease;
 }
 
 .hoverRevealBtn {
+  position: absolute;
+  right: 0;
+  top: 50%;
   opacity: 0;
-  transform: translateX(4px);
-  transition: opacity 120ms ease, transform 120ms ease;
+  transform: translateY(-50%) translateX(6px);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
 }
 
 .colTitle {
