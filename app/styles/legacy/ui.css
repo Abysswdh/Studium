@@ -901,6 +901,283 @@ body[data-view="notes"] .hudBar > .hudGroup:nth-child(2) .hudKey:last-child {
   color: rgba(30, 41, 59, 0.58);
 }
 
+/* Study Room - chat layout (prototype UI) */
+.studyFocusRoom--chat {
+  padding: 18px 18px 22px;
+}
+
+.studyRoomLayout {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 16px;
+  align-items: start;
+}
+
+.studyRoomMain {
+  min-width: 0;
+}
+
+.studyRoomSide {
+  min-width: 0;
+  position: sticky;
+  top: 14px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.studyFocusRoom__topRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.studyRoomMiniPill {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(15, 23, 42, 0.06);
+  color: rgba(15, 23, 42, 0.72);
+  font-weight: 900;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.studyRoomCard {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  color: rgba(15, 23, 42, 0.92);
+}
+
+.studyRoomCard__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.studyRoomCard__title {
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  color: rgba(15, 23, 42, 0.88);
+}
+
+.studyRoomCard__title i {
+  margin-right: 8px;
+  color: rgba(37, 99, 235, 0.86);
+}
+
+.studyRoomCard__meta {
+  font-weight: 900;
+  font-size: 11px;
+  color: rgba(30, 41, 59, 0.55);
+}
+
+.studyRoomMembers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.studyRoomMember {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.70);
+}
+
+.studyRoomMember__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.70);
+}
+
+.studyRoomMember__dot--blue { background: rgba(37, 99, 235, 0.92); }
+.studyRoomMember__dot--violet { background: rgba(139, 92, 246, 0.92); }
+.studyRoomMember__dot--emerald { background: rgba(16, 185, 129, 0.92); }
+
+.studyRoomMember__name {
+  font-weight: 900;
+  color: rgba(15, 23, 42, 0.86);
+}
+
+.studyRoomMember__status {
+  font-weight: 900;
+  font-size: 12px;
+  color: rgba(30, 41, 59, 0.55);
+}
+
+.studyRoomAction {
+  margin-top: 12px;
+  width: 100%;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(37, 99, 235, 0.10);
+  color: rgba(30, 64, 175, 0.86);
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.studyRoomAction i {
+  color: rgba(37, 99, 235, 0.92);
+}
+
+.studyRoomChatMessages {
+  height: 280px;
+  max-height: 40vh;
+  overflow: auto;
+  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.studyRoomChatMsg {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.studyRoomChatMsg--you {
+  flex-direction: row-reverse;
+}
+
+.studyRoomChatMsg__avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(148, 163, 184, 0.18);
+  color: rgba(30, 41, 59, 0.70);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.studyRoomChatMsg__bubble {
+  max-width: 100%;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.78);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.studyRoomChatMsg--you .studyRoomChatMsg__bubble {
+  background: rgba(37, 99, 235, 0.10);
+  border-color: rgba(37, 99, 235, 0.18);
+}
+
+.studyRoomChatMsg__text {
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1.35;
+  color: rgba(15, 23, 42, 0.84);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.studyRoomSticker {
+  width: 62px;
+  height: 62px;
+  object-fit: contain;
+  display: block;
+}
+
+.studyRoomChatQuick {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.studyRoomChip {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(15, 23, 42, 0.78);
+  font-weight: 900;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.studyRoomChip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.studyRoomChatComposer {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.studyRoomChatInput {
+  width: 100%;
+  resize: none;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.88);
+  padding: 10px 12px;
+  font-weight: 800;
+  color: rgba(15, 23, 42, 0.84);
+  outline: none;
+}
+
+.studyRoomChatInput:disabled {
+  opacity: 0.62;
+}
+
+.studyRoomChatSend {
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(37, 99, 235, 0.92);
+  color: rgba(255, 255, 255, 0.96);
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.studyRoomChatSend:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .studyFocusRoom__timerBlock {
   width: min(760px, 100%);
   margin: 4px auto 0;
@@ -1819,6 +2096,13 @@ body[data-subview="study-room"].focus-strict .shell {
 }
 
 @media (max-width: 900px) {
+  .studyRoomLayout {
+    grid-template-columns: 1fr;
+  }
+  .studyRoomSide {
+    position: static;
+    top: auto;
+  }
   .studyFocusRoom__stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
