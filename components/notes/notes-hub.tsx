@@ -647,7 +647,7 @@ export default function NotesHub() {
                 disabled={!activeNote?.id}
                 onClick={() => {
                   if (!activeNote?.id) return;
-                  const href = `/notes/new?note=${encodeURIComponent(activeNote.id)}`;
+                  const href = `/notes/new?fullscreen=1&note=${encodeURIComponent(activeNote.id)}`;
                   try {
                     const payload = openTargetPayload(activeNote);
                     sessionStorage.setItem(openTargetKey(), payload);
