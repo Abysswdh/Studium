@@ -100,7 +100,7 @@ export default function RouteBridge() {
 
     // Boot animation on Focus Mode entry (every time the shell mounts).
     try {
-      if (isFirst) requestBoot({ mode: "enter", showWelcome: true, playSound: true });
+      if (isFirst) requestBoot({ mode: "enter", showWelcome: true });
     } catch {
       // ignore
     }

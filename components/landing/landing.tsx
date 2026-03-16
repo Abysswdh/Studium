@@ -24,6 +24,22 @@ export default function Landing() {
   const enterTo = async (to: string) => {
     if (entering) return;
     setEntering(true);
+
+     try {
+      const muteAll = localStorage.getItem("studium:qs_mute_all") === "1";
+      if (!muteAll) {
+        const savedVol = Number(localStorage.getItem("studium:qs_sfx_volume"));
+        const v = Number.isFinite(savedVol) ? Math.max(0, Math.min(100, savedVol)) / 100 : 0.55;
+        const a = new Audio("/sound/boot.mp3");
+        a.volume = 0.7 * v;
+        a.preload = "auto";
+        const p = a.play();
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
+
     try {
       localStorage.setItem("studium:pref_fullscreen", "1");
     } catch {
@@ -64,12 +80,36 @@ export default function Landing() {
 
   const featureCards = useMemo(
     () => [
-      { icon: "fa-solid fa-list-check", title: "Daily Routine", desc: "Auto steps (Focus -> Notes -> Review) from deadlines + schedules." },
-      { icon: "fa-solid fa-stopwatch", title: "Pomodoro Co-op", desc: "Focus together, linked to quests/tasks, with shared streak pressure." },
-      { icon: "fa-solid fa-note-sticky", title: "Notes Capture", desc: "Fast capture after sessions, connected to material & tasks." },
-      { icon: "fa-solid fa-crosshairs", title: "Battle", desc: "1v1 quizzes from a question bank. Win XP, climb ranks." },
-      { icon: "fa-solid fa-people-group", title: "Guild", desc: "Study rooms + nudges. Opt-in accountability when someone leaves early." },
-      { icon: "fa-solid fa-calendar-days", title: "Schedules", desc: "Agenda + deadlines that feed your routine every day." },
+      {
+        kicker: "NOTE TAKING",
+        desc: "Capture what you learned right after a Focus session — quick, lightweight, and easy to review later.",
+        img: "/blockyPng/takeNote.png",
+        tone: "from-cyan-200/18 via-violet-200/12 to-transparent",
+      },
+      {
+        kicker: "BATTLE",
+        desc: "Turn revision into a quick 1v1. Answer fast, win XP, and build momentum when motivation dips.",
+        img: "/blockyPng/battle.png",
+        tone: "from-amber-200/18 via-fuchsia-200/10 to-transparent",
+      },
+      {
+        kicker: "STUDY ROOM",
+        desc: "Co-focus with friends (or your guild). Stay accountable and make studying feel less lonely.",
+        img: "/blockyPng/study.png",
+        tone: "from-emerald-200/16 via-cyan-200/10 to-transparent",
+      },
+      {
+        kicker: "QUEST",
+        desc: "Small, clear objectives that guide your day. Finish quests to keep your streak alive and your brain calm.",
+        img: "/blockyPng/tasks.png",
+        tone: "from-violet-200/18 via-cyan-200/10 to-transparent",
+      },
+      {
+        kicker: "SCHEDULE",
+        desc: "Your agenda + deadlines become a simple plan you can actually follow inside Focus Mode.",
+        img: "/blockyPng/schedule.png",
+        tone: "from-cyan-200/18 via-amber-200/12 to-transparent",
+      },
     ],
     []
   );
@@ -203,11 +243,11 @@ export default function Landing() {
             </div>
 
             <div className="mt-2 flex flex-wrap gap-2 text-xs font-[900] text-white/70">
-              <span className="rounded-full border border-cyan-200/20 bg-cyan-200/10 px-3 py-2 text-cyan-50/90">XP + Levels</span>
-              <span className="rounded-full border border-violet-200/20 bg-violet-200/10 px-3 py-2 text-violet-50/90">Streaks + Strikes</span>
-              <span className="rounded-full border border-fuchsia-200/20 bg-fuchsia-200/10 px-3 py-2 text-fuchsia-50/90">Co-focus</span>
-              <span className="rounded-full border border-amber-200/20 bg-amber-200/10 px-3 py-2 text-amber-50/90">Battle / Match</span>
-              <span className="rounded-full border border-emerald-200/20 bg-emerald-200/10 px-3 py-2 text-emerald-50/90">Guild</span>
+              <span className="rounded-full border border-cyan-200/20 bg-cyan-200/10 px-3 py-2 text-cyan-50/90">Schedule</span>
+              <span className="rounded-full border border-violet-200/20 bg-violet-200/10 px-3 py-2 text-violet-50/90">Quests</span>
+              <span className="rounded-full border border-emerald-200/20 bg-emerald-200/10 px-3 py-2 text-emerald-50/90">Study Room</span>
+              <span className="rounded-full border border-amber-200/20 bg-amber-200/10 px-3 py-2 text-amber-50/90">Battle</span>
+              <span className="rounded-full border border-fuchsia-200/20 bg-fuchsia-200/10 px-3 py-2 text-fuchsia-50/90">Note Taking</span>
             </div>
 
             <div className="flex items-center gap-3 text-xs font-[800] text-white/55">
@@ -323,25 +363,37 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="features" className="flex flex-col gap-6">
-          <div className="flex items-end justify-between gap-6">
-            <div>
-              <div className="text-xs font-[900] tracking-[0.22em] text-white/60">FEATURES</div>
-              <div className="mt-3 text-2xl font-[900] tracking-[-0.02em] text-white/92 md:text-3xl">Designed to keep you in motion.</div>
+        <section id="features" className="relative overflow-hidden rounded-3xl border border-white/10 bg-black/35 p-8 backdrop-blur-xl md:p-12">
+          <div className="pointer-events-none absolute inset-0 opacity-70 [background:radial-gradient(900px_600px_at_18%_15%,rgba(34,211,238,0.12),transparent_60%),radial-gradient(850px_650px_at_82%_25%,rgba(168,85,247,0.12),transparent_60%),radial-gradient(850px_650px_at_65%_90%,rgba(251,191,36,0.08),transparent_60%)]" />
+
+          <div className="relative flex flex-col gap-3">
+            <div className="text-xs font-[900] tracking-[0.22em] text-white/60">FEATURES</div>
+            <div className="text-2xl font-[900] tracking-[-0.02em] text-white/92 md:text-3xl">Five features, one simple loop.</div>
+            <div className="max-w-2xl text-sm font-[800] leading-relaxed text-white/65 md:text-base">
+              Everything is designed around Focus Mode: plan your day, do the work, and feel the progress.
             </div>
-            <div className="hidden text-sm font-[900] text-white/60 md:block">Keyboard-first | Glass UI | Studium Focus Mode</div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="relative mt-12 flex flex-col gap-14 md:gap-20">
             {featureCards.map((f) => (
-              <div key={f.title} className="rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur-xl">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/12 bg-black/25">
-                    <i className={f.icon} aria-hidden="true"></i>
-                  </span>
-                  <div className="text-base font-[900] text-white/90">{f.title}</div>
+              <div key={f.kicker} className="grid items-center gap-10 md:grid-cols-[1fr_440px] md:gap-12">
+                <div className="flex flex-col gap-4">
+                  <div className="text-xs font-[900] tracking-[0.28em] text-white/70">{f.kicker}</div>
+                  <div className="max-w-xl text-pretty text-sm font-[800] leading-relaxed text-white/72 md:text-base">{f.desc}</div>
                 </div>
-                <div className="mt-3 text-sm font-[700] leading-relaxed text-white/70">{f.desc}</div>
+
+                <div className="relative mx-auto w-full max-w-[440px]">
+                  <div
+                    className={clsx(
+                      "pointer-events-none absolute -inset-8 rounded-[40px] bg-gradient-to-br blur-2xl md:-inset-10",
+                      f.tone
+                    )}
+                    aria-hidden="true"
+                  />
+                  <div className="relative aspect-square w-full">
+                    <Image src={f.img} alt="" fill className="object-contain drop-shadow-[0_45px_120px_rgba(0,0,0,0.55)]" />
+                  </div>
+                </div>
               </div>
             ))}
           </div>

@@ -340,10 +340,7 @@ const SFX = (() => {
   }
 
   let unlocked = false;
-  let pendingBoot = false;
   let lastBootAt = 0;
-  let pendingNotif = false;
-  let lastNotifAt = 0;
   let muted = false;
   let vol = 1;
   let pendingFullscreen = false;
@@ -416,20 +413,6 @@ const SFX = (() => {
 
   const unlock = () => {
     unlocked = true;
-    if (pendingBoot) {
-      pendingBoot = false;
-      const elapsed = Date.now() - (Number(lastBootAt) || 0);
-      const hasOverlay = !!document.getElementById("bootOverlay");
-      // If audio was blocked until the first user gesture, play the boot SFX once shortly after entering Focus Mode.
-      if (hasOverlay && elapsed < 15000) tryPlay(boot);
-    }
-
-    if (pendingNotif) {
-      pendingNotif = false;
-      const elapsed = Date.now() - (Number(lastNotifAt) || 0);
-      if (elapsed < 15000) setTimeout(() => tryPlay(notif), 90);
-    }
-
     if (pendingFullscreen) {
       pendingFullscreen = false;
       requestFullscreen();
@@ -460,7 +443,6 @@ const SFX = (() => {
       applyMute();
     },
     playBoot: () => {
-      if (!unlocked) pendingBoot = true;
       lastBootAt = Date.now();
       tryPlay(boot);
     },
@@ -477,11 +459,6 @@ const SFX = (() => {
       tryPlay(header);
     },
     playNotif: () => {
-      if (!unlocked) {
-        pendingNotif = true;
-        lastNotifAt = Date.now();
-        return;
-      }
       tryPlay(notif);
     },
     ensureFullscreen: () => {
@@ -569,6 +546,15 @@ try {
     const start = Date.now();
     const limit = Math.max(300, Number(maxWaitMs || 2500));
 
+    const enqueue = () => {
+      try {
+        if (!Array.isArray(window.__studiumNotifyQueue)) window.__studiumNotifyQueue = [];
+        window.__studiumNotifyQueue.push(detail);
+      } catch {
+        // ignore
+      }
+    };
+
     const tick = () => {
       try {
         const fn = window.studiumNotify;
@@ -581,11 +567,7 @@ try {
       }
 
       if (Date.now() - start > limit) {
-        try {
-          window.dispatchEvent(new CustomEvent("studium:notify", { detail }));
-        } catch {
-          // ignore
-        }
+        enqueue();
         return;
       }
 
@@ -637,7 +619,6 @@ try {
   function runBootSequence(opts) {
     const mode = (opts && opts.mode) || "enter"; // enter | nav
     const showWelcome = !!(opts && opts.showWelcome);
-    const playSound = opts && typeof opts.playSound === "boolean" ? opts.playSound : mode === "enter";
 
     const fadeMs = Math.max(240, Number((opts && opts.fadeMs) || (mode === "nav" ? 680 : 5000)));
     const logoMs = Math.max(160, Number((opts && opts.logoMs) || (mode === "nav" ? 320 : 1000)));
@@ -663,6 +644,7 @@ try {
       overlay.classList.remove("bootOverlay--hide");
       overlay.classList.remove("bootOverlay--reveal");
       logo.classList.remove("bootLogo--show");
+      overlay.style.background = "rgba(0,0,0,1)";
     } catch {
       // ignore
     }
@@ -674,13 +656,12 @@ try {
       // ignore
     }
 
-    try {
-      if (playSound && typeof SFX?.playBoot === "function") SFX.playBoot();
-    } catch {
-      // ignore
-    }
-
     requestAnimationFrame(() => {
+      try {
+        overlay.style.background = "transparent";
+      } catch {
+        // ignore
+      }
       try {
         overlay.classList.add("bootOverlay--reveal");
       } catch {

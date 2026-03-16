@@ -119,6 +119,23 @@ export default function NotificationIsland() {
     // window.studiumNotify({ title: "Hello", message: "..." })
     (window as any).studiumNotify = notifyIsland;
 
+    try {
+      const w = window as any;
+      const pending = w.__studiumNotifyQueue;
+      if (Array.isArray(pending) && pending.length) {
+        w.__studiumNotifyQueue = [];
+        pending.forEach((item: any) => {
+          try {
+            notifyIsland(item);
+          } catch {
+            // ignore
+          }
+        });
+      }
+    } catch {
+      // ignore
+    }
+
     return () => {
       window.removeEventListener("studium:notify", handler as EventListener);
       if ((window as any).studiumNotify === notifyIsland) delete (window as any).studiumNotify;

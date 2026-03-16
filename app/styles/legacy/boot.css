@@ -2,8 +2,9 @@
 .bootOverlay {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 12000;
   pointer-events: none;
+  background: rgba(0, 0, 0, 1);
 }
 
 .bootOverlay::before {
@@ -21,6 +22,19 @@
 
 .bootOverlay.bootOverlay--reveal::before {
   opacity: 0;
+}
+
+/* Prevent initial "grid flash" on Focus Mode entry: keep the overlay black until JS reveals it. */
+.shellRoot .bootOverlay::before {
+  opacity: 1;
+}
+
+.shellRoot .bootOverlay.bootOverlay--reveal::before {
+  opacity: 0;
+}
+
+.bootOverlay.bootOverlay--reveal {
+  background: transparent;
 }
 
 .bootLogo {

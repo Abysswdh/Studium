@@ -304,7 +304,12 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         <div className="bg__veil" aria-hidden="true"></div>
       </div>
 
-      <div className="bootOverlay" id="bootOverlay" aria-hidden="true">
+      <div
+        className="bootOverlay"
+        id="bootOverlay"
+        aria-hidden="true"
+        style={{ background: "rgba(0,0,0,1)", position: "fixed", inset: 0, zIndex: 12000, pointerEvents: "none" }}
+      >
         <div className="bootLogo" id="bootLogo">
           <div className="bootLogo__title">STUDIUM</div>
           <div className="bootLogo__tag">Study like a game, finish like a pro.</div>

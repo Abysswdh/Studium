@@ -17,7 +17,7 @@ export default function DashboardGrid() {
           aria-label="Greetings and stats"
         >
           <CardChrome kicker="Good evening" title="Your day at a glance" meta="Routine ready | 3 due today | +240 XP potential" />
-          <img className="dashHeroMascot" src="/blockyPng/greetings.png" alt="" aria-hidden="true" />
+          <img className="dashHeroMascot" src="/blockyPng/idle.png" alt="" aria-hidden="true" />
         </div>
         <div className="gridContainerLeftBottom">
           <div
