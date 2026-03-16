@@ -1,7 +1,14 @@
+"use client";
+
+import { useState } from "react";
+import BattleSetupModal from "../battle/battle-setup-modal";
 import BattleLeaderboard from "./battle-leaderboard";
 import styles from "./battle-grid.module.css";
 
 export default function BattleGrid() {
+  const [setupMode, setSetupMode] = useState<"ranked" | "casual" | "practice" | "room_make" | "room_join" | null>(null);
+  const elo = 1350;
+
   return (
     <div className={styles.page} aria-label="Battle grid">
       <div className={styles.grid}>
@@ -12,7 +19,7 @@ export default function BattleGrid() {
               <div className={styles.statsGrid}>
                 <div className={styles.stat}>
                   <div className={styles.statLabel}>ELO</div>
-                  <div className={styles.statValue}>1,350</div>
+                  <div className={styles.statValue}>{elo.toLocaleString()}</div>
                 </div>
                 <div className={styles.stat}>
                   <div className={styles.statLabel}>Rank</div>
@@ -55,7 +62,14 @@ export default function BattleGrid() {
 
         <div className={`${styles.block} ${styles.midTop}`}>
           <div className={styles.label}>Battle Mode</div>
-          <button className={`gridCard ${styles.card} ${styles.rankedCard}`} id="battle-ranked" data-focus="battle.lobby" type="button" aria-label="Ranked battle mode">
+          <button
+            className={`gridCard ${styles.card} ${styles.rankedCard}`}
+            id="battle-ranked"
+            data-focus="battle.lobby"
+            type="button"
+            aria-label="Ranked battle mode"
+            onClick={() => setSetupMode("ranked")}
+          >
             <div className={styles.content} aria-hidden="true">
               <div className={styles.kicker}>Ranked</div>
               <div className={styles.titleRow}>
@@ -78,7 +92,14 @@ export default function BattleGrid() {
         </div>
 
         <div className={styles.midStack}>
-          <button className={`gridCard ${styles.card} ${styles.midStackTop}`} id="battle-casual" data-focus="battle.casual" type="button" aria-label="Casual battle mode">
+          <button
+            className={`gridCard ${styles.card} ${styles.midStackTop}`}
+            id="battle-casual"
+            data-focus="battle.casual"
+            type="button"
+            aria-label="Casual battle mode"
+            onClick={() => setSetupMode("casual")}
+          >
             <div className={styles.content} aria-hidden="true">
               <div className={styles.kicker}>Casual</div>
               <div className={styles.title}>Quick Match</div>
@@ -86,7 +107,14 @@ export default function BattleGrid() {
             </div>
           </button>
 
-          <button className={`gridCard ${styles.card} ${styles.midStackTop}`} id="battle-practice" data-focus="battle.practice" type="button" aria-label="Practice battle mode">
+          <button
+            className={`gridCard ${styles.card} ${styles.midStackTop}`}
+            id="battle-practice"
+            data-focus="battle.practice"
+            type="button"
+            aria-label="Practice battle mode"
+            onClick={() => setSetupMode("practice")}
+          >
             <div className={styles.content} aria-hidden="true">
               <div className={styles.kicker}>Practice</div>
               <div className={styles.title}>Training</div>
@@ -94,7 +122,14 @@ export default function BattleGrid() {
             </div>
           </button>
 
-          <button className={`gridCard ${styles.card}`} id="battle-makeRoom" data-focus="battle.room.make" type="button" aria-label="Make a room">
+          <button
+            className={`gridCard ${styles.card}`}
+            id="battle-makeRoom"
+            data-focus="battle.room.make"
+            type="button"
+            aria-label="Make a room"
+            onClick={() => setSetupMode("room_make")}
+          >
             <div className={styles.content} aria-hidden="true">
               <div className={styles.kicker}>Room</div>
               <div className={styles.title}>Make a room</div>
@@ -102,7 +137,14 @@ export default function BattleGrid() {
             </div>
           </button>
 
-          <button className={`gridCard ${styles.card}`} id="battle-joinRoom" data-focus="battle.room.join" type="button" aria-label="Join a room">
+          <button
+            className={`gridCard ${styles.card}`}
+            id="battle-joinRoom"
+            data-focus="battle.room.join"
+            type="button"
+            aria-label="Join a room"
+            onClick={() => setSetupMode("room_join")}
+          >
             <div className={styles.content} aria-hidden="true">
               <div className={styles.kicker}>Room</div>
               <div className={styles.title}>Join a room</div>
@@ -120,6 +162,8 @@ export default function BattleGrid() {
           </div>
         </div>
       </div>
+
+      <BattleSetupModal open={setupMode !== null} mode={setupMode} elo={elo} onClose={() => setSetupMode(null)} />
     </div>
   );
 }

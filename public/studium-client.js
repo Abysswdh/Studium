@@ -2069,6 +2069,32 @@ try {
       "notes.preview:left": "notes.recent1",
     },
     battle: {
+      "battle.stats:down": "battle.questBased",
+      "battle.questBased:up": "battle.stats",
+
+      "battle.stats:right": "battle.lobby",
+      "battle.questBased:right": "battle.casual",
+
+      "battle.lobby:left": "battle.stats",
+      "battle.lobby:down": "battle.casual",
+      "battle.lobby:right": "battle.leaderboard",
+
+      "battle.casual:up": "battle.lobby",
+      "battle.casual:down": "battle.practice",
+      "battle.casual:left": "battle.questBased",
+      "battle.casual:right": "battle.leaderboard",
+
+      "battle.practice:up": "battle.casual",
+      "battle.practice:down": "battle.room.make",
+      "battle.practice:right": "battle.leaderboard",
+
+      "battle.room.make:up": "battle.practice",
+      "battle.room.join:up": "battle.practice",
+      "battle.room.make:right": "battle.room.join",
+      "battle.room.join:left": "battle.room.make",
+      "battle.room.join:right": "battle.leaderboard",
+
+      "battle.leaderboard:left": "battle.lobby",
       "battle.leaderboard:down": "battle.lb.scope.global",
     },
   };

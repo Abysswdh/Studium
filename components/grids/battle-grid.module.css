@@ -11,7 +11,7 @@
   min-height: 0;
   display: grid;
   grid-template-columns: 1.05fr 1.15fr 1.1fr;
-  grid-template-rows: 1fr 0.64fr;
+  grid-template-rows: 1fr 0.78fr;
   gap: var(--shell-gap);
   width: 100%;
   position: relative;
@@ -297,9 +297,6 @@
     grid-column: 1;
     grid-row: auto;
   }
-  .midStack {
-    grid-template-columns: 1fr;
-  }
   .rankedMascot {
     width: min(210px, 62%);
     bottom: -22px;
@@ -307,5 +304,11 @@
   }
   .rankedCard .content {
     padding-right: clamp(148px, 38vw, 220px);
+  }
+}
+
+@media (max-width: 520px) {
+  .midStack {
+    grid-template-columns: 1fr;
   }
 }
