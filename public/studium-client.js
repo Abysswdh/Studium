@@ -507,8 +507,6 @@ try {
   const logo = document.getElementById("bootLogo");
   if (!overlay || !logo) return;
 
-  const WELCOME_KEY = "studium:welcome_focus_mode_once";
-
   function notifyIslandWhenReady(detail, maxWaitMs) {
     const start = Date.now();
     const limit = Math.max(300, Number(maxWaitMs || 2500));
@@ -539,7 +537,11 @@ try {
     tick();
   }
 
-  const cleanup = () => {
+  let bootTimer = null;
+  let logoTimer = null;
+  let hideTimer = null;
+
+  const cleanup = ({ showWelcome = false } = {}) => {
     try {
       overlay.classList.add("bootOverlay--hide");
     } catch {
@@ -552,22 +554,17 @@ try {
       // ignore
     }
 
-    try {
-      if (!sessionStorage.getItem(WELCOME_KEY)) {
-        sessionStorage.setItem(WELCOME_KEY, String(Date.now()));
-        setTimeout(() => {
-          notifyIslandWhenReady(
-            {
-              title: "Hello! Welcome to Studium Focus Mode",
-              message: "Your routine is ready. Press Enter anytime to dive in.",
-              kind: "success",
-            },
-            3500
-          );
-        }, 220);
-      }
-    } catch {
-      // ignore
+    if (showWelcome) {
+      setTimeout(() => {
+        notifyIslandWhenReady(
+          {
+            title: "Hello! Welcome to Studium Focus Mode",
+            message: "Your routine is ready. Press Enter anytime to dive in.",
+            kind: "success",
+          },
+          3500
+        );
+      }, 220);
     }
 
     // Default highlight/focus starts on the active nav item.
@@ -577,30 +574,105 @@ try {
       const isBlank = ae === document.body || ae === document.documentElement;
       if (isBlank && typeof window.focusNavMenu === "function") window.focusNavMenu();
     }, 60);
+  };
 
-    setTimeout(() => {
+  function runBootSequence(opts) {
+    const mode = (opts && opts.mode) || "enter"; // enter | nav
+    const showWelcome = !!(opts && opts.showWelcome);
+    const playSound = opts && typeof opts.playSound === "boolean" ? opts.playSound : mode === "enter";
+
+    const fadeMs = Math.max(240, Number((opts && opts.fadeMs) || (mode === "nav" ? 680 : 5000)));
+    const logoMs = Math.max(160, Number((opts && opts.logoMs) || (mode === "nav" ? 320 : 1000)));
+    const hideMs = Math.max(160, Number((opts && opts.hideMs) || 520));
+    const showLogo = opts && typeof opts.showLogo === "boolean" ? opts.showLogo : mode === "enter";
+
+    try {
+      overlay.style.setProperty("--boot-fade-ms", `${fadeMs}ms`);
+      overlay.style.setProperty("--boot-hide-ms", `${hideMs}ms`);
+      logo.style.setProperty("--boot-logo-ms", `${logoMs}ms`);
+    } catch {
+      // ignore
+    }
+
+    if (bootTimer) clearTimeout(bootTimer);
+    if (logoTimer) clearTimeout(logoTimer);
+    if (hideTimer) clearTimeout(hideTimer);
+    bootTimer = null;
+    logoTimer = null;
+    hideTimer = null;
+
+    try {
+      overlay.classList.remove("bootOverlay--hide");
+      overlay.classList.remove("bootOverlay--reveal");
+      logo.classList.remove("bootLogo--show");
+    } catch {
+      // ignore
+    }
+
+    try {
+      document.body.classList.add("booting");
+      document.documentElement.classList.add("booting");
+    } catch {
+      // ignore
+    }
+
+    try {
+      if (playSound && typeof SFX?.playBoot === "function") SFX.playBoot();
+    } catch {
+      // ignore
+    }
+
+    requestAnimationFrame(() => {
       try {
-        overlay.remove();
+        overlay.classList.add("bootOverlay--reveal");
       } catch {
         // ignore
       }
-    }, 650);
-  };
+    });
+
+    if (showLogo) {
+      logoTimer = setTimeout(() => {
+        try {
+          logo.classList.add("bootLogo--show");
+        } catch {
+          // ignore
+        }
+      }, mode === "nav" ? 140 : 1000);
+    }
+
+    const totalMs = Math.max(520, Number((opts && opts.totalMs) || (mode === "nav" ? 880 : 6000)));
+    bootTimer = setTimeout(() => cleanup({ showWelcome }), totalMs);
+
+    hideTimer = setTimeout(() => {
+      try {
+        overlay.classList.add("bootOverlay--hide");
+      } catch {
+        // ignore
+      }
+    }, Math.max(0, totalMs - hideMs));
+  }
 
   try {
-    document.body.classList.add("booting");
-    document.documentElement.classList.add("booting");
-    SFX.playBoot();
+    window.studiumBoot = runBootSequence;
+  } catch {
+    // ignore
+  }
 
-    requestAnimationFrame(() => overlay.classList.add("bootOverlay--reveal"));
-
-    // After 1s reveal, show the title for ~5s
-    setTimeout(() => logo.classList.add("bootLogo--show"), 1000);
-
-    setTimeout(cleanup, 6000);
+  try {
+    const q = window.__studiumBootQueue;
+    if (Array.isArray(q) && q.length) {
+      window.__studiumBootQueue = [];
+      q.forEach((item) => {
+        try {
+          runBootSequence(item);
+        } catch {
+          // ignore
+        }
+      });
+    }
   } catch (err) {
     console.error("[Studium] Boot sequence failed:", err);
-    cleanup();
+    cleanup({ showWelcome: false });
   }
 })();
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { bootstrapPlannerFromServer } from "./grids/planner-storage";
 
 const VIEW_META: Record<string, { label: string; desc: string }> = {
@@ -25,6 +25,7 @@ function viewFromPath(pathname: string) {
 export default function RouteBridge() {
   const pathname = usePathname() || "/dashboard";
   const router = useRouter();
+  const didMountRef = useRef(false);
 
   useEffect(() => {
     (window as any).studiumRoutePush = (view: string) => {
@@ -34,6 +35,8 @@ export default function RouteBridge() {
 
     const view = viewFromPath(pathname);
     const meta = VIEW_META[view];
+    const isFirst = !didMountRef.current;
+    didMountRef.current = true;
 
     document.body.dataset.view = view;
     if (view === "quest" && typeof (window as any).setMode === "function") {
@@ -83,6 +86,35 @@ export default function RouteBridge() {
 
     if (typeof (window as any).setWallpaperForView === "function") {
       (window as any).setWallpaperForView(view);
+    }
+
+    const requestBoot = (opts: any) => {
+      const w = window as any;
+      if (typeof w.studiumBoot === "function") {
+        w.studiumBoot(opts);
+        return;
+      }
+      if (!Array.isArray(w.__studiumBootQueue)) w.__studiumBootQueue = [];
+      w.__studiumBootQueue.push(opts);
+    };
+
+    // Boot animation on Focus Mode entry (every time the shell mounts).
+    try {
+      if (isFirst) requestBoot({ mode: "enter", showWelcome: true, playSound: true });
+    } catch {
+      // ignore
+    }
+
+    // Optional "boot" transition when switching pages within Focus Mode.
+    try {
+      if (!isFirst) {
+        const key = "studium:pref_boot_on_nav";
+        const stored = localStorage.getItem(key);
+        const enabled = stored == null ? true : stored === "1";
+        if (enabled) requestBoot({ mode: "nav", showWelcome: false, playSound: false });
+      }
+    } catch {
+      // ignore
     }
 
     // Re-bind grid/page focus listeners after route swaps content.
