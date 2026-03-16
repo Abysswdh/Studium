@@ -47,8 +47,12 @@ const TINT_PRESETS: Array<{ label: string; rgb: string }> = [
 
 const LS_NAV_ORDER = "studium:nav_order";
 const LS_DENSITY = "studium:ui_density";
-const LS_NOTIF = "studium:qs_notifications";
-const LS_PROFILE = "studium:profile_override";
+const LS_NOTIF_BASE = "studium:qs_notifications";
+const LS_PROFILE_BASE = "studium:profile_override";
+
+function scopedAccountKey(base: string, userId: number) {
+  return userId > 0 ? `${base}:u${userId}` : base;
+}
 
 function safeLocalGet(key: string) {
   try {
@@ -195,6 +199,8 @@ function ModalShell({
 }
 
 export default function MatchGrid({ user }: Props) {
+  const LS_NOTIF = scopedAccountKey(LS_NOTIF_BASE, user.id);
+  const LS_PROFILE = scopedAccountKey(LS_PROFILE_BASE, user.id);
   const [modal, setModal] = useState<ModalId | null>(null);
   const [navOrder, setNavOrder] = useState<ViewId[]>(NAV_ITEMS.map((x) => x.id));
   const [tintView, setTintView] = useState<ViewId>("dashboard");
@@ -472,7 +478,7 @@ export default function MatchGrid({ user }: Props) {
       return (
         <ModalShell title="About Studium" subtitle="Prototype build" onClose={closeModal}>
           <div className="grid gap-3 text-sm font-[800] text-white/70">
-            <div>Studium is a console-like dashboard for students: routine → quests → notes → review.</div>
+            <div>Studium Focus Mode: routine to quests to notes to review.</div>
             <div className="rounded-2xl border border-white/10 bg-black/25 p-4 text-xs font-[900] text-white/65">
               View: {currentView}
               <br />
@@ -937,7 +943,7 @@ export default function MatchGrid({ user }: Props) {
             >
               Download JSON
             </button>
-            <div className="text-xs font-[900] text-white/55">Import works in Utility → Import.</div>
+            <div className="text-xs font-[900] text-white/55">Import works in Utility / Import.</div>
           </div>
         </ModalShell>
       );
@@ -994,7 +1000,7 @@ export default function MatchGrid({ user }: Props) {
 
     if (modal === "dangerExitFocus") {
       return (
-        <ModalShell title="Exit focus mode" subtitle="This goes back to the landing page." danger onClose={closeModal}>
+        <ModalShell title="Exit Studium Focus Mode" subtitle="Returns to the landing page (and exits fullscreen)." danger onClose={closeModal}>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -1122,7 +1128,7 @@ export default function MatchGrid({ user }: Props) {
             <div className="cardInner justify-start gap-3">
               <div className="cardKicker">About</div>
               <div className="cardTitle">Studium</div>
-              <div className="text-sm font-[800] text-white/70">Console-style study dashboard prototype.</div>
+              <div className="text-sm font-[800] text-white/70">Studium Focus Mode prototype.</div>
               <div className="mt-auto text-xs font-[900] text-white/55">View: {currentView}</div>
             </div>
           </button>
@@ -1194,14 +1200,14 @@ export default function MatchGrid({ user }: Props) {
             <div className="cardInner">
               <div className="cardKicker">Utility</div>
               <div className="cardTitle">Keybinds</div>
-              <div className="cardMeta">Arrows • Esc • Enter</div>
+              <div className="cardMeta">Arrows | Esc | Enter</div>
             </div>
           </button>
           <button type="button" className={panelButtonClass()} data-focus="match.util.diagnostics" onClick={openModal("utilityDiagnostics")}>
             <div className="cardInner">
               <div className="cardKicker">Utility</div>
               <div className="cardTitle">Diagnostics</div>
-              <div className="cardMeta">Env • storage • flags</div>
+              <div className="cardMeta">Env | storage | flags</div>
             </div>
           </button>
         </section>
@@ -1225,7 +1231,7 @@ export default function MatchGrid({ user }: Props) {
             <button type="button" className={panelButtonClass("optionsDangerExit")} data-focus="match.danger.exit" onClick={openModal("dangerExitFocus")}>
               <div className="cardInner">
                 <div className="cardKicker">Danger zone</div>
-                <div className="cardTitle">Exit focus</div>
+                <div className="cardTitle">Exit Studium Focus Mode</div>
                 <div className="cardMeta">Back to landing</div>
               </div>
             </button>

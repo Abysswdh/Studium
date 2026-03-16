@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { signInAction } from "../actions";
+import FocusModeForm from "../../../components/auth/focus-mode-form";
+import { getCurrentUser } from "../../../lib/auth/current-user";
 
 const ERROR_TEXT: Record<string, string> = {
   missing: "Enter your email and password.",
@@ -7,6 +10,9 @@ const ERROR_TEXT: Record<string, string> = {
 };
 
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const existing = await getCurrentUser();
+  if (existing) redirect("/dashboard");
+
   const sp = await searchParams;
   const error = typeof sp.error === "string" ? sp.error : "";
   const errorText = ERROR_TEXT[error] || "";
@@ -31,7 +37,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
         <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-[800] text-red-100/90">{errorText}</div>
       ) : null}
 
-      <form action={signInAction} className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur-xl">
+      <FocusModeForm action={signInAction} className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur-xl">
         <label className="flex flex-col gap-2">
           <span className="text-xs font-[900] tracking-wide text-white/70">Email</span>
           <input
@@ -52,7 +58,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
             required
             autoComplete="current-password"
             className="h-11 rounded-xl border border-white/10 bg-black/30 px-4 text-sm font-[800] text-white/90 outline-none focus:ring-2 focus:ring-white/35"
-            placeholder="••••••••"
+            placeholder="********"
           />
         </label>
 
@@ -60,7 +66,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
           type="submit"
           className="mt-2 inline-flex h-11 items-center justify-center rounded-2xl bg-white text-sm font-[900] text-black transition hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/60"
         >
-          Sign in
+          Sign in & enter Studium Focus Mode
         </button>
 
         <div className="mt-2 text-sm font-[800] text-white/65">
@@ -73,7 +79,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
         <div className="text-xs font-[800] text-white/55">
           Demo account: <span className="text-white/80">demo@studium.local</span> / <span className="text-white/80">demo1234</span>
         </div>
-      </form>
+      </FocusModeForm>
     </div>
   );
 }
