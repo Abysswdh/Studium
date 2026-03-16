@@ -85,6 +85,10 @@ function openTargetKey() {
   return getScopedKey("studium:notes:openNoteId:v1");
 }
 
+function hiddenUnlockKey() {
+  return getScopedKey("studium:notes:hiddenUnlocked:v1");
+}
+
 const OPEN_TARGET_KEY_FALLBACK = "studium:notes:openNoteId:v1";
 
 function openTargetPayload(note: Note) {
@@ -174,9 +178,19 @@ export default function NotesHub() {
   const [folderFilter, setFolderFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string>("");
+  const [hiddenUnlocked, setHiddenUnlocked] = useState(false);
 
   useEffect(() => {
     setStore(loadStore());
+  }, []);
+
+  useEffect(() => {
+    try {
+      const ok = sessionStorage.getItem(hiddenUnlockKey()) === "1";
+      if (ok) setHiddenUnlocked(true);
+    } catch {
+      // ignore
+    }
   }, []);
 
   const persistStore = (next: NotesStore) => {
@@ -221,6 +235,20 @@ export default function NotesHub() {
 
   const allFolderNoteCount = useMemo(() => store.notes.filter((n) => !n.deletedAt && !!n.folder).length, [store.notes]);
   const allTaggedNoteCount = useMemo(() => Object.values(tagCounts).reduce((sum, v) => sum + Number(v || 0), 0), [tagCounts]);
+
+  const tabCounts = useMemo(() => {
+    const matchesScope = (n: Note) => {
+      if (folderFilter && n.folder !== folderFilter) return false;
+      if (tagFilter && !n.tags.includes(tagFilter)) return false;
+      return true;
+    };
+
+    const all = store.notes.filter((n) => !n.deletedAt && !n.hiddenAt && matchesScope(n)).length;
+    const favorites = store.notes.filter((n) => !n.deletedAt && !n.hiddenAt && n.favorite && matchesScope(n)).length;
+    const hidden = store.notes.filter((n) => !n.deletedAt && !!n.hiddenAt && matchesScope(n)).length;
+    const deleted = store.notes.filter((n) => !!n.deletedAt).length;
+    return { all, favorites, hidden, deleted };
+  }, [folderFilter, store.notes, tagFilter]);
 
   const filteredNotes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -319,6 +347,22 @@ export default function NotesHub() {
       notes: store.notes.map((n) => ({ ...n, tags: Array.isArray(n.tags) ? n.tags.filter((x) => x !== id) : [] })),
     };
     persistStore(next);
+  };
+
+  const openHiddenView = () => {
+    if (hiddenUnlocked) {
+      setView("hidden");
+      return;
+    }
+    const pwd = String(window.prompt("Password for Hidden notes") || "");
+    if (pwd !== "1111") return;
+    setHiddenUnlocked(true);
+    try {
+      sessionStorage.setItem(hiddenUnlockKey(), "1");
+    } catch {
+      // ignore
+    }
+    setView("hidden");
   };
 
   return (
@@ -460,22 +504,31 @@ export default function NotesHub() {
                   aria-label="All notes"
                 >
                   <span className="notesRowItem">All</span>
+                  <span className="notesSidebarItem__count" aria-label={`${tabCounts.all} note(s)`}>
+                    {tabCounts.all}
+                  </span>
                 </button>
                 <button
                   type="button"
                   className={[styles.tabBtn, view === "favorites" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
                   onClick={() => setView("favorites")}
-                  aria-label="Favorites"
+                  aria-label="Favorite notes"
                 >
-                  <span className="notesRowItem">Fav</span>
+                  <span className="notesRowItem">Favorite</span>
+                  <span className="notesSidebarItem__count" aria-label={`${tabCounts.favorites} favorite note(s)`}>
+                    {tabCounts.favorites}
+                  </span>
                 </button>
                 <button
                   type="button"
                   className={[styles.tabBtn, view === "hidden" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
-                  onClick={() => setView("hidden")}
+                  onClick={openHiddenView}
                   aria-label="Hidden notes"
                 >
-                  <span className="notesRowItem">Hid</span>
+                  <span className="notesRowItem">Hidden</span>
+                  <span className="notesSidebarItem__count" aria-label="Hidden notes count is hidden">
+                    •
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -483,7 +536,10 @@ export default function NotesHub() {
                   onClick={() => setView("deleted")}
                   aria-label="Recently deleted"
                 >
-                  <span className="notesRowItem">De</span>
+                  <span className="notesRowItem">Recently deleted</span>
+                  <span className="notesSidebarItem__count" aria-label={`${tabCounts.deleted} deleted note(s)`}>
+                    {tabCounts.deleted}
+                  </span>
                 </button>
               </div>
 
