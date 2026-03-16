@@ -42,7 +42,9 @@ export default async function ShellLayout({ children }: { children: React.ReactN
             </div>
           </button>
 
-          <NotificationIsland />
+          <div className="headerCenter" aria-label="Notifications">
+            <NotificationIsland />
+          </div>
 
           <div className="rightClockMenu" aria-label="Clock">
             <button className="viewLabel headerAction" id="viewLabel" data-focus="header.pageInfo" type="button" aria-label="Page info">

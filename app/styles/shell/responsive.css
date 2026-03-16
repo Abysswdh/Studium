@@ -26,6 +26,47 @@ html {
 .header {
   min-height: clamp(56px, 8vh, 70px);
   position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-areas: "left center right";
+  align-items: center;
+  column-gap: 12px;
+  justify-items: stretch;
+}
+
+.leftUserMenu {
+  grid-area: left;
+  justify-self: start;
+  min-width: 0;
+}
+
+.headerCenter {
+  grid-area: center;
+  justify-self: center;
+  min-width: 0;
+}
+
+.rightClockMenu {
+  grid-area: right;
+  justify-self: end;
+}
+
+.leftUserMenu .userMeta {
+  min-width: 0;
+}
+
+.leftUserMenu .userName {
+  max-width: min(40vw, 280px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewLabel {
+  max-width: min(28vw, 180px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gridContainer,
@@ -89,6 +130,36 @@ html {
     width: auto;
     flex: 1 1 0;
     min-width: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .header {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "left right"
+      "center center";
+    row-gap: 10px;
+  }
+
+  .headerCenter {
+    justify-self: stretch;
+    display: flex;
+    justify-content: center;
+  }
+
+  .leftUserMenu .userName {
+    max-width: min(52vw, 240px);
+  }
+
+  .viewLabel {
+    max-width: min(38vw, 160px);
+  }
+}
+
+@media (max-width: 520px) {
+  .leftUserMenu .userXp {
+    display: none;
   }
 }
 
