@@ -111,32 +111,44 @@
 }
 
 .hoverRow {
-  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.hoverRowMain {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto !important;
+}
+
+.hoverRowActions {
+  flex: 0 0 auto;
+  width: 0;
+  overflow: hidden;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-left: 0;
+  transition: width 140ms ease, margin-left 140ms ease;
+}
+
+.hoverRow:hover .hoverRowActions,
+.hoverRow:focus-within .hoverRowActions {
+  width: 34px;
+  margin-left: 10px;
 }
 
 .hoverRow:hover .hoverRevealBtn,
 .hoverRow:focus-within .hoverRevealBtn {
   opacity: 1;
-  transform: translateY(-50%) translateX(0);
+  transform: translateX(0);
   visibility: visible;
   pointer-events: auto;
 }
 
-.hoverRow:hover .hoverRowMain,
-.hoverRow:focus-within .hoverRowMain {
-  margin-right: 44px;
-}
-
-.hoverRowMain {
-  transition: margin-right 140ms ease;
-}
-
 .hoverRevealBtn {
-  position: absolute;
-  right: 0;
-  top: 50%;
   opacity: 0;
-  transform: translateY(-50%) translateX(6px);
+  transform: translateX(6px);
   visibility: hidden;
   pointer-events: none;
   transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
