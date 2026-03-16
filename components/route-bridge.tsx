@@ -17,8 +17,11 @@ const VIEW_META: Record<string, { label: string; desc: string }> = {
   match: { label: "Options", desc: "Settings, preferences, and app options." },
 };
 
+const PLANNER_VIEWS = new Set(["dashboard", "routine", "quest", "schedules"]);
+
 function viewFromPath(pathname: string) {
   const seg = pathname.split("?")[0].split("#")[0].split("/").filter(Boolean)[0] || "dashboard";
+  if (seg === "study-room") return "study";
   return VIEW_META[seg] ? seg : "dashboard";
 }
 
@@ -36,6 +39,9 @@ export default function RouteBridge() {
     const meta = VIEW_META[view];
 
     document.body.dataset.view = view;
+    if (pathname.startsWith("/notes/new")) document.body.dataset.subview = "notes-editor";
+    else if (pathname.startsWith("/study-room")) document.body.dataset.subview = "study-room";
+    else document.body.removeAttribute("data-subview");
     if (view === "quest" && typeof (window as any).setMode === "function") {
       try {
         sessionStorage.setItem("studium:nav_lock_until", String(Date.now() + 650));
@@ -61,7 +67,7 @@ export default function RouteBridge() {
     }
     const root = document.querySelector<HTMLElement>(".shellRoot");
     if (root?.dataset?.userId) document.body.dataset.userId = root.dataset.userId;
-    void bootstrapPlannerFromServer();
+    if (PLANNER_VIEWS.has(view)) void bootstrapPlannerFromServer();
     if (typeof (window as any).applyStudiumDensity === "function") (window as any).applyStudiumDensity();
     if (typeof (window as any).applyViewTint === "function") (window as any).applyViewTint(view);
 

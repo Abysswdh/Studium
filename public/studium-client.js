@@ -99,6 +99,20 @@ function navLockActive() {
   }
 }
 
+function navSwitchLocked() {
+  try {
+    const p = window.location && window.location.pathname ? String(window.location.pathname) : "";
+    if (p.startsWith("/notes/new")) return true;
+    if (p.startsWith("/study-room")) {
+      // Only lock nav switching when strict mode is enabled (Study Room should still be navigable otherwise).
+      return document.body && document.body.classList ? document.body.classList.contains("study-strict") : false;
+    }
+    return document.body && document.body.dataset && document.body.dataset.subview === "notes-editor";
+  } catch {
+    return false;
+  }
+}
+
 (function initWallpapers() {
   const videoA = document.getElementById("bgVideoA");
   const videoB = document.getElementById("bgVideoB");
@@ -1181,6 +1195,13 @@ try {
   }
 
   const navShortcut = (href) => {
+    // Study focus room must be "full screen": no shortcuts that leave the page.
+    try {
+      const sub = document.body && document.body.dataset ? document.body.dataset.subview : "";
+      if (sub === "study-room" && document.body && document.body.classList && document.body.classList.contains("study-strict")) return;
+    } catch {
+      // ignore
+    }
     if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
     closeDrawer({ focusProfile: false });
     setTimeout(() => {
@@ -1589,6 +1610,7 @@ try {
 
   function switchRelative(dir, { preserveMode = true } = {}) {
     if (document.body.classList.contains("booting")) return;
+    if (navSwitchLocked()) return;
     const nextIndex = clamp(activeIndex + dir, 0, items.length - 1);
     if (nextIndex === activeIndex) return;
 
@@ -1613,11 +1635,13 @@ try {
 
   window.navApi = {
     focus: (idx) => {
+      if (navSwitchLocked()) return;
       setMode("nav");
       setFocused(idx, { focus: true, scroll: true });
       setActive(focusedIndex, { navigate: true });
     },
     move: (dir) => {
+      if (navSwitchLocked()) return;
       setMode("nav");
       setFocused(focusedIndex + dir, { focus: true, scroll: true });
       setActive(focusedIndex, { navigate: true });
@@ -1672,6 +1696,10 @@ try {
     "wheel",
     (e) => {
       if (document.body.classList.contains("booting")) return;
+      if (navSwitchLocked()) {
+        e.preventDefault();
+        return;
+      }
       if (Math.abs(e.deltaY) < 2 && Math.abs(e.deltaX) < 2) return;
       e.preventDefault();
 
@@ -2296,6 +2324,7 @@ try {
   if (!root) return;
 
   const shouldIgnoreTarget = (target) => {
+    if (target?.isContentEditable) return true;
     const el = target?.closest?.(
       "#carousel, .navbar, #profileDrawer, #profileOverlay, .drawer, .drawerOverlay"
     );
@@ -2324,6 +2353,7 @@ try {
     (e) => {
       if (document.body.classList.contains("booting")) return;
       if (document.body.classList.contains("drawer-open")) return;
+      if (navSwitchLocked()) return;
       if (e.touches.length !== 1) return;
       if (shouldIgnoreTarget(e.target)) return;
 
@@ -2352,6 +2382,7 @@ try {
       if (Math.abs(dx) < 60) return;
       if (Math.abs(dx) < Math.abs(dy) * 1.2) return;
       if (dt > 900) return; // too slow: likely scroll/drag
+      if (navSwitchLocked()) return;
 
       const dir = dx < 0 ? 1 : -1; // swipe left -> next
       const preserveMode = document.body.classList.contains("grid-mode");

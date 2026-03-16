@@ -1,4 +1,5 @@
 import CardChrome from "./grid-parts/card-chrome";
+import Link from "next/link";
 
 export default function NotesGrid() {
   return (
@@ -25,16 +26,15 @@ export default function NotesGrid() {
           >
             <CardChrome kicker="Organize" title="Tags & folders" meta="Pinned | Subjects | Exams" />
           </div>
-          <div
+          <Link
+            href="/notes/new"
             className="gridContainerLeftBottomRight gridCard"
             id="grid-quick"
             data-focus="notes.new"
-            tabIndex={0}
-            role="button"
             aria-label="Quick capture"
           >
             <CardChrome kicker="Quick capture" title="New note" meta="Enter | Type | Save" />
-          </div>
+          </Link>
         </div>
       </div>
 
