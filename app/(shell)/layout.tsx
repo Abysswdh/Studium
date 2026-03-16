@@ -1,5 +1,6 @@
 import RouteBridge from "../../components/route-bridge";
 import ShellBackground from "../../components/shell-background";
+import NotificationIsland from "../../components/notifications/notification-island";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth/current-user";
 import Script from "next/script";
@@ -10,9 +11,13 @@ export const dynamic = "force-dynamic";
 export default async function ShellLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
+  if (!user.onboardingCompletedAt) redirect("/onboarding");
 
   return (
     <main className="shellRoot" data-user-id={user.id}>
+      <Script id="studium-booting-prep" strategy="beforeInteractive">
+        {`try{document.body.classList.add("booting");document.documentElement.classList.add("booting");}catch{}`}
+      </Script>
       <RouteBridge />
 
       <div className="shell">
@@ -39,6 +44,10 @@ export default async function ShellLayout({ children }: { children: React.ReactN
               </div>
             </div>
           </button>
+
+          <div className="headerCenter" aria-label="Notifications">
+            <NotificationIsland />
+          </div>
 
           <div className="rightClockMenu" aria-label="Clock">
             <button className="viewLabel headerAction" id="viewLabel" data-focus="header.pageInfo" type="button" aria-label="Page info">
@@ -151,6 +160,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
 
         <div className="drawerBody">
           <div className="drawerCard">
+            <div className="drawerSectionTitle">Profile</div>
             <button className="drawerUser headerAction" id="qsProfileBtn" data-focus="drawer.profile" type="button" aria-label="Open profile settings">
               <div className="drawerAvatar" aria-hidden="true">
                 <img className="drawerAvatar__img" src={user.avatarUrl} alt="" />
@@ -161,6 +171,9 @@ export default async function ShellLayout({ children }: { children: React.ReactN
                   {user.xp.toLocaleString()} XP | LVL {user.level}
                 </div>
               </div>
+              <span className="drawerUserChevron" aria-hidden="true">
+                <i className="fa-solid fa-chevron-right"></i>
+              </span>
             </button>
           </div>
 
@@ -208,7 +221,6 @@ export default async function ShellLayout({ children }: { children: React.ReactN
                 </span>
               </button>
             </div>
-
             <div className="qsBottomRow" aria-label="Quick actions">
               <button className="qsSquareBtn headerAction" id="qsHomeBtn" data-focus="drawer.home" type="button" aria-label="Go to Dashboard">
                 <i className="fa-solid fa-table-cells-large" aria-hidden="true"></i>
@@ -222,6 +234,66 @@ export default async function ShellLayout({ children }: { children: React.ReactN
               >
                 <i className="fa-solid fa-gear" aria-hidden="true"></i>
               </button>
+              <button className="qsExitBtn headerAction" id="backToLandingBtn" data-focus="drawer.exit" type="button" aria-label="Exit to landing page">
+                <span className="qsExitText">Exit Studium Focus Mode</span>
+                <span className="qsExitIcon" aria-hidden="true">
+                  <i className="fa-solid fa-right-from-bracket"></i>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div className="drawerCard">
+            <div className="drawerSectionTitle">Music</div>
+
+            <div className="qsAudioBar" aria-label="Music player">
+              <audio id="qsMusicAudio" preload="metadata" />
+
+              <div className="qsPlayer">
+                <div className="qsMusicIcon" id="qsMusicIcon" aria-hidden="true">
+                  <i className="fa-solid fa-music" aria-hidden="true"></i>
+                </div>
+
+                <div className="qsPlayerMain">
+                  <div className="qsTrack">
+                    <div className="qsTrackTitle" id="qsTrackTitle">
+                      Music
+                    </div>
+                    <div className="qsTrackSub" id="qsTrackSub">
+                      Loading playlist...
+                    </div>
+                  </div>
+
+                  <div className="qsPlayerControls" aria-label="Music controls">
+                    <button className="qsCtl headerAction" id="qsMusicPrevBtn" data-focus="drawer.music.prev" type="button" aria-label="Previous track">
+                      <i className="fa-solid fa-backward-step" aria-hidden="true"></i>
+                    </button>
+                    <button className="qsCtl headerAction" id="qsMusicPlayBtn" data-focus="drawer.music.play" type="button" aria-label="Play or pause">
+                      <i className="fa-solid fa-play" aria-hidden="true"></i>
+                    </button>
+                    <button className="qsCtl headerAction" id="qsMusicNextBtn" data-focus="drawer.music.next" type="button" aria-label="Next track">
+                      <i className="fa-solid fa-forward-step" aria-hidden="true"></i>
+                    </button>
+
+                    <button className="qsCtl headerAction" id="toggleMusicBtn" data-focus="drawer.music.toggle" type="button" aria-label="Toggle music output">
+                      <i className="fa-solid fa-volume-high qsMusicOnIcon" aria-hidden="true"></i>
+                      <i className="fa-solid fa-volume-xmark qsMusicOffIcon" aria-hidden="true"></i>
+                    </button>
+                  </div>
+
+                  <input
+                    className="qsSeek"
+                    id="qsMusicSeek"
+                    type="range"
+                    min={0}
+                    max={1000}
+                    step={1}
+                    defaultValue={0}
+                    aria-label="Track position"
+                    data-focus="drawer.music.seek"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -232,7 +304,12 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         <div className="bg__veil" aria-hidden="true"></div>
       </div>
 
-      <div className="bootOverlay" id="bootOverlay" aria-hidden="true">
+      <div
+        className="bootOverlay"
+        id="bootOverlay"
+        aria-hidden="true"
+        style={{ background: "rgba(0,0,0,1)", position: "fixed", inset: 0, zIndex: 12000, pointerEvents: "none" }}
+      >
         <div className="bootLogo" id="bootLogo">
           <div className="bootLogo__title">STUDIUM</div>
           <div className="bootLogo__tag">Study like a game, finish like a pro.</div>

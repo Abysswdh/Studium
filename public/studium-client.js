@@ -307,17 +307,38 @@ const SFX = (() => {
   const sw = new Audio("/sound/switch.mp3");
   const grid = new Audio("/sound/switch.mp3");
   const header = new Audio("/sound/switch.mp3");
+  const notif = new Audio("/sound/notification.mp3");
 
   const BOOT_VOL = 0.7;
   const SW_VOL = 0.55;
   const GRID_VOL = 0.55;
   const HEADER_VOL = 0.55;
+  const NOTIF_VOL = 0.62;
   const clamp01 = (n) => Math.max(0, Math.min(1, n));
 
   boot.preload = "auto";
   sw.preload = "auto";
   grid.preload = "auto";
   header.preload = "auto";
+  notif.preload = "auto";
+
+  notif.addEventListener(
+    "error",
+    () => {
+      try {
+        notif.src = "/sound/switch.mp3";
+        notif.load();
+      } catch {
+        // ignore
+      }
+    },
+    { once: true }
+  );
+  try {
+    notif.load();
+  } catch {
+    // ignore
+  }
 
   grid.playbackRate = 0.82;
   header.playbackRate = 0.66;
@@ -333,11 +354,51 @@ const SFX = (() => {
   }
 
   let unlocked = false;
-  let pendingBoot = false;
   let lastBootAt = 0;
   let muted = false;
   let vol = 1;
-  let fullscreenAttempted = false;
+  let pendingFullscreen = false;
+  let lastFsAt = 0;
+
+  const wantFullscreen = () => {
+    try {
+      return window.localStorage?.getItem?.("studium:pref_fullscreen") === "1";
+    } catch {
+      return false;
+    }
+  };
+
+  const requestFullscreen = () => {
+    if (!wantFullscreen()) return;
+    if (document.fullscreenElement) return;
+    const now = Date.now();
+    if (now - lastFsAt < 900) return;
+    lastFsAt = now;
+
+    try {
+      const el = document.documentElement;
+      const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+      if (typeof fn === "function") {
+        const p = fn.call(el);
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const exitFullscreen = () => {
+    try {
+      if (!document.fullscreenElement) return;
+      const fn = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+      if (typeof fn === "function") {
+        const p = fn.call(document);
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const applyMute = () => {
     const m = muted ? 0 : 1;
@@ -345,6 +406,7 @@ const SFX = (() => {
     sw.volume = SW_VOL * vol * m;
     grid.volume = GRID_VOL * vol * m;
     header.volume = HEADER_VOL * vol * m;
+    notif.volume = NOTIF_VOL * vol * m;
   };
   applyMute();
 
@@ -365,36 +427,23 @@ const SFX = (() => {
 
   const unlock = () => {
     unlocked = true;
-    if (!fullscreenAttempted) {
-      fullscreenAttempted = true;
-      try {
-        if (window.sessionStorage && sessionStorage.getItem("studium:fs_attempted") === "1") {
-          // noop
-        } else {
-          sessionStorage?.setItem?.("studium:fs_attempted", "1");
-          const want = window.localStorage?.getItem?.("studium:pref_fullscreen") === "1";
-          if (want && !document.fullscreenElement) {
-            const el = document.documentElement;
-            const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-            if (typeof fn === "function") {
-              const p = fn.call(el);
-              if (p && typeof p.catch === "function") p.catch(() => {});
-            }
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }
-    if (pendingBoot) {
-      pendingBoot = false;
-      lastBootAt = Date.now();
-      tryPlay(boot);
+    if (pendingFullscreen) {
+      pendingFullscreen = false;
+      requestFullscreen();
+    } else {
+      requestFullscreen();
     }
   };
 
   document.addEventListener("pointerdown", unlock, { once: true, capture: true });
   document.addEventListener("keydown", unlock, { once: true, capture: true });
+
+  document.addEventListener("fullscreenchange", () => {
+    if (document.fullscreenElement) return;
+    if (!wantFullscreen()) return;
+    // Can't re-enter without a user gesture. Queue and it will trigger on next gesture via ensureFullscreen().
+    pendingFullscreen = true;
+  });
 
   return {
     isMuted: () => muted,
@@ -408,7 +457,6 @@ const SFX = (() => {
       applyMute();
     },
     playBoot: () => {
-      if (!unlocked) pendingBoot = true;
       lastBootAt = Date.now();
       tryPlay(boot);
     },
@@ -423,6 +471,21 @@ const SFX = (() => {
     playHeaderMove: () => {
       if (!unlocked) return;
       tryPlay(header);
+    },
+    playNotif: () => {
+      tryPlay(notif);
+    },
+    ensureFullscreen: () => {
+      if (!wantFullscreen()) return;
+      if (!unlocked) {
+        pendingFullscreen = true;
+        return;
+      }
+      requestFullscreen();
+    },
+    exitFullscreen: () => {
+      pendingFullscreen = false;
+      exitFullscreen();
     },
   };
 })();
@@ -493,7 +556,46 @@ try {
   const logo = document.getElementById("bootLogo");
   if (!overlay || !logo) return;
 
-  const cleanup = () => {
+  function notifyIslandWhenReady(detail, maxWaitMs) {
+    const start = Date.now();
+    const limit = Math.max(300, Number(maxWaitMs || 2500));
+
+    const enqueue = () => {
+      try {
+        if (!Array.isArray(window.__studiumNotifyQueue)) window.__studiumNotifyQueue = [];
+        window.__studiumNotifyQueue.push(detail);
+      } catch {
+        // ignore
+      }
+    };
+
+    const tick = () => {
+      try {
+        const fn = window.studiumNotify;
+        if (typeof fn === "function") {
+          fn(detail);
+          return;
+        }
+      } catch {
+        // ignore
+      }
+
+      if (Date.now() - start > limit) {
+        enqueue();
+        return;
+      }
+
+      setTimeout(tick, 120);
+    };
+
+    tick();
+  }
+
+  let bootTimer = null;
+  let logoTimer = null;
+  let hideTimer = null;
+
+  const cleanup = ({ showWelcome = false } = {}) => {
     try {
       overlay.classList.add("bootOverlay--hide");
     } catch {
@@ -506,6 +608,19 @@ try {
       // ignore
     }
 
+    if (showWelcome) {
+      setTimeout(() => {
+        notifyIslandWhenReady(
+          {
+            title: "Hello! Welcome to Studium Focus Mode",
+            message: "Your routine is ready. Press Enter anytime to dive in.",
+            kind: "success",
+          },
+          3500
+        );
+      }, 220);
+    }
+
     // Default highlight/focus starts on the active nav item.
     setTimeout(() => {
       if (document.body.classList.contains("drawer-open")) return;
@@ -513,30 +628,104 @@ try {
       const isBlank = ae === document.body || ae === document.documentElement;
       if (isBlank && typeof window.focusNavMenu === "function") window.focusNavMenu();
     }, 60);
+  };
 
-    setTimeout(() => {
+  function runBootSequence(opts) {
+    const mode = (opts && opts.mode) || "enter"; // enter | nav
+    const showWelcome = !!(opts && opts.showWelcome);
+
+    const fadeMs = Math.max(240, Number((opts && opts.fadeMs) || (mode === "nav" ? 680 : 5000)));
+    const logoMs = Math.max(160, Number((opts && opts.logoMs) || (mode === "nav" ? 320 : 1000)));
+    const hideMs = Math.max(160, Number((opts && opts.hideMs) || 520));
+    const showLogo = opts && typeof opts.showLogo === "boolean" ? opts.showLogo : mode === "enter";
+
+    try {
+      overlay.style.setProperty("--boot-fade-ms", `${fadeMs}ms`);
+      overlay.style.setProperty("--boot-hide-ms", `${hideMs}ms`);
+      logo.style.setProperty("--boot-logo-ms", `${logoMs}ms`);
+    } catch {
+      // ignore
+    }
+
+    if (bootTimer) clearTimeout(bootTimer);
+    if (logoTimer) clearTimeout(logoTimer);
+    if (hideTimer) clearTimeout(hideTimer);
+    bootTimer = null;
+    logoTimer = null;
+    hideTimer = null;
+
+    try {
+      overlay.classList.remove("bootOverlay--hide");
+      overlay.classList.remove("bootOverlay--reveal");
+      logo.classList.remove("bootLogo--show");
+      overlay.style.background = "rgba(0,0,0,1)";
+    } catch {
+      // ignore
+    }
+
+    try {
+      document.body.classList.add("booting");
+      document.documentElement.classList.add("booting");
+    } catch {
+      // ignore
+    }
+
+    requestAnimationFrame(() => {
       try {
-        overlay.remove();
+        overlay.style.background = "transparent";
       } catch {
         // ignore
       }
-    }, 650);
-  };
+      try {
+        overlay.classList.add("bootOverlay--reveal");
+      } catch {
+        // ignore
+      }
+    });
+
+    if (showLogo) {
+      logoTimer = setTimeout(() => {
+        try {
+          logo.classList.add("bootLogo--show");
+        } catch {
+          // ignore
+        }
+      }, mode === "nav" ? 140 : 1000);
+    }
+
+    const totalMs = Math.max(520, Number((opts && opts.totalMs) || (mode === "nav" ? 880 : 6000)));
+    bootTimer = setTimeout(() => cleanup({ showWelcome }), totalMs);
+
+    hideTimer = setTimeout(() => {
+      try {
+        overlay.classList.add("bootOverlay--hide");
+      } catch {
+        // ignore
+      }
+    }, Math.max(0, totalMs - hideMs));
+  }
 
   try {
-    document.body.classList.add("booting");
-    document.documentElement.classList.add("booting");
-    SFX.playBoot();
+    window.studiumBoot = runBootSequence;
+  } catch {
+    // ignore
+  }
 
-    requestAnimationFrame(() => overlay.classList.add("bootOverlay--reveal"));
-
-    // After 1s reveal, show the title for ~5s
-    setTimeout(() => logo.classList.add("bootLogo--show"), 1000);
-
-    setTimeout(cleanup, 6000);
+  try {
+    const q = window.__studiumBootQueue;
+    if (Array.isArray(q) && q.length) {
+      window.__studiumBootQueue = [];
+      q.forEach((item) => {
+        try {
+          runBootSequence(item);
+        } catch {
+          // ignore
+        }
+      });
+    }
   } catch (err) {
     console.error("[Studium] Boot sequence failed:", err);
-    cleanup();
+    cleanup({ showWelcome: false });
   }
 })();
 
@@ -644,23 +833,25 @@ try {
     }, 260);
   };
 
-  const showViewInfo = () => {
-    if (!viewInfo || !viewInfoTitle || !viewInfoDesc || !viewBtn) return;
+  const showHeaderIslandInfo = () => {
+    if (!viewBtn) return;
 
     enterHeaderMode();
+    hideViewInfo();
 
     const view = document.body.dataset.view || "dashboard";
     const m = readViewMarker();
-    const desc = m?.desc;
+    const title = viewBtn.textContent?.trim() || m?.label || "Info";
+    const message = (m?.desc || defaultDesc[view] || "").trim();
 
-    viewInfoTitle.textContent = viewBtn.textContent?.trim() || "Info";
-    viewInfoDesc.textContent = desc || defaultDesc[view] || " ";
-
-    viewInfo.hidden = false;
-    requestAnimationFrame(() => viewInfo.classList.add("viewInfo--show"));
-
-    if (infoTimer) clearTimeout(infoTimer);
-    infoTimer = setTimeout(hideViewInfo, 2800);
+    const detail = { title, message, kind: "info" };
+    try {
+      const fn = window.studiumNotify;
+      if (typeof fn === "function") fn(detail);
+      else window.dispatchEvent(new CustomEvent("studium:notify", { detail }));
+    } catch {
+      // ignore
+    }
   };
 
   const syncSfxLabel = () => {
@@ -1163,7 +1354,7 @@ try {
   };
 
   if (viewBtn) {
-    viewBtn.addEventListener("click", showViewInfo);
+    viewBtn.addEventListener("click", showHeaderIslandInfo);
     viewBtn.addEventListener("pointerdown", () => {
       if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
     });
@@ -1205,6 +1396,15 @@ try {
     if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
     closeDrawer({ focusProfile: false });
     setTimeout(() => {
+      try {
+        const seg = String(href || "").split("?")[0].split("#")[0].replace(/^\//, "");
+        if (seg && typeof window.studiumRoutePush === "function") {
+          window.studiumRoutePush(seg);
+          return;
+        }
+      } catch {
+        // ignore
+      }
       window.location.href = href;
     }, 120);
   };
@@ -1355,7 +1555,14 @@ try {
 
   if (qsFullscreen) {
     qsFullscreen.addEventListener("change", () => {
-      applyFullscreenPref(!!qsFullscreen.checked);
+      const on = !!qsFullscreen.checked;
+      applyFullscreenPref(on);
+      try {
+        if (on && typeof SFX?.ensureFullscreen === "function") SFX.ensureFullscreen();
+        if (!on && typeof SFX?.exitFullscreen === "function") SFX.exitFullscreen();
+      } catch {
+        // ignore
+      }
     });
   }
 
@@ -1861,6 +2068,9 @@ try {
       "notes.inbox:right": "notes.preview",
       "notes.preview:left": "notes.recent1",
     },
+    battle: {
+      "battle.leaderboard:down": "battle.lb.scope.global",
+    },
   };
 
   const focusEl = (el) => {
@@ -2034,8 +2244,15 @@ try {
 
   const gridCandidateSets = () => {
     const all = gridCandidatesAll();
+    const battleLeaderboard = document.getElementById("battle-leaderboard");
     const widget = document.getElementById("grid-widget");
     const ae = document.activeElement;
+
+    if (battleLeaderboard && ae && battleLeaderboard.contains(ae)) {
+      const scoped = all.filter((el) => battleLeaderboard.contains(el));
+      return { primary: scoped.length ? scoped : all, fallback: all };
+    }
+
     if (widget && ae && widget.contains(ae)) {
       const scoped = all.filter((el) => widget.contains(el));
       return { primary: scoped.length ? scoped : all, fallback: all };

@@ -8,6 +8,7 @@
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge legacy */
   padding-right: 0;
+  overflow-x: hidden;
 }
 
 .drawerBody::-webkit-scrollbar {
@@ -39,6 +40,28 @@
   background: rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.10);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.drawerUser {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 54px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.drawerUser:hover {
+  filter: brightness(1.06);
+}
+
+.drawerUserChevron {
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .qsMenuBtn:hover {
@@ -269,35 +292,36 @@
 }
 
 .qsAudioBar {
-  margin-top: 14px;
-  border-radius: 24px;
-  padding: 16px 16px;
-  /* "Vertical ramp" like the reference: brighter top, darker bottom. */
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+  margin-top: 0;
+  border-radius: 22px;
+  padding: 12px 12px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
 }
 
 .qsPlayer {
   display: grid;
-  grid-template-columns: 70px 1fr;
-  gap: 14px;
+  grid-template-columns: 54px 1fr;
+  gap: 12px;
   align-items: center;
+  min-width: 0;
 }
 
 .qsMusicIcon {
-  width: 70px;
-  height: 70px;
-  border-radius: 22px;
-  background: rgba(120, 220, 255, 0.34);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background: rgb(var(--glass-tint) / 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   display: grid;
   place-items: center;
   color: rgba(255, 255, 255, 0.92);
   flex: 0 0 auto;
   transform: scale(calc(1 + var(--qs-beat, 0) * 0.22));
   transition: transform 70ms ease-out;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
   position: relative;
 }
 
@@ -312,7 +336,7 @@
 }
 
 .qsMusicIcon i {
-  font-size: 26px;
+  font-size: 22px;
   position: relative;
   z-index: 1;
 }
@@ -325,40 +349,48 @@
   font-family: var(--font-display);
   font-weight: 900;
   color: rgba(255, 255, 255, 0.92);
-  font-size: 18px;
+  font-size: 16px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .qsTrackSub {
-  margin-top: 4px;
-  color: rgba(255, 255, 255, 0.55);
-  font-weight: 800;
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: none;
 }
 
 .qsPlayerMain {
   min-width: 0;
   display: grid;
-  grid-template-rows: auto auto auto;
-  gap: 10px;
+  gap: 8px;
 }
 
 .qsPlayerControls {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.qsPillBtn {
+  display: none;
+}
+
+.qsPillBtn i {
+  font-size: 14px;
+}
+
+.qsPillBtn--off {
+  opacity: 0.65;
+  filter: saturate(0.75);
 }
 
 .qsCtl {
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
   background: rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.10);
   display: grid;
@@ -372,15 +404,15 @@
 
 .qsSeek {
   width: 100%;
-  height: 16px;
+  height: 14px;
   accent-color: rgba(255, 255, 255, 0.92);
   background: transparent;
 }
 
 .qsSeek::-webkit-slider-runnable-track {
-  height: 6px;
+  height: 5px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.20);
 }
 
 .qsSeek::-webkit-slider-thumb {
@@ -406,6 +438,26 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+.qsMusicOnIcon,
+.qsMusicOffIcon {
+  position: absolute;
+  opacity: 0;
+}
+
+#toggleMusicBtn {
+  position: relative;
+}
+
+#toggleMusicBtn[aria-pressed="true"] .qsMusicOnIcon {
+  opacity: 1;
+  position: static;
+}
+
+#toggleMusicBtn[aria-pressed="false"] .qsMusicOffIcon {
+  opacity: 1;
+  position: static;
 }
 
 /* Background adjustments driven by quick settings vars. */
@@ -463,14 +515,14 @@
     padding: 12px;
   }
   .qsMusicIcon {
-    width: 58px;
-    height: 58px;
-    border-radius: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 18px;
   }
   .qsCtl {
-    width: 38px;
-    height: 38px;
-    border-radius: 14px;
+    width: 32px;
+    height: 32px;
+    border-radius: 12px;
   }
 }
 
