@@ -395,16 +395,36 @@ export default function NotesHub() {
             </div>
             <div className={styles.headRight} aria-label="Notes list controls">
               <div className={styles.tabs} aria-label="Notes list tabs">
-                <button type="button" className={tagPillClass(view === "all")} onClick={() => setView("all")} aria-label="All notes">
+                <button
+                  type="button"
+                  className={[styles.tabBtn, view === "all" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+                  onClick={() => setView("all")}
+                  aria-label="All notes"
+                >
                   <span className="notesRowItem">All</span>
                 </button>
-                <button type="button" className={tagPillClass(view === "favorites")} onClick={() => setView("favorites")} aria-label="Favorites">
+                <button
+                  type="button"
+                  className={[styles.tabBtn, view === "favorites" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+                  onClick={() => setView("favorites")}
+                  aria-label="Favorites"
+                >
                   <span className="notesRowItem">Fav</span>
                 </button>
-                <button type="button" className={tagPillClass(view === "hidden")} onClick={() => setView("hidden")} aria-label="Hidden notes">
+                <button
+                  type="button"
+                  className={[styles.tabBtn, view === "hidden" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+                  onClick={() => setView("hidden")}
+                  aria-label="Hidden notes"
+                >
                   <span className="notesRowItem">Hid</span>
                 </button>
-                <button type="button" className={tagPillClass(view === "recently")} onClick={() => setView("recently")} aria-label="Recently updated">
+                <button
+                  type="button"
+                  className={[styles.tabBtn, view === "recently" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+                  onClick={() => setView("recently")}
+                  aria-label="Recently updated"
+                >
                   <span className="notesRowItem">Recent</span>
                 </button>
               </div>
