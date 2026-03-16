@@ -1,8 +1,8 @@
 import CardChrome from "./grid-parts/card-chrome";
-import DashboardCalendarWidget from "./dashboard-calendar-widget";
 import DashboardQuestStack from "./dashboard-quest-stack";
 import Link from "next/link";
 import DashboardStreakCard from "./dashboard-streak-card";
+import DashboardWidgetsSlider from "./dashboard-widgets-slider";
 
 export default function DashboardGrid() {
   return (
@@ -86,16 +86,7 @@ export default function DashboardGrid() {
       <div className="gridContainerRight">
         <DashboardQuestStack />
 
-        <div
-          className="gridContainerRightRight gridCard"
-          id="grid-widget"
-          data-focus="dashboard.widget"
-          tabIndex={0}
-          role="region"
-          aria-label="Calendar widget"
-        >
-          <DashboardCalendarWidget />
-        </div>
+        <DashboardWidgetsSlider />
       </div>
     </div>
   );
