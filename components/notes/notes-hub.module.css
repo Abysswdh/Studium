@@ -4,7 +4,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0;
   padding: clamp(14px, 2vw, 18px);
 }
 
