@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import styles from "./notes-hub.module.css";
 
-type NotesView = "all" | "favorites" | "hidden" | "recently";
+type NotesView = "all" | "favorites" | "hidden" | "deleted";
 
 type Note = {
   id: string;
@@ -225,10 +225,14 @@ export default function NotesHub() {
 
     if (view === "hidden") list = list.filter((n) => !n.deletedAt && !!n.hiddenAt);
     else if (view === "favorites") list = list.filter((n) => !n.deletedAt && !n.hiddenAt && n.favorite);
+    else if (view === "deleted") list = list.filter((n) => !!n.deletedAt);
     else list = list.filter((n) => !n.deletedAt && !n.hiddenAt);
 
-    if (tagFilter) list = list.filter((n) => n.tags.includes(tagFilter));
-    if (folderFilter) list = list.filter((n) => n.folder === folderFilter);
+    // Tag/folder filters shouldn't affect Deleted.
+    if (view !== "deleted") {
+      if (tagFilter) list = list.filter((n) => n.tags.includes(tagFilter));
+      if (folderFilter) list = list.filter((n) => n.folder === folderFilter);
+    }
 
     if (q) {
       list = list.filter((n) => {
@@ -237,9 +241,9 @@ export default function NotesHub() {
       });
     }
 
-    if (view === "recently") {
-      list.sort((a, b) => b.updatedAt - a.updatedAt);
-      return list.slice(0, 50);
+    if (view === "deleted") {
+      list.sort((a, b) => (b.deletedAt || 0) - (a.deletedAt || 0));
+      return list;
     }
 
     list.sort((a, b) => {
@@ -288,9 +292,6 @@ export default function NotesHub() {
     persistStore(next);
   };
 
-  const viewLabel = view === "favorites" ? "Favorites" : view === "hidden" ? "Hidden" : view === "recently" ? "Recently" : "All notes";
-  const viewCount = filteredNotes.length;
-
   return (
     <div className={styles.page} aria-label="Notes hub">
       <div className={styles.topBar} aria-label="Notes header">
@@ -303,12 +304,14 @@ export default function NotesHub() {
       <div className={styles.body} aria-label="Notes content">
         <div className={styles.col} aria-label="Folders column">
           <div className={styles.colHead} aria-label="Folders header">
-            <div className={styles.colTitle}>
-              <div className={styles.cardTitle}>Folder</div>
+            <div className={styles.colHeadTop}>
+              <div className={styles.colTitle}>
+                <div className={styles.cardTitle}>Folder</div>
+              </div>
+              <button type="button" className={styles.outsideBtn} aria-label="Add folder" title="Add folder" onClick={addFolder}>
+                Add Folder
+              </button>
             </div>
-            <button type="button" className={styles.outsideBtn} aria-label="Add folder" title="Add folder" onClick={addFolder}>
-              Add Folder
-            </button>
           </div>
 
           <section className={styles.panel} aria-label="Folders">
@@ -344,12 +347,14 @@ export default function NotesHub() {
 
         <div className={styles.col} aria-label="Tags column">
           <div className={styles.colHead} aria-label="Tags header">
-            <div className={styles.colTitle}>
-              <div className={styles.cardTitle}>Tags</div>
+            <div className={styles.colHeadTop}>
+              <div className={styles.colTitle}>
+                <div className={styles.cardTitle}>Tags</div>
+              </div>
+              <button type="button" className={styles.outsideBtn} aria-label="Add tag" title="Add tag" onClick={addTag}>
+                Add tags
+              </button>
             </div>
-            <button type="button" className={styles.outsideBtn} aria-label="Add tag" title="Add tag" onClick={addTag}>
-              Add tags
-            </button>
           </div>
 
           <section className={styles.panel} aria-label="Tags">
@@ -385,49 +390,51 @@ export default function NotesHub() {
 
         <div className={styles.col} aria-label="All notes column">
           <div className={styles.colHead} aria-label="All notes header">
-            <div className={styles.colTitle}>
-              <div className={styles.cardTitle}>All Notes</div>
+            <div className={styles.colHeadTop}>
+              <div className={styles.colTitle}>
+                <div className={styles.cardTitle}>All Notes</div>
+              </div>
+              {view === "all" ? (
+                <Link href="/notes/new?fullscreen=1&new=1" className={styles.outsideBtn} aria-label="Add note" title="Add note">
+                  Add Note
+                </Link>
+              ) : null}
             </div>
-            {view === "all" ? (
-              <Link href="/notes/new?fullscreen=1&new=1" className={styles.outsideBtn} aria-label="Add note" title="Add note">
-                Add Note
-              </Link>
-            ) : null}
-          </div>
 
-          <div className={styles.tabs} aria-label="All notes tabs">
-            <button
-              type="button"
-              className={[styles.tabBtn, view === "all" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
-              onClick={() => setView("all")}
-              aria-label="All notes"
-            >
-              <span className="notesRowItem">All</span>
-            </button>
-            <button
-              type="button"
-              className={[styles.tabBtn, view === "favorites" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
-              onClick={() => setView("favorites")}
-              aria-label="Favorites"
-            >
-              <span className="notesRowItem">Fav</span>
-            </button>
-            <button
-              type="button"
-              className={[styles.tabBtn, view === "hidden" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
-              onClick={() => setView("hidden")}
-              aria-label="Hidden notes"
-            >
-              <span className="notesRowItem">Hid</span>
-            </button>
-            <button
-              type="button"
-              className={[styles.tabBtn, view === "recently" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
-              onClick={() => setView("recently")}
-              aria-label="Recently updated"
-            >
-              <span className="notesRowItem">Recent</span>
-            </button>
+            <div className={styles.colHeadBottom} aria-label="All notes tabs">
+              <button
+                type="button"
+                className={[styles.tabBtn, view === "all" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+                onClick={() => setView("all")}
+                aria-label="All notes"
+              >
+                <span className="notesRowItem">All</span>
+              </button>
+              <button
+                type="button"
+                className={[styles.tabBtn, view === "favorites" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+                onClick={() => setView("favorites")}
+                aria-label="Favorites"
+              >
+                <span className="notesRowItem">Fav</span>
+              </button>
+              <button
+                type="button"
+                className={[styles.tabBtn, view === "hidden" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+                onClick={() => setView("hidden")}
+                aria-label="Hidden notes"
+              >
+                <span className="notesRowItem">Hid</span>
+              </button>
+              <button
+                type="button"
+                className={[styles.tabBtn, view === "deleted" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+                onClick={() => setView("deleted")}
+                aria-label="Recently deleted"
+              >
+                <span className="notesRowItem">De</span>
+              </button>
+            </div>
           </div>
 
           <section className={styles.panel} aria-label="Notes list">
