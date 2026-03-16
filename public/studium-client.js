@@ -293,17 +293,38 @@ const SFX = (() => {
   const sw = new Audio("/sound/switch.mp3");
   const grid = new Audio("/sound/switch.mp3");
   const header = new Audio("/sound/switch.mp3");
+  const notif = new Audio("/sound/notification.mp3");
 
   const BOOT_VOL = 0.7;
   const SW_VOL = 0.55;
   const GRID_VOL = 0.55;
   const HEADER_VOL = 0.55;
+  const NOTIF_VOL = 0.62;
   const clamp01 = (n) => Math.max(0, Math.min(1, n));
 
   boot.preload = "auto";
   sw.preload = "auto";
   grid.preload = "auto";
   header.preload = "auto";
+  notif.preload = "auto";
+
+  notif.addEventListener(
+    "error",
+    () => {
+      try {
+        notif.src = "/sound/switch.mp3";
+        notif.load();
+      } catch {
+        // ignore
+      }
+    },
+    { once: true }
+  );
+  try {
+    notif.load();
+  } catch {
+    // ignore
+  }
 
   grid.playbackRate = 0.82;
   header.playbackRate = 0.66;
@@ -331,6 +352,7 @@ const SFX = (() => {
     sw.volume = SW_VOL * vol * m;
     grid.volume = GRID_VOL * vol * m;
     header.volume = HEADER_VOL * vol * m;
+    notif.volume = NOTIF_VOL * vol * m;
   };
   applyMute();
 
@@ -409,6 +431,10 @@ const SFX = (() => {
     playHeaderMove: () => {
       if (!unlocked) return;
       tryPlay(header);
+    },
+    playNotif: () => {
+      if (!unlocked) return;
+      tryPlay(notif);
     },
   };
 })();

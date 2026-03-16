@@ -75,6 +75,13 @@ export default function NotificationIsland() {
   useEffect(() => {
     if (!current) return;
 
+    try {
+      const sfx = (window as any).SFX;
+      if (sfx && typeof sfx.playNotif === "function") sfx.playNotif();
+    } catch {
+      // ignore
+    }
+
     if (timerRef.current) window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(closeNow, current.durationMs);
 
