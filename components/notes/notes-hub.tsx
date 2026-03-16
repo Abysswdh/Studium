@@ -394,10 +394,10 @@ export default function NotesHub() {
                 <span className="notesSidebarItem__count">{allFolderNoteCount}</span>
               </button>
               {store.folderCatalog.map((f) => (
-                <div key={f.id} className={[styles.hoverRow, "flex items-center gap-2"].join(" ")}>
+                <div key={f.id} className={styles.hoverRow}>
                   <button
                     type="button"
-                    className={[sidebarItemClass(folderFilter === f.id), "flex-1 min-w-0"].join(" ")}
+                    className={[sidebarItemClass(folderFilter === f.id), styles.hoverRowMain].filter(Boolean).join(" ")}
                     role="listitem"
                     onClick={() => setFolderFilter(f.id)}
                     aria-label={`Folder ${f.label}`}
@@ -451,10 +451,10 @@ export default function NotesHub() {
                 <span className="notesSidebarItem__count">{allTaggedNoteCount}</span>
               </button>
               {store.tagCatalog.map((t) => (
-                <div key={t.id} className={[styles.hoverRow, "flex items-center gap-2"].join(" ")}>
+                <div key={t.id} className={styles.hoverRow}>
                   <button
                     type="button"
-                    className={[tagPillClass(tagFilter === t.id), "flex-1 min-w-0"].join(" ")}
+                    className={[tagPillClass(tagFilter === t.id), styles.hoverRowMain].filter(Boolean).join(" ")}
                     role="listitem"
                     onClick={() => setTagFilter(t.id)}
                     aria-label={`Tag ${t.label}`}
