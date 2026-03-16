@@ -219,6 +219,12 @@
   border-radius: 14px;
   padding: 10px 12px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.86);
+  font-weight: 900;
+  font-size: 12px;
 }
 
 .dotBtn:hover {
@@ -229,6 +235,12 @@
 .dotBtnActive {
   background: rgba(255, 255, 255, 0.16);
   border-color: rgba(255, 255, 255, 0.24);
+}
+
+.dotBtn :global(.notesDot) {
+  width: 14px;
+  height: 14px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
 }
 
 .modalActions {
@@ -254,6 +266,11 @@
   border-color: rgba(255, 255, 255, 0.20);
 }
 
+.modalBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .modalBtnPrimary {
   background: rgba(255, 255, 255, 0.16);
   border-color: rgba(255, 255, 255, 0.22);
@@ -263,6 +280,17 @@
 .modalBtnPrimary:hover {
   background: rgba(255, 255, 255, 0.20);
   border-color: rgba(255, 255, 255, 0.26);
+}
+
+.modalBtnDanger {
+  background: rgba(255, 70, 70, 0.18);
+  border-color: rgba(255, 120, 120, 0.26);
+  color: rgba(255, 230, 230, 0.96);
+}
+
+.modalBtnDanger:hover {
+  background: rgba(255, 70, 70, 0.24);
+  border-color: rgba(255, 160, 160, 0.32);
 }
 
 .colTitle {
@@ -332,6 +360,25 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.tabLabel {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tabCount {
+  flex: 0 0 auto;
+  font-weight: 900;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.76);
 }
 
 .tabBtn {
