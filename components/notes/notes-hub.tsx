@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import styles from "./notes-hub.module.css";
 
@@ -174,6 +174,7 @@ export default function NotesHub() {
   const [folderFilter, setFolderFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string>("");
+  const notesListRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setStore(loadStore());
@@ -218,6 +219,9 @@ export default function NotesHub() {
     });
     return map;
   }, [store.notes]);
+
+  const allFolderNoteCount = useMemo(() => store.notes.filter((n) => !n.deletedAt && !!n.folder).length, [store.notes]);
+  const allTaggedNoteCount = useMemo(() => store.notes.filter((n) => !n.deletedAt && Array.isArray(n.tags) && n.tags.length > 0).length, [store.notes]);
 
   const filteredNotes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -292,6 +296,39 @@ export default function NotesHub() {
     persistStore(next);
   };
 
+  const deleteFolder = (id: string) => {
+    const found = store.folderCatalog.find((f) => f.id === id) || null;
+    if (!found) return;
+    if (!window.confirm(`Delete folder "${found.label}"?\n\nNotes in this folder will be moved to no folder.`)) return;
+    if (folderFilter === id) setFolderFilter(null);
+    const next: NotesStore = {
+      ...store,
+      folderCatalog: store.folderCatalog.filter((f) => f.id !== id),
+      notes: store.notes.map((n) => (n.folder === id ? { ...n, folder: null } : n)),
+    };
+    persistStore(next);
+  };
+
+  const deleteTag = (id: string) => {
+    const found = store.tagCatalog.find((t) => t.id === id) || null;
+    if (!found) return;
+    if (!window.confirm(`Delete tag "${found.label}"?\n\nThis will remove the tag from all notes.`)) return;
+    if (tagFilter === id) setTagFilter(null);
+    const next: NotesStore = {
+      ...store,
+      tagCatalog: store.tagCatalog.filter((t) => t.id !== id),
+      notes: store.notes.map((n) => ({ ...n, tags: Array.isArray(n.tags) ? n.tags.filter((x) => x !== id) : [] })),
+    };
+    persistStore(next);
+  };
+
+  const scrollNotesList = (dir: "up" | "down") => {
+    const el = notesListRef.current;
+    if (!el) return;
+    const step = Math.max(180, Math.floor(el.clientHeight * 0.75));
+    el.scrollBy({ top: dir === "up" ? -step : step, behavior: "smooth" });
+  };
+
   return (
     <div className={styles.page} aria-label="Notes hub">
       <div className={styles.body} aria-label="Notes content">
@@ -318,21 +355,35 @@ export default function NotesHub() {
               >
                 <i className="fa-solid fa-folder-open" aria-hidden="true" />
                 <span className="notesSidebarItem__label">All</span>
-                <span className="notesSidebarItem__count">{store.notes.filter((n) => !n.deletedAt).length}</span>
+                <span className="notesSidebarItem__count">{allFolderNoteCount}</span>
               </button>
               {store.folderCatalog.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  className={sidebarItemClass(folderFilter === f.id)}
-                  role="listitem"
-                  onClick={() => setFolderFilter((prev) => (prev === f.id ? null : f.id))}
-                  aria-label={`Folder ${f.label}`}
-                >
-                  <i className="fa-solid fa-folder" aria-hidden="true" />
-                  <span className="notesSidebarItem__label">{f.label}</span>
-                  <span className="notesSidebarItem__count">{folderCounts[f.id] || 0}</span>
-                </button>
+                <div key={f.id} className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className={[sidebarItemClass(folderFilter === f.id), "flex-1 min-w-0"].join(" ")}
+                    role="listitem"
+                    onClick={() => setFolderFilter((prev) => (prev === f.id ? null : f.id))}
+                    aria-label={`Folder ${f.label}`}
+                  >
+                    <i className="fa-solid fa-folder" aria-hidden="true" />
+                    <span className="notesSidebarItem__label">{f.label}</span>
+                    <span className="notesSidebarItem__count">{folderCounts[f.id] || 0}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="notesInlineIconBtn gridCard"
+                    aria-label={`Delete folder ${f.label}`}
+                    title="Delete folder"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      deleteFolder(f.id);
+                    }}
+                  >
+                    <i className="fa-solid fa-trash" aria-hidden="true" />
+                  </button>
+                </div>
               ))}
             </div>
           </section>
@@ -361,21 +412,35 @@ export default function NotesHub() {
               >
                 <span className="notesDot notesDot--mint" aria-hidden="true" />
                 <span className="notesRowItem">All</span>
-                <span className="notesSidebarItem__count">{store.notes.filter((n) => !n.deletedAt).length}</span>
+                <span className="notesSidebarItem__count">{allTaggedNoteCount}</span>
               </button>
               {store.tagCatalog.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={tagPillClass(tagFilter === t.id)}
-                  role="listitem"
-                  onClick={() => setTagFilter((prev) => (prev === t.id ? null : t.id))}
-                  aria-label={`Tag ${t.label}`}
-                >
-                  <span className={["notesDot", t.dotClass].filter(Boolean).join(" ")} aria-hidden="true" />
-                  <span className="notesRowItem">{t.label}</span>
-                  <span className="notesSidebarItem__count">{tagCounts[t.id] || 0}</span>
-                </button>
+                <div key={t.id} className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className={[tagPillClass(tagFilter === t.id), "flex-1 min-w-0"].join(" ")}
+                    role="listitem"
+                    onClick={() => setTagFilter((prev) => (prev === t.id ? null : t.id))}
+                    aria-label={`Tag ${t.label}`}
+                  >
+                    <span className={["notesDot", t.dotClass].filter(Boolean).join(" ")} aria-hidden="true" />
+                    <span className="notesRowItem">{t.label}</span>
+                    <span className="notesSidebarItem__count">{tagCounts[t.id] || 0}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="notesInlineIconBtn gridCard"
+                    aria-label={`Delete tag ${t.label}`}
+                    title="Delete tag"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      deleteTag(t.id);
+                    }}
+                  >
+                    <i className="fa-solid fa-trash" aria-hidden="true" />
+                  </button>
+                </div>
               ))}
             </div>
           </section>
@@ -430,20 +495,40 @@ export default function NotesHub() {
                 </button>
               </div>
 
-              <div className="notesSearchWrap">
-                <i className="fa-solid fa-magnifying-glass text-white/55" aria-hidden="true" />
-                <input
-                  className="notesSearchInput"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search notes..."
-                  aria-label="Search notes"
-                />
+              <div className="flex items-center gap-2">
+                <div className="notesSearchWrap flex-1">
+                  <i className="fa-solid fa-magnifying-glass text-white/55" aria-hidden="true" />
+                  <input
+                    className="notesSearchInput"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search notes..."
+                    aria-label="Search notes"
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="notesIconBtn gridCard"
+                  aria-label="Scroll up"
+                  title="Scroll up"
+                  onClick={() => scrollNotesList("up")}
+                >
+                  <i className="fa-solid fa-arrow-up" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="notesIconBtn gridCard"
+                  aria-label="Scroll down"
+                  title="Scroll down"
+                  onClick={() => scrollNotesList("down")}
+                >
+                  <i className="fa-solid fa-arrow-down" aria-hidden="true" />
+                </button>
               </div>
             </div>
 
             <div className={styles.notesPanelBody}>
-              <div className={styles.list} role="list" aria-label="Notes list items">
+              <div ref={notesListRef} className={styles.list} role="list" aria-label="Notes list items">
                 {filteredNotes.map((n) => (
                   <button
                     key={n.id}
