@@ -94,10 +94,10 @@ function tileForQuest(q: Quest): { kicker: string; title: string; meta: string; 
 }
 
 const TILE_META = [
-  { className: "gridContainerRightLeftOne gridCard", id: "grid-quest1", focus: "dashboard.quest1" },
-  { className: "gridContainerRightLeftTwo gridCard", id: "grid-quest2", focus: "dashboard.quest2" },
-  { className: "gridContainerRightLeftThree gridCard", id: "grid-quest3", focus: "dashboard.quest3" },
-  { className: "gridContainerRightLeftFour gridCard", id: "grid-quest4", focus: "dashboard.quest4" },
+  { className: "gridContainerRightLeftOne", id: "grid-quest1", focus: "dashboard.quest1" },
+  { className: "gridContainerRightLeftTwo", id: "grid-quest2", focus: "dashboard.quest2" },
+  { className: "gridContainerRightLeftThree", id: "grid-quest3", focus: "dashboard.quest3" },
+  { className: "gridContainerRightLeftFour", id: "grid-quest4", focus: "dashboard.quest4" },
 ] as const;
 
 export default function DashboardQuestStack() {
@@ -119,6 +119,9 @@ export default function DashboardQuestStack() {
 
   return (
     <div className="gridContainerRightLeft" aria-label="Quest stack">
+      <div className="dashSectionHead" aria-label="Quest stack header">
+        <div className="dashSectionTitle">Today&apos;s Quest</div>
+      </div>
       {TILE_META.map((m, idx) => {
         const tile = tiles[idx];
         if (!tile) return null;
@@ -129,17 +132,19 @@ export default function DashboardQuestStack() {
             : { kicker: tile.kicker, title: tile.title, meta: tile.meta, href: tile.href, ariaLabel: tile.ariaLabel };
 
         return (
-          <Link
-            key={m.id}
-            href={content.href}
-            className={m.className}
-            id={m.id}
-            data-focus={m.focus}
-            aria-label={content.ariaLabel}
-            style={{ display: "block", color: "inherit", textDecoration: "none" }}
-          >
-            <CardChrome kicker={content.kicker} title={content.title} meta={content.meta} />
-          </Link>
+          <div key={m.id} className={m.className} aria-label={tile.kind === "quest" ? "Quest tile" : "Shortcut tile"}>
+            <div className="dashQuestLabel">{tile.kind === "quest" ? "Quest" : "Shortcut"}</div>
+            <Link
+              href={content.href}
+              className="dashQuestCard gridCard"
+              id={m.id}
+              data-focus={m.focus}
+              aria-label={content.ariaLabel}
+              style={{ display: "block", color: "inherit", textDecoration: "none" }}
+            >
+              <CardChrome title={content.title} meta={content.meta} />
+            </Link>
+          </div>
         );
       })}
     </div>
