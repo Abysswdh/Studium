@@ -60,12 +60,11 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(300px, 1fr) minmax(320px, 1fr);
+  grid-template-columns: minmax(220px, 0.9fr) minmax(220px, 0.95fr) minmax(320px, 1.25fr) minmax(360px, 1.5fr);
   gap: 14px;
 }
 
-.left,
-.right {
+.panel {
   min-height: 0;
   border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -83,6 +82,32 @@
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
+}
+
+.headRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.catalog {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
 }
 
 .cardTitle {
@@ -155,6 +180,12 @@
 .openBtn:hover {
   background: rgba(255, 255, 255, 0.14);
   border-color: rgba(255, 255, 255, 0.22);
+}
+
+@media (max-width: 1180px) {
+  .body {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (max-width: 900px) {

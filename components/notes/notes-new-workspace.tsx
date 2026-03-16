@@ -552,6 +552,8 @@ function isUnderlineActive(text: string, start: number, end: number) {
 export default function NotesNewWorkspace() {
   const searchParams = useSearchParams();
   const deepLinkNoteId = (searchParams.get("note") || "").trim();
+  const fullscreen = ["1", "true", "yes"].includes(String(searchParams.get("fullscreen") || "").trim().toLowerCase());
+  const forceNew = ["1", "true", "yes"].includes(String(searchParams.get("new") || "").trim().toLowerCase());
 
   const [store, setStore] = useState<NotesStore>(() => ({ notes: [], lastDraftId: null, tagCatalog: DEFAULT_TAGS, folderCatalog: DEFAULT_FOLDERS }));
   const [view, setView] = useState<NotesView>("all");
@@ -763,6 +765,7 @@ export default function NotesNewWorkspace() {
     if (typeof window === "undefined") return;
     if (!window.location.pathname.endsWith("/notes/new")) return;
     const openTarget = (() => {
+      if (forceNew) return "";
       const fromUrl = deepLinkNoteId || (() => {
         try {
           return (new URLSearchParams(window.location.search).get("note") || "").trim();
@@ -779,9 +782,23 @@ export default function NotesNewWorkspace() {
         return "";
       }
     })();
-    if (openTarget) return;
+    if (!forceNew && openTarget) return;
 
     didInitForNewRoute.current = true;
+
+    if (forceNew) {
+      try {
+        sessionStorage.removeItem(openTargetKey());
+        sessionStorage.removeItem(OPEN_TARGET_KEY_FALLBACK);
+        localStorage.removeItem(openTargetKey());
+        localStorage.removeItem(OPEN_TARGET_KEY_FALLBACK);
+      } catch {
+        // ignore
+      }
+      createDraft();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      return;
+    }
 
     const draft = store.lastDraftId ? store.notes.find((n) => n.id === store.lastDraftId) : null;
     const draftOk =
@@ -1765,8 +1782,14 @@ export default function NotesNewWorkspace() {
         </Link>
       </div>
 
-      <div className="grid min-h-0 w-full flex-1 grid-cols-1 gap-[var(--shell-gap)] min-[901px]:grid-cols-[240px_340px_1fr]">
-        <aside className="panelItem min-h-0 overflow-hidden rounded-[18px]" aria-label="Notes sidebar">
+      <div
+        className={[
+          "grid min-h-0 w-full flex-1 grid-cols-1 gap-[var(--shell-gap)]",
+          fullscreen ? "min-[901px]:grid-cols-1" : "min-[901px]:grid-cols-[240px_340px_1fr]",
+        ].join(" ")}
+      >
+        {!fullscreen ? (
+          <aside className="panelItem min-h-0 overflow-hidden rounded-[18px]" aria-label="Notes sidebar">
           <div className="flex h-full min-h-0 flex-col">
           <div className="flex items-center gap-3 px-4 pb-3 pt-4">
             <div className="grid h-10 w-10 place-items-center rounded-[12px] border border-white/15 bg-white/10" aria-hidden="true">
@@ -2024,8 +2047,10 @@ export default function NotesNewWorkspace() {
           </div>
         </div>
         </aside>
+        ) : null}
 
-        <section className="panelItem min-h-0 overflow-hidden rounded-[18px]" aria-label="Notes list">
+        {!fullscreen ? (
+          <section className="panelItem min-h-0 overflow-hidden rounded-[18px]" aria-label="Notes list">
           <div className="flex h-full min-h-0 flex-col">
           <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-4">
             <div className="min-w-0">
@@ -2180,6 +2205,7 @@ export default function NotesNewWorkspace() {
           </div>
           </div>
         </section>
+        ) : null}
 
         <article className="panelItem min-h-0 overflow-hidden rounded-[18px]" aria-label="Note preview">
           <div className="flex h-full min-h-0 flex-col">
