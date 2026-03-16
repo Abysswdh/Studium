@@ -394,51 +394,49 @@ export default function NotesHub() {
               <div className={styles.colTitle}>
                 <div className={styles.cardTitle}>All Notes</div>
               </div>
-              {view === "all" ? (
-                <Link href="/notes/new?fullscreen=1&new=1" className={styles.outsideBtn} aria-label="Add note" title="Add note">
-                  Add Note
-                </Link>
-              ) : null}
-            </div>
-
-            <div className={styles.colHeadBottom} aria-label="All notes tabs">
-              <button
-                type="button"
-                className={[styles.tabBtn, view === "all" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
-                onClick={() => setView("all")}
-                aria-label="All notes"
-              >
-                <span className="notesRowItem">All</span>
-              </button>
-              <button
-                type="button"
-                className={[styles.tabBtn, view === "favorites" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
-                onClick={() => setView("favorites")}
-                aria-label="Favorites"
-              >
-                <span className="notesRowItem">Fav</span>
-              </button>
-              <button
-                type="button"
-                className={[styles.tabBtn, view === "hidden" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
-                onClick={() => setView("hidden")}
-                aria-label="Hidden notes"
-              >
-                <span className="notesRowItem">Hid</span>
-              </button>
-              <button
-                type="button"
-                className={[styles.tabBtn, view === "deleted" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
-                onClick={() => setView("deleted")}
-                aria-label="Recently deleted"
-              >
-                <span className="notesRowItem">De</span>
-              </button>
+              <Link href="/notes/new?fullscreen=1&new=1" className={styles.outsideBtn} aria-label="Add note" title="Add note">
+                Add Note
+              </Link>
             </div>
           </div>
 
           <section className={styles.panel} aria-label="Notes list">
-            <div className={styles.list} role="list" aria-label="Notes list items">
+            <div className={styles.notesPanelHead} aria-label="Notes list header">
+              <div className={styles.tabs} aria-label="All notes tabs">
+                <button
+                  type="button"
+                  className={[styles.tabBtn, view === "all" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+                  onClick={() => setView("all")}
+                  aria-label="All notes"
+                >
+                  <span className="notesRowItem">All</span>
+                </button>
+                <button
+                  type="button"
+                  className={[styles.tabBtn, view === "favorites" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+                  onClick={() => setView("favorites")}
+                  aria-label="Favorites"
+                >
+                  <span className="notesRowItem">Fav</span>
+                </button>
+                <button
+                  type="button"
+                  className={[styles.tabBtn, view === "hidden" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+                  onClick={() => setView("hidden")}
+                  aria-label="Hidden notes"
+                >
+                  <span className="notesRowItem">Hid</span>
+                </button>
+                <button
+                  type="button"
+                  className={[styles.tabBtn, view === "deleted" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+                  onClick={() => setView("deleted")}
+                  aria-label="Recently deleted"
+                >
+                  <span className="notesRowItem">De</span>
+                </button>
+              </div>
+
               <div className="notesSearchWrap">
                 <i className="fa-solid fa-magnifying-glass text-white/55" aria-hidden="true" />
                 <input
@@ -449,32 +447,37 @@ export default function NotesHub() {
                   aria-label="Search notes"
                 />
               </div>
-              {filteredNotes.map((n) => (
-                <button
-                  key={n.id}
-                  type="button"
-                  className={["notesListItem", "gridCard", styles.noteItem, activeNote?.id === n.id ? "notesListItem--active" : ""].filter(Boolean).join(" ")}
-                  role="listitem"
-                  onClick={() => setActiveId(n.id)}
-                >
-                  <div className="notesListItem__title">{n.title || "Untitled"}</div>
-                  <div className="notesListItem__excerpt">
-                    {(() => {
-                      const bodyText = n.bodyFormat === "html" ? stripHtmlQuick(n.body) : n.body;
-                      return bodyText.trim() ? bodyText.trim().slice(0, 120) : "Start typing to capture your thoughts...";
-                    })()}
-                  </div>
-                  <div className="notesListItem__meta">
-                    {n.pinned ? "Pinned | " : ""}
-                    {formatRelative(n.updatedAt)}
-                    {n.hiddenAt ? " | Hidden" : ""}
-                    {n.favorite ? " | Favorite" : ""}
-                    {n.folder ? ` | ${folderLabelById[n.folder] || n.folder}` : ""}
-                    {n.tags.length ? ` | ${n.tags.map((id) => tagLabelById[id] || id).join(", ")}` : ""}
-                  </div>
-                </button>
-              ))}
-              {filteredNotes.length === 0 ? <div className="notesEmptyState">No notes match your filters.</div> : null}
+            </div>
+
+            <div className={styles.notesPanelBody}>
+              <div className={styles.list} role="list" aria-label="Notes list items">
+                {filteredNotes.map((n) => (
+                  <button
+                    key={n.id}
+                    type="button"
+                    className={["notesListItem", "gridCard", styles.noteItem, activeNote?.id === n.id ? "notesListItem--active" : ""].filter(Boolean).join(" ")}
+                    role="listitem"
+                    onClick={() => setActiveId(n.id)}
+                  >
+                    <div className="notesListItem__title">{n.title || "Untitled"}</div>
+                    <div className="notesListItem__excerpt">
+                      {(() => {
+                        const bodyText = n.bodyFormat === "html" ? stripHtmlQuick(n.body) : n.body;
+                        return bodyText.trim() ? bodyText.trim().slice(0, 120) : "Start typing to capture your thoughts...";
+                      })()}
+                    </div>
+                    <div className="notesListItem__meta">
+                      {n.pinned ? "Pinned | " : ""}
+                      {formatRelative(n.updatedAt)}
+                      {n.hiddenAt ? " | Hidden" : ""}
+                      {n.favorite ? " | Favorite" : ""}
+                      {n.folder ? ` | ${folderLabelById[n.folder] || n.folder}` : ""}
+                      {n.tags.length ? ` | ${n.tags.map((id) => tagLabelById[id] || id).join(", ")}` : ""}
+                    </div>
+                  </button>
+                ))}
+                {filteredNotes.length === 0 ? <div className="notesEmptyState">No notes match your filters.</div> : null}
+              </div>
             </div>
           </section>
         </div>
