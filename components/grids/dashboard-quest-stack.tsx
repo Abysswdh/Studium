@@ -119,6 +119,9 @@ export default function DashboardQuestStack() {
 
   return (
     <div className="gridContainerRightLeft" aria-label="Quest stack">
+      <div className="dashSectionHead" aria-label="Quest stack header">
+        <div className="dashSectionTitle">Today&apos;s Quest</div>
+      </div>
       {TILE_META.map((m, idx) => {
         const tile = tiles[idx];
         if (!tile) return null;

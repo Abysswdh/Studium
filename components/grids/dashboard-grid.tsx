@@ -8,20 +8,27 @@ export default function DashboardGrid() {
   return (
     <div className="gridContainer" aria-label="Dashboard grid">
       <div className="gridContainerLeft">
-        <div
-          className="gridContainerLeftTop gridCard dashHero"
-          id="grid-leftTop"
-          data-focus="dashboard.leftTop"
-          tabIndex={0}
-          role="button"
-          aria-label="Greetings and stats"
-        >
-          <CardChrome kicker="Good evening" title="Your day at a glance" meta="Routine ready | 3 due today | +240 XP potential" />
-          <img className="dashHeroMascot" src="/blockyPng/idle.png" alt="" aria-hidden="true" />
+        <div className="dashGeneralWrap" aria-label="General section">
+          <div className="dashSectionHead">
+            <div className="dashSectionTitle">General</div>
+          </div>
+          <div
+            className="gridContainerLeftTop gridCard dashHero"
+            id="grid-leftTop"
+            data-focus="dashboard.leftTop"
+            tabIndex={0}
+            role="button"
+            aria-label="Greetings and stats"
+          >
+            <CardChrome kicker="Good evening" title="Your day at a glance" meta="Routine ready | 3 due today | +240 XP potential" />
+            <img className="dashHeroMascot" src="/blockyPng/idle.png" alt="" aria-hidden="true" />
+          </div>
         </div>
         <div className="gridContainerLeftBottom">
           <div className="dashBottomLeft" aria-label="Streak section">
-            <div className="dashSectionLabel">Streak</div>
+            <div className="dashSectionHead">
+              <div className="dashSectionTitle">Streak</div>
+            </div>
             <div
               className="dashStreakTile gridCard"
               id="grid-streak"
@@ -35,7 +42,9 @@ export default function DashboardGrid() {
           </div>
 
           <div className="dashBottomRight" aria-label="Shortcuts section">
-            <div className="dashSectionLabel">Shortcut</div>
+            <div className="dashSectionHead">
+              <div className="dashSectionTitle">Shortcut</div>
+            </div>
             <div className="dashQuickGrid" aria-label="Quick actions">
               <Link
                 href="/notes"

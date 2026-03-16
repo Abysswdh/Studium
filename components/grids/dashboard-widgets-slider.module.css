@@ -18,11 +18,11 @@
 }
 
 .headerLabel {
+  font-family: var(--font-display);
   font-weight: 900;
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.70);
+  font-size: 16px;
+  letter-spacing: 0.2px;
+  color: rgba(255, 255, 255, 0.92);
   pointer-events: none;
 }
 
