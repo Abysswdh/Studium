@@ -706,23 +706,25 @@ try {
     }, 260);
   };
 
-  const showViewInfo = () => {
-    if (!viewInfo || !viewInfoTitle || !viewInfoDesc || !viewBtn) return;
+  const showHeaderIslandInfo = () => {
+    if (!viewBtn) return;
 
     enterHeaderMode();
+    hideViewInfo();
 
     const view = document.body.dataset.view || "dashboard";
     const m = readViewMarker();
-    const desc = m?.desc;
+    const title = viewBtn.textContent?.trim() || m?.label || "Info";
+    const message = (m?.desc || defaultDesc[view] || "").trim();
 
-    viewInfoTitle.textContent = viewBtn.textContent?.trim() || "Info";
-    viewInfoDesc.textContent = desc || defaultDesc[view] || " ";
-
-    viewInfo.hidden = false;
-    requestAnimationFrame(() => viewInfo.classList.add("viewInfo--show"));
-
-    if (infoTimer) clearTimeout(infoTimer);
-    infoTimer = setTimeout(hideViewInfo, 2800);
+    const detail = { title, message, kind: "info" };
+    try {
+      const fn = window.studiumNotify;
+      if (typeof fn === "function") fn(detail);
+      else window.dispatchEvent(new CustomEvent("studium:notify", { detail }));
+    } catch {
+      // ignore
+    }
   };
 
   const syncSfxLabel = () => {
@@ -1225,7 +1227,7 @@ try {
   };
 
   if (viewBtn) {
-    viewBtn.addEventListener("click", showViewInfo);
+    viewBtn.addEventListener("click", showHeaderIslandInfo);
     viewBtn.addEventListener("pointerdown", () => {
       if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
     });
