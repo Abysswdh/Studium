@@ -133,7 +133,6 @@ export default function DashboardQuestStack() {
 
         return (
           <div key={m.id} className={m.className} aria-label={tile.kind === "quest" ? "Quest tile" : "Shortcut tile"}>
-            <div className="dashQuestLabel">{tile.kind === "quest" ? "Quest" : "Shortcut"}</div>
             <Link
               href={content.href}
               className="dashQuestCard gridCard"

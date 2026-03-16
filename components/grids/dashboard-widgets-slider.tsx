@@ -50,14 +50,26 @@ export default function DashboardWidgetsSlider() {
   const next = () => setIdx((i) => (i + 1) % slides.length);
 
   return (
-    <div className={styles.wrap} aria-label="Widgets">
+    <div className={styles.wrap} id="grid-widget" aria-label="Widgets">
       <div className={styles.headerRow}>
         <div className={styles.headerLabel}>Widgets</div>
         <div className={styles.controls}>
-          <button type="button" className={styles.navBtn} onClick={prev} aria-label="Previous widget">
+          <button
+            type="button"
+            className={styles.navBtn}
+            onClick={prev}
+            data-focus="dashboard.widget.nav.prev"
+            aria-label="Previous widget"
+          >
             <i className="fa-solid fa-chevron-left" aria-hidden="true" />
           </button>
-          <button type="button" className={styles.navBtn} onClick={next} aria-label="Next widget">
+          <button
+            type="button"
+            className={styles.navBtn}
+            onClick={next}
+            data-focus="dashboard.widget.nav.next"
+            aria-label="Next widget"
+          >
             <i className="fa-solid fa-chevron-right" aria-hidden="true" />
           </button>
         </div>
@@ -65,23 +77,10 @@ export default function DashboardWidgetsSlider() {
 
       <section
         className={`gridContainerRightRight gridCard ${styles.card}`}
-        id="grid-widget"
         data-focus="dashboard.widget"
         tabIndex={0}
         role="region"
         aria-label="Widgets panel"
-        onKeyDown={(e) => {
-          if (e.defaultPrevented) return;
-          if (e.currentTarget !== e.target) return;
-          if (e.key === "ArrowLeft") {
-            e.preventDefault();
-            prev();
-          }
-          if (e.key === "ArrowRight") {
-            e.preventDefault();
-            next();
-          }
-        }}
       >
         <div className={styles.viewport}>
           <div className={styles.track} style={{ transform: `translateX(-${idx * 100}%)` }}>

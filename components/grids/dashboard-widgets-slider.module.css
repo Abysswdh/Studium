@@ -49,6 +49,13 @@
   filter: brightness(1.06);
 }
 
+.navBtn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.86),
+    0 12px 26px rgba(0, 0, 0, 0.28);
+}
+
 .card {
   width: 100% !important;
   flex: 1;

@@ -5,10 +5,6 @@
   .gridContainerLeftBottomRight,
   .dashQuickTile,
   .gridContainerRightRight,
-  .gridContainerRightLeftOne,
-  .gridContainerRightLeftTwo,
-  .gridContainerRightLeftThree,
-  .gridContainerRightLeftFour,
   .pageShell,
   .panelItem,
   .viewLabel,
@@ -257,7 +253,7 @@ body.booting .shell {
   flex-direction: row;
   justify-content: space-between;
   width: 100%;
-  flex: 1;
+  flex: 0.72;
   gap: 16px;
 }
 
@@ -321,7 +317,7 @@ body.booting .shell {
 
 .dashGeneralWrap {
   width: 100%;
-  flex: 1;
+  flex: 1.28;
   min-height: 0;
   display: flex;
   flex-direction: column;
