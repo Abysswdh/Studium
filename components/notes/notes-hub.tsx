@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import styles from "./notes-hub.module.css";
 
+type NotesView = "all" | "favorites" | "hidden" | "recently";
+
 type Note = {
   id: string;
   title: string;
@@ -32,6 +34,8 @@ type NotesStore = {
   folderCatalog: FolderDef[];
 };
 
+const TAG_DOT_PALETTE = ["notesDot--mint", "notesDot--aqua", "notesDot--violet", "notesDot--gold"];
+
 const DEFAULT_TAGS: TagDef[] = [
   { id: "school", label: "School related", dotClass: "notesDot--mint" },
   { id: "church", label: "Church sermons", dotClass: "notesDot--aqua" },
@@ -46,6 +50,14 @@ const DEFAULT_FOLDERS: FolderDef[] = [
 
 function now() {
   return Date.now();
+}
+
+function makeId() {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `n_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  }
 }
 
 function safeJsonParse<T>(raw: string | null): T | null {
@@ -157,6 +169,9 @@ function formatRelative(ts: number) {
 export default function NotesHub() {
   const router = useRouter();
   const [store, setStore] = useState<NotesStore>(() => ({ notes: [], tagCatalog: DEFAULT_TAGS, folderCatalog: DEFAULT_FOLDERS }));
+  const [view, setView] = useState<NotesView>("all");
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [folderFilter, setFolderFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string>("");
 
@@ -164,32 +179,90 @@ export default function NotesHub() {
     setStore(loadStore());
   }, []);
 
+  const persistStore = (next: NotesStore) => {
+    setStore(next);
+    try {
+      const raw = typeof localStorage === "undefined" ? null : localStorage.getItem(storageKey());
+      const parsed = safeJsonParse<any>(raw) || {};
+      const merged = { ...parsed, notes: next.notes, tagCatalog: next.tagCatalog, folderCatalog: next.folderCatalog };
+      localStorage.setItem(storageKey(), JSON.stringify(merged));
+    } catch {
+      // ignore
+    }
+  };
+
+  const sidebarItemClass = (active: boolean) => ["notesSidebarItem", "gridCard", active ? "notesSidebarItem--active" : ""].filter(Boolean).join(" ");
+  const tagPillClass = (active: boolean) => ["notesTagPill", "gridCard", active ? "notesTagPill--active" : ""].filter(Boolean).join(" ");
+
   const tagLabelById = useMemo(() => Object.fromEntries(store.tagCatalog.map((t) => [t.id, t.label])), [store.tagCatalog]);
   const folderLabelById = useMemo(() => Object.fromEntries(store.folderCatalog.map((f) => [f.id, f.label])), [store.folderCatalog]);
 
-  const visibleNotes = useMemo(() => {
+  const folderCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    store.notes.forEach((n) => {
+      if (n.deletedAt) return;
+      if (!n.folder) return;
+      map[n.folder] = (map[n.folder] || 0) + 1;
+    });
+    return map;
+  }, [store.notes]);
+
+  const tagCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    store.notes.forEach((n) => {
+      if (n.deletedAt) return;
+      const tags = Array.isArray(n.tags) ? n.tags : [];
+      tags.forEach((id) => {
+        map[id] = (map[id] || 0) + 1;
+      });
+    });
+    return map;
+  }, [store.notes]);
+
+  const filteredNotes = useMemo(() => {
     const q = search.trim().toLowerCase();
-    let list = store.notes.filter((n) => !n.deletedAt && !n.hiddenAt);
+    let list = store.notes.slice();
+
+    if (view === "hidden") list = list.filter((n) => !n.deletedAt && !!n.hiddenAt);
+    else if (view === "favorites") list = list.filter((n) => !n.deletedAt && !n.hiddenAt && n.favorite);
+    else list = list.filter((n) => !n.deletedAt && !n.hiddenAt);
+
+    if (tagFilter) list = list.filter((n) => n.tags.includes(tagFilter));
+    if (folderFilter) list = list.filter((n) => n.folder === folderFilter);
+
     if (q) {
       list = list.filter((n) => {
         const bodyText = n.bodyFormat === "html" ? stripHtmlQuick(n.body) : n.body;
         return (n.title + "\n" + bodyText).toLowerCase().includes(q);
       });
     }
+
+    if (view === "recently") {
+      list.sort((a, b) => b.updatedAt - a.updatedAt);
+      return list.slice(0, 50);
+    }
+
     list.sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       if (a.sortOrder !== b.sortOrder) return b.sortOrder - a.sortOrder;
       return b.updatedAt - a.updatedAt;
     });
     return list;
-  }, [search, store.notes]);
+  }, [folderFilter, search, store.notes, tagFilter, view]);
 
-  const activeNote = useMemo(() => visibleNotes.find((n) => n.id === activeId) || visibleNotes[0] || null, [activeId, visibleNotes]);
+  const activeNote = useMemo(() => filteredNotes.find((n) => n.id === activeId) || filteredNotes[0] || null, [activeId, filteredNotes]);
 
   useEffect(() => {
     if (activeId) return;
-    if (visibleNotes[0]) setActiveId(visibleNotes[0].id);
-  }, [activeId, visibleNotes]);
+    if (filteredNotes[0]) setActiveId(filteredNotes[0].id);
+  }, [activeId, filteredNotes]);
+
+  useEffect(() => {
+    const inView = !!activeId && filteredNotes.some((n) => n.id === activeId);
+    if (inView) return;
+    if (filteredNotes[0]?.id) setActiveId(filteredNotes[0].id);
+    else setActiveId("");
+  }, [activeId, filteredNotes]);
 
   const previewHtml = useMemo(() => {
     if (!activeNote) return "";
@@ -198,6 +271,26 @@ export default function NotesHub() {
     return safe.replace(/\n/g, "<br/>");
   }, [activeNote]);
 
+  const addFolder = () => {
+    const label = String(window.prompt("Folder name") || "").trim();
+    if (!label) return;
+    const id = `f_${makeId()}`;
+    const next: NotesStore = { ...store, folderCatalog: [...store.folderCatalog, { id, label }] };
+    persistStore(next);
+  };
+
+  const addTag = () => {
+    const label = String(window.prompt("Tag name") || "").trim();
+    if (!label) return;
+    const id = `t_${makeId()}`;
+    const dotClass = TAG_DOT_PALETTE[store.tagCatalog.length % TAG_DOT_PALETTE.length] || "notesDot--mint";
+    const next: NotesStore = { ...store, tagCatalog: [...store.tagCatalog, { id, label, dotClass }] };
+    persistStore(next);
+  };
+
+  const viewLabel = view === "favorites" ? "Favorites" : view === "hidden" ? "Hidden" : view === "recently" ? "Recently" : "All notes";
+  const viewCount = filteredNotes.length;
+
   return (
     <div className={styles.page} aria-label="Notes hub">
       <div className={styles.topBar} aria-label="Notes header">
@@ -205,18 +298,126 @@ export default function NotesHub() {
           <div className={styles.title}>Notes</div>
           <div className={styles.sub}>Capture quick notes, then open the editor for deep work.</div>
         </div>
-        <Link href="/notes/new" className={styles.actionBtn} aria-label="Add new note" title="Add new note">
-          <i className="fa-solid fa-plus" aria-hidden="true" />
-          Add note
-        </Link>
       </div>
 
       <div className={styles.body} aria-label="Notes content">
-        <section className={styles.left} aria-label="Notes list">
+        <section className={styles.panel} aria-label="Folders">
           <div className={styles.cardHead}>
             <div>
-              <div className={styles.cardTitle}>Notes</div>
-              <div className={styles.cardSub}>{visibleNotes.length} note(s)</div>
+              <div className={styles.cardTitle}>Folders</div>
+              <div className={styles.cardSub}>{store.folderCatalog.length} folder(s)</div>
+            </div>
+            <button type="button" className="notesPrimaryBtn gridCard" aria-label="Add folder" title="Add folder" onClick={addFolder}>
+              <i className="fa-solid fa-plus" aria-hidden="true" />
+              Add folder
+            </button>
+          </div>
+
+          <div className={styles.catalog} role="list" aria-label="Folder list">
+            <button
+              type="button"
+              className={sidebarItemClass(!folderFilter)}
+              role="listitem"
+              onClick={() => setFolderFilter(null)}
+              aria-label="All folders"
+            >
+              <i className="fa-solid fa-folder-open" aria-hidden="true" />
+              <span className="notesSidebarItem__label">All</span>
+              <span className="notesSidebarItem__count">{store.notes.filter((n) => !n.deletedAt).length}</span>
+            </button>
+            {store.folderCatalog.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className={sidebarItemClass(folderFilter === f.id)}
+                role="listitem"
+                onClick={() => setFolderFilter((prev) => (prev === f.id ? null : f.id))}
+                aria-label={`Folder ${f.label}`}
+              >
+                <i className="fa-solid fa-folder" aria-hidden="true" />
+                <span className="notesSidebarItem__label">{f.label}</span>
+                <span className="notesSidebarItem__count">{folderCounts[f.id] || 0}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className={styles.panel} aria-label="Tags">
+          <div className={styles.cardHead}>
+            <div>
+              <div className={styles.cardTitle}>Tags</div>
+              <div className={styles.cardSub}>{store.tagCatalog.length} tag(s)</div>
+            </div>
+            <button type="button" className="notesPrimaryBtn gridCard" aria-label="Add tag" title="Add tag" onClick={addTag}>
+              <i className="fa-solid fa-plus" aria-hidden="true" />
+              Add tag
+            </button>
+          </div>
+
+          <div className={styles.catalog} role="list" aria-label="Tag list">
+            <button
+              type="button"
+              className={tagPillClass(!tagFilter)}
+              role="listitem"
+              onClick={() => setTagFilter(null)}
+              aria-label="All tags"
+            >
+              <span className="notesDot notesDot--mint" aria-hidden="true" />
+              <span className="notesRowItem">All</span>
+              <span className="notesSidebarItem__count">{store.notes.filter((n) => !n.deletedAt).length}</span>
+            </button>
+            {store.tagCatalog.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={tagPillClass(tagFilter === t.id)}
+                role="listitem"
+                onClick={() => setTagFilter((prev) => (prev === t.id ? null : t.id))}
+                aria-label={`Tag ${t.label}`}
+              >
+                <span className={["notesDot", t.dotClass].filter(Boolean).join(" ")} aria-hidden="true" />
+                <span className="notesRowItem">{t.label}</span>
+                <span className="notesSidebarItem__count">{tagCounts[t.id] || 0}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className={styles.panel} aria-label="Notes list">
+          <div className={styles.cardHead}>
+            <div>
+              <div className={styles.cardTitle}>{viewLabel}</div>
+              <div className={styles.cardSub}>
+                {viewCount} note(s)
+                {folderFilter ? ` | ${folderLabelById[folderFilter] || folderFilter}` : ""}
+                {tagFilter ? ` | ${tagLabelById[tagFilter] || tagFilter}` : ""}
+              </div>
+            </div>
+            <div className={styles.headRight} aria-label="Notes list controls">
+              <div className={styles.tabs} aria-label="Notes list tabs">
+                <button type="button" className={tagPillClass(view === "all")} onClick={() => setView("all")} aria-label="All notes">
+                  <span className="notesRowItem">All</span>
+                </button>
+                <button type="button" className={tagPillClass(view === "favorites")} onClick={() => setView("favorites")} aria-label="Favorites">
+                  <span className="notesRowItem">Fav</span>
+                </button>
+                <button type="button" className={tagPillClass(view === "hidden")} onClick={() => setView("hidden")} aria-label="Hidden notes">
+                  <span className="notesRowItem">Hid</span>
+                </button>
+                <button type="button" className={tagPillClass(view === "recently")} onClick={() => setView("recently")} aria-label="Recently updated">
+                  <span className="notesRowItem">Recent</span>
+                </button>
+              </div>
+              {view === "all" ? (
+                <Link
+                  href="/notes/new?fullscreen=1&new=1"
+                  className="notesIconBtn gridCard"
+                  aria-label="Add note"
+                  title="Add note"
+                >
+                  <i className="fa-solid fa-plus" aria-hidden="true" />
+                </Link>
+              ) : null}
             </div>
           </div>
 
@@ -232,7 +433,7 @@ export default function NotesHub() {
           </div>
 
           <div className={styles.list} role="list" aria-label="Notes list items">
-            {visibleNotes.map((n) => (
+            {filteredNotes.map((n) => (
               <button
                 key={n.id}
                 type="button"
@@ -250,19 +451,21 @@ export default function NotesHub() {
                 <div className="notesListItem__meta">
                   {n.pinned ? "Pinned | " : ""}
                   {formatRelative(n.updatedAt)}
+                  {n.hiddenAt ? " | Hidden" : ""}
+                  {n.favorite ? " | Favorite" : ""}
                   {n.folder ? ` | ${folderLabelById[n.folder] || n.folder}` : ""}
                   {n.tags.length ? ` | ${n.tags.map((id) => tagLabelById[id] || id).join(", ")}` : ""}
                 </div>
               </button>
             ))}
-            {visibleNotes.length === 0 ? <div className="notesEmptyState">No notes yet.</div> : null}
+            {filteredNotes.length === 0 ? <div className="notesEmptyState">No notes match your filters.</div> : null}
           </div>
         </section>
 
-        <section className={styles.right} aria-label="Selected note">
+        <section className={styles.panel} aria-label="Selected note">
           <div className={styles.cardHead}>
             <div>
-              <div className={styles.cardTitle}>Selected note</div>
+              <div className={styles.cardTitle}>Preview</div>
               <div className={styles.cardSub}>{activeNote ? formatRelative(activeNote.updatedAt) : "Pick a note from the list."}</div>
             </div>
             <button
