@@ -77,14 +77,14 @@ export default function DashboardCalendarWidget() {
   }, [month]);
 
   return (
-    <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column", gap: 12, padding: 16 }} aria-label="Calendar widget">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-        <div>
-          <div className={cal.cardTitle}>{formatMonth(month)}</div>
-          <div className={cal.cardSub}>Month view. Open Schedule to manage events.</div>
-        </div>
+    <div className={styles.root} aria-label="Calendar widget">
+      <div className={styles.header}>
+        <div className={styles.headerRow}>
+          <div className={styles.titleWrap}>
+            <div className={`${cal.cardTitle} ${styles.monthTitle}`}>{formatMonth(month)}</div>
+          </div>
 
-        <div className={styles.controls}>
+          <div className={styles.controls}>
           <div className={styles.monthBtns}>
             <button
               className={`${cal.iconBtn} ${styles.iconBtnSmall}`}
@@ -129,10 +129,11 @@ export default function DashboardCalendarWidget() {
           >
             <i className="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
           </Link>
+          </div>
         </div>
       </div>
 
-      <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
+      <div className={styles.body}>
         <div className={cal.calendar} aria-label="Month calendar" style={{ flex: 1 }}>
           <div className={cal.calGrid} aria-hidden="true">
             {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
@@ -163,8 +164,8 @@ export default function DashboardCalendarWidget() {
                 >
                   <div className={cal.dayTop}>
                     <div className={cal.dayNum}>{d.getDate()}</div>
-                    <div className={cal.dots} aria-hidden="true">
-                      {count > 0 ? Array.from({ length: Math.min(3, count) }).map((_, i) => <span key={i} className={cal.dot} />) : null}
+                    <div className={`${cal.dots} ${styles.widgetDots}`} aria-hidden="true">
+                      {count > 0 ? <span className={`${cal.dot} ${styles.widgetDot}`} /> : null}
                     </div>
                   </div>
                 </button>

@@ -3,6 +3,7 @@
   .gridContainerLeftTop,
   .gridContainerLeftBottomLeft,
   .gridContainerLeftBottomRight,
+  .dashQuickTile,
   .gridContainerRightRight,
   .gridContainerRightLeftOne,
   .gridContainerRightLeftTwo,
@@ -265,6 +266,114 @@ body.booting .shell {
   width: 50%;
   height: 100%;
   flex: 1;
+}
+
+/* Dashboard left: mascot hero + quick actions grid */
+.dashHero {
+  position: relative;
+  overflow: hidden;
+}
+
+.dashHero .cardInner {
+  padding-right: clamp(170px, 24vw, 240px);
+}
+
+.dashHeroMascot {
+  position: absolute;
+  right: clamp(10px, 1.6vw, 18px);
+  bottom: clamp(-160px, -12vw, -96px);
+  width: clamp(220px, 26vw, 310px);
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.95;
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.25));
+}
+
+.dashQuickGrid {
+  width: 50%;
+  height: 100%;
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: var(--shell-gap);
+}
+
+.dashQuickTile {
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+
+  color: inherit;
+  text-decoration: none;
+  display: block;
+}
+
+.dashQuickInner {
+  height: 100%;
+  padding: clamp(12px, 2vw, 18px) clamp(10px, 1.8vw, 12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  color: var(--text-strong);
+}
+
+.dashQuickInner i {
+  font-size: 28px;
+  color: var(--text-strong);
+  opacity: 0.9;
+}
+
+.dashQuickTitle {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  font-size: 16px;
+  color: var(--text-strong);
+  opacity: 0.92;
+}
+
+.dashStreakCard {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashStreakCard .cardInner {
+  height: auto;
+  flex: 1;
+}
+
+.dashHeatmap {
+  padding: 14px 16px 0;
+  display: grid;
+  grid-template-columns: repeat(7, 18px);
+  grid-template-rows: repeat(4, 18px);
+  grid-auto-flow: row;
+  gap: 8px;
+  justify-content: start;
+}
+
+.dashHeatCell {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.dashHeat--1 {
+  background: rgba(122, 176, 255, 0.38);
+  border-color: rgba(122, 176, 255, 0.45);
+}
+
+.dashHeat--2 {
+  background: rgba(96, 168, 255, 0.78);
+  border-color: rgba(96, 168, 255, 0.78);
 }
 
 .gridContainerRight {

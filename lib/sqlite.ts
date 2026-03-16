@@ -15,9 +15,14 @@ function ensureUsersColumns(db: DatabaseSync) {
   if (!has("email")) db.exec("ALTER TABLE users ADD COLUMN email TEXT;");
   if (!has("password_hash")) db.exec("ALTER TABLE users ADD COLUMN password_hash TEXT;");
   if (!has("created_at")) db.exec("ALTER TABLE users ADD COLUMN created_at TEXT;");
+  if (!has("elo")) db.exec("ALTER TABLE users ADD COLUMN elo INTEGER NOT NULL DEFAULT 1000;");
+  if (!has("university")) db.exec("ALTER TABLE users ADD COLUMN university TEXT;");
+  if (!has("major")) db.exec("ALTER TABLE users ADD COLUMN major TEXT;");
+  if (!has("cohort")) db.exec("ALTER TABLE users ADD COLUMN cohort TEXT;");
 
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS users_email_uq ON users(email);");
   db.exec("UPDATE users SET created_at = datetime('now') WHERE created_at IS NULL;");
+  db.exec("UPDATE users SET elo = 1000 WHERE elo IS NULL;");
 }
 
 function init(db: DatabaseSync) {
@@ -29,6 +34,10 @@ function init(db: DatabaseSync) {
       password_hash TEXT,
       xp INTEGER NOT NULL DEFAULT 0,
       level INTEGER NOT NULL DEFAULT 1,
+      elo INTEGER NOT NULL DEFAULT 1000,
+      university TEXT,
+      major TEXT,
+      cohort TEXT,
       avatar_url TEXT NOT NULL DEFAULT '${DEFAULT_AVATAR_URL}',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -68,8 +77,28 @@ function init(db: DatabaseSync) {
   const hasDemo = db.prepare("SELECT 1 FROM users WHERE email = ?").get("demo@studium.local");
   if (!hasDemo) {
     db.prepare(
-      "INSERT INTO users (email, display_name, password_hash, xp, level, avatar_url) VALUES (?, ?, ?, ?, ?, ?)"
-    ).run("demo@studium.local", "Demo User", hashPassword("demo1234"), 1350, 12, DEFAULT_AVATAR_URL);
+      "INSERT INTO users (email, display_name, password_hash, xp, level, elo, university, major, cohort, avatar_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ).run(
+      "demo@studium.local",
+      "Demo User",
+      hashPassword("demo1234"),
+      1350,
+      12,
+      1350,
+      "Bina Nusantara University Malang",
+      "Computer Science",
+      "B29",
+      DEFAULT_AVATAR_URL
+    );
+  } else {
+    db.prepare(
+      `UPDATE users
+       SET elo = COALESCE(elo, 1000),
+           university = COALESCE(NULLIF(university,''), ?),
+           major = COALESCE(NULLIF(major,''), ?),
+           cohort = COALESCE(NULLIF(cohort,''), ?)
+       WHERE email = ?`
+    ).run("Bina Nusantara University Malang", "Computer Science", "B29", "demo@studium.local");
   }
 }
 

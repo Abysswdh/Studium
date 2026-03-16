@@ -1833,6 +1833,9 @@ try {
       "notes.inbox:right": "notes.preview",
       "notes.preview:left": "notes.recent1",
     },
+    battle: {
+      "battle.leaderboard:down": "battle.lb.scope.global",
+    },
   };
 
   const focusEl = (el) => {
@@ -2006,8 +2009,15 @@ try {
 
   const gridCandidateSets = () => {
     const all = gridCandidatesAll();
+    const battleLeaderboard = document.getElementById("battle-leaderboard");
     const widget = document.getElementById("grid-widget");
     const ae = document.activeElement;
+
+    if (battleLeaderboard && ae && battleLeaderboard.contains(ae)) {
+      const scoped = all.filter((el) => battleLeaderboard.contains(el));
+      return { primary: scoped.length ? scoped : all, fallback: all };
+    }
+
     if (widget && ae && widget.contains(ae)) {
       const scoped = all.filter((el) => widget.contains(el));
       return { primary: scoped.length ? scoped : all, fallback: all };

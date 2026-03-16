@@ -7,6 +7,10 @@ export type User = {
   displayName: string;
   xp: number;
   level: number;
+  elo: number;
+  university: string | null;
+  major: string | null;
+  cohort: string | null;
   avatarUrl: string;
 };
 
@@ -19,6 +23,10 @@ function mapUser(row: any): User {
     displayName: row.display_name,
     xp: Number(row.xp ?? 0),
     level: Number(row.level ?? 1),
+    elo: Number(row.elo ?? 1000),
+    university: row.university ?? null,
+    major: row.major ?? null,
+    cohort: row.cohort ?? null,
     avatarUrl: row.avatar_url || DEFAULT_AVATAR_URL,
   };
 }
@@ -26,7 +34,7 @@ function mapUser(row: any): User {
 export function getUserById(id: number): User | null {
   const db = getDb();
   const row = db
-    .prepare("SELECT id, email, display_name, xp, level, avatar_url FROM users WHERE id = ?")
+    .prepare("SELECT id, email, display_name, xp, level, elo, university, major, cohort, avatar_url FROM users WHERE id = ?")
     .get(id) as any;
   if (!row) return null;
   return mapUser(row);
@@ -35,7 +43,7 @@ export function getUserById(id: number): User | null {
 export function getUserByEmail(email: string): (User & { passwordHash: string | null }) | null {
   const db = getDb();
   const row = db
-    .prepare("SELECT id, email, display_name, password_hash, xp, level, avatar_url FROM users WHERE email = ?")
+    .prepare("SELECT id, email, display_name, password_hash, xp, level, elo, university, major, cohort, avatar_url FROM users WHERE email = ?")
     .get(email) as any;
   if (!row) return null;
   return { ...mapUser(row), passwordHash: row.password_hash ?? null };
@@ -55,6 +63,10 @@ export function createUser(input: { email: string; displayName: string; password
       displayName: input.displayName,
       xp: 0,
       level: 1,
+      elo: 1000,
+      university: null,
+      major: null,
+      cohort: null,
       avatarUrl: DEFAULT_AVATAR_URL,
     }
   );
