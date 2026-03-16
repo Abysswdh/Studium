@@ -346,7 +346,48 @@ const SFX = (() => {
   let lastNotifAt = 0;
   let muted = false;
   let vol = 1;
-  let fullscreenAttempted = false;
+  let pendingFullscreen = false;
+  let lastFsAt = 0;
+
+  const wantFullscreen = () => {
+    try {
+      return window.localStorage?.getItem?.("studium:pref_fullscreen") === "1";
+    } catch {
+      return false;
+    }
+  };
+
+  const requestFullscreen = () => {
+    if (!wantFullscreen()) return;
+    if (document.fullscreenElement) return;
+    const now = Date.now();
+    if (now - lastFsAt < 900) return;
+    lastFsAt = now;
+
+    try {
+      const el = document.documentElement;
+      const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+      if (typeof fn === "function") {
+        const p = fn.call(el);
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const exitFullscreen = () => {
+    try {
+      if (!document.fullscreenElement) return;
+      const fn = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+      if (typeof fn === "function") {
+        const p = fn.call(document);
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const applyMute = () => {
     const m = muted ? 0 : 1;
@@ -375,27 +416,6 @@ const SFX = (() => {
 
   const unlock = () => {
     unlocked = true;
-    if (!fullscreenAttempted) {
-      fullscreenAttempted = true;
-      try {
-        if (window.sessionStorage && sessionStorage.getItem("studium:fs_attempted") === "1") {
-          // noop
-        } else {
-          sessionStorage?.setItem?.("studium:fs_attempted", "1");
-          const want = window.localStorage?.getItem?.("studium:pref_fullscreen") === "1";
-          if (want && !document.fullscreenElement) {
-            const el = document.documentElement;
-            const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-            if (typeof fn === "function") {
-              const p = fn.call(el);
-              if (p && typeof p.catch === "function") p.catch(() => {});
-            }
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }
     if (pendingBoot) {
       pendingBoot = false;
       const elapsed = Date.now() - (Number(lastBootAt) || 0);
@@ -409,10 +429,24 @@ const SFX = (() => {
       const elapsed = Date.now() - (Number(lastNotifAt) || 0);
       if (elapsed < 15000) setTimeout(() => tryPlay(notif), 90);
     }
+
+    if (pendingFullscreen) {
+      pendingFullscreen = false;
+      requestFullscreen();
+    } else {
+      requestFullscreen();
+    }
   };
 
   document.addEventListener("pointerdown", unlock, { once: true, capture: true });
   document.addEventListener("keydown", unlock, { once: true, capture: true });
+
+  document.addEventListener("fullscreenchange", () => {
+    if (document.fullscreenElement) return;
+    if (!wantFullscreen()) return;
+    // Can't re-enter without a user gesture. Queue and it will trigger on next gesture via ensureFullscreen().
+    pendingFullscreen = true;
+  });
 
   return {
     isMuted: () => muted,
@@ -449,6 +483,18 @@ const SFX = (() => {
         return;
       }
       tryPlay(notif);
+    },
+    ensureFullscreen: () => {
+      if (!wantFullscreen()) return;
+      if (!unlocked) {
+        pendingFullscreen = true;
+        return;
+      }
+      requestFullscreen();
+    },
+    exitFullscreen: () => {
+      pendingFullscreen = false;
+      exitFullscreen();
     },
   };
 })();
@@ -1348,6 +1394,15 @@ try {
     if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
     closeDrawer({ focusProfile: false });
     setTimeout(() => {
+      try {
+        const seg = String(href || "").split("?")[0].split("#")[0].replace(/^\//, "");
+        if (seg && typeof window.studiumRoutePush === "function") {
+          window.studiumRoutePush(seg);
+          return;
+        }
+      } catch {
+        // ignore
+      }
       window.location.href = href;
     }, 120);
   };
@@ -1498,7 +1553,14 @@ try {
 
   if (qsFullscreen) {
     qsFullscreen.addEventListener("change", () => {
-      applyFullscreenPref(!!qsFullscreen.checked);
+      const on = !!qsFullscreen.checked;
+      applyFullscreenPref(on);
+      try {
+        if (on && typeof SFX?.ensureFullscreen === "function") SFX.ensureFullscreen();
+        if (!on && typeof SFX?.exitFullscreen === "function") SFX.exitFullscreen();
+      } catch {
+        // ignore
+      }
     });
   }
 
