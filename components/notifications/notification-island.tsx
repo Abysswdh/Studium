@@ -171,8 +171,8 @@ export default function NotificationIsland() {
         </span>
 
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-[900] text-white/92">{current.title}</div>
-          {current.message ? <div className="truncate text-xs font-[800] text-white/65">{current.message}</div> : null}
+          <div className="truncate text-sm font-[900] text-white">{current.title}</div>
+          {current.message ? <div className="truncate text-xs font-[800] text-white/90">{current.message}</div> : null}
         </div>
 
         <button
