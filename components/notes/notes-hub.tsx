@@ -294,13 +294,6 @@ export default function NotesHub() {
 
   return (
     <div className={styles.page} aria-label="Notes hub">
-      <div className={styles.topBar} aria-label="Notes header">
-        <div>
-          <div className={styles.title}>Notes</div>
-          <div className={styles.sub}>Capture quick notes, then open the editor for deep work.</div>
-        </div>
-      </div>
-
       <div className={styles.body} aria-label="Notes content">
         <div className={styles.col} aria-label="Folders column">
           <div className={styles.colHead} aria-label="Folders header">
@@ -482,53 +475,58 @@ export default function NotesHub() {
           </section>
         </div>
 
-        <section className={styles.panel} aria-label="Selected note">
-          <div className={styles.cardHead}>
-            <div>
-              <div className={styles.cardTitle}>Preview</div>
-              <div className={styles.cardSub}>{activeNote ? formatRelative(activeNote.updatedAt) : "Pick a note from the list."}</div>
+        <div className={styles.col} aria-label="Preview column">
+          <div className={styles.colHead} aria-label="Preview header">
+            <div className={styles.colHeadTop}>
+              <div className={styles.colTitle}>
+                <div className={styles.cardTitle}>Preview</div>
+              </div>
+              <button
+                type="button"
+                className={styles.outsideBtn}
+                aria-label="Open editor"
+                title="Open editor"
+                disabled={!activeNote?.id}
+                onClick={() => {
+                  if (!activeNote?.id) return;
+                  const href = `/notes/new?note=${encodeURIComponent(activeNote.id)}`;
+                  try {
+                    const payload = openTargetPayload(activeNote);
+                    sessionStorage.setItem(openTargetKey(), payload);
+                    sessionStorage.setItem(OPEN_TARGET_KEY_FALLBACK, payload);
+                    localStorage.setItem(openTargetKey(), payload);
+                    localStorage.setItem(OPEN_TARGET_KEY_FALLBACK, payload);
+                  } catch {
+                    // ignore
+                  }
+                  router.push(href);
+                }}
+              >
+                <i className="fa-solid fa-pen-to-square" aria-hidden="true" />
+                Open
+              </button>
             </div>
-            <button
-              type="button"
-              className={styles.openBtn}
-              aria-label="Open editor"
-              title="Open editor"
-              disabled={!activeNote?.id}
-              onClick={() => {
-                if (!activeNote?.id) return;
-                const href = `/notes/new?note=${encodeURIComponent(activeNote.id)}`;
-                try {
-                  const payload = openTargetPayload(activeNote);
-                  sessionStorage.setItem(openTargetKey(), payload);
-                  sessionStorage.setItem(OPEN_TARGET_KEY_FALLBACK, payload);
-                  localStorage.setItem(openTargetKey(), payload);
-                  localStorage.setItem(OPEN_TARGET_KEY_FALLBACK, payload);
-                } catch {
-                  // ignore
-                }
-                router.push(href);
-              }}
-            >
-              <i className="fa-solid fa-pen-to-square" aria-hidden="true" />
-              Open
-            </button>
           </div>
 
-          <div className={styles.selected} aria-label="Selected note preview">
-            {activeNote ? (
-              <div className={styles.selectedInner} aria-label="Selected note details">
-                <div className={styles.selectedTitle}>{activeNote.title || "Untitled"}</div>
-                <div
-                  className="notesPreviewBody notesPreviewBody--html"
-                  aria-label="Selected note content"
-                  dangerouslySetInnerHTML={{ __html: previewHtml || '<span class="notesPreviewEmpty">No content yet.</span>' }}
-                />
-              </div>
-            ) : (
-              <div className="notesEmptyPreview">Select a note from the list.</div>
-            )}
-          </div>
-        </section>
+          <section className={styles.panel} aria-label="Selected note">
+            <div className={styles.cardSub}>{activeNote ? formatRelative(activeNote.updatedAt) : "Pick a note from the list."}</div>
+
+            <div className={styles.selected} aria-label="Selected note preview">
+              {activeNote ? (
+                <div className={styles.selectedInner} aria-label="Selected note details">
+                  <div className={styles.selectedTitle}>{activeNote.title || "Untitled"}</div>
+                  <div
+                    className="notesPreviewBody notesPreviewBody--html"
+                    aria-label="Selected note content"
+                    dangerouslySetInnerHTML={{ __html: previewHtml || '<span class="notesPreviewEmpty">No content yet.</span>' }}
+                  />
+                </div>
+              ) : (
+                <div className="notesEmptyPreview">Select a note from the list.</div>
+              )}
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );
