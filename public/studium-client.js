@@ -342,6 +342,8 @@ const SFX = (() => {
   let unlocked = false;
   let pendingBoot = false;
   let lastBootAt = 0;
+  let pendingNotif = false;
+  let lastNotifAt = 0;
   let muted = false;
   let vol = 1;
   let fullscreenAttempted = false;
@@ -396,10 +398,16 @@ const SFX = (() => {
     }
     if (pendingBoot) {
       pendingBoot = false;
-      const booting = !!document.body && document.body.classList.contains("booting");
       const elapsed = Date.now() - (Number(lastBootAt) || 0);
-      // Avoid the "random boot sound" effect when the user only interacts after the boot overlay is gone.
-      if (booting && elapsed < 9000) tryPlay(boot);
+      const hasOverlay = !!document.getElementById("bootOverlay");
+      // If audio was blocked until the first user gesture, play the boot SFX once shortly after entering Focus Mode.
+      if (hasOverlay && elapsed < 15000) tryPlay(boot);
+    }
+
+    if (pendingNotif) {
+      pendingNotif = false;
+      const elapsed = Date.now() - (Number(lastNotifAt) || 0);
+      if (elapsed < 15000) setTimeout(() => tryPlay(notif), 90);
     }
   };
 
@@ -435,7 +443,11 @@ const SFX = (() => {
       tryPlay(header);
     },
     playNotif: () => {
-      if (!unlocked) return;
+      if (!unlocked) {
+        pendingNotif = true;
+        lastNotifAt = Date.now();
+        return;
+      }
       tryPlay(notif);
     },
   };

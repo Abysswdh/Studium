@@ -15,6 +15,9 @@ export default async function ShellLayout({ children }: { children: React.ReactN
 
   return (
     <main className="shellRoot" data-user-id={user.id}>
+      <Script id="studium-booting-prep" strategy="beforeInteractive">
+        {`try{document.body.classList.add("booting");document.documentElement.classList.add("booting");}catch{}`}
+      </Script>
       <RouteBridge />
 
       <div className="shell">
