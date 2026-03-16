@@ -34,6 +34,9 @@ type NotesStore = {
   folderCatalog: FolderDef[];
 };
 
+const FOLDER_FILTER_ANY = "__any_folder__";
+const TAG_FILTER_ANY = "__any_tag__";
+
 const TAG_DOT_PALETTE = ["notesDot--mint", "notesDot--aqua", "notesDot--violet", "notesDot--gold"];
 
 const DEFAULT_TAGS: TagDef[] = [
@@ -215,6 +218,7 @@ export default function NotesHub() {
     const map: Record<string, number> = {};
     store.notes.forEach((n) => {
       if (n.deletedAt) return;
+      if (n.hiddenAt) return;
       if (!n.folder) return;
       map[n.folder] = (map[n.folder] || 0) + 1;
     });
@@ -225,6 +229,7 @@ export default function NotesHub() {
     const map: Record<string, number> = {};
     store.notes.forEach((n) => {
       if (n.deletedAt) return;
+      if (n.hiddenAt) return;
       const tags = Array.isArray(n.tags) ? n.tags : [];
       tags.forEach((id) => {
         map[id] = (map[id] || 0) + 1;
@@ -233,22 +238,16 @@ export default function NotesHub() {
     return map;
   }, [store.notes]);
 
-  const allFolderNoteCount = useMemo(() => store.notes.filter((n) => !n.deletedAt && !!n.folder).length, [store.notes]);
-  const allTaggedNoteCount = useMemo(() => Object.values(tagCounts).reduce((sum, v) => sum + Number(v || 0), 0), [tagCounts]);
+  const allFolderNoteCount = useMemo(() => store.notes.filter((n) => !n.deletedAt && !n.hiddenAt && !!n.folder).length, [store.notes]);
+  const allTaggedNoteCount = useMemo(() => store.notes.filter((n) => !n.deletedAt && !n.hiddenAt && Array.isArray(n.tags) && n.tags.length > 0).length, [store.notes]);
 
   const tabCounts = useMemo(() => {
-    const matchesScope = (n: Note) => {
-      if (folderFilter && n.folder !== folderFilter) return false;
-      if (tagFilter && !n.tags.includes(tagFilter)) return false;
-      return true;
-    };
-
-    const all = store.notes.filter((n) => !n.deletedAt && !n.hiddenAt && matchesScope(n)).length;
-    const favorites = store.notes.filter((n) => !n.deletedAt && !n.hiddenAt && n.favorite && matchesScope(n)).length;
-    const hidden = store.notes.filter((n) => !n.deletedAt && !!n.hiddenAt && matchesScope(n)).length;
+    const all = store.notes.filter((n) => !n.deletedAt && !n.hiddenAt).length;
+    const favorites = store.notes.filter((n) => !n.deletedAt && !n.hiddenAt && n.favorite).length;
+    const hidden = store.notes.filter((n) => !n.deletedAt && !!n.hiddenAt).length;
     const deleted = store.notes.filter((n) => !!n.deletedAt).length;
     return { all, favorites, hidden, deleted };
-  }, [folderFilter, store.notes, tagFilter]);
+  }, [store.notes]);
 
   const filteredNotes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -261,8 +260,11 @@ export default function NotesHub() {
 
     // Tag/folder filters shouldn't affect Deleted.
     if (view !== "deleted") {
-      if (tagFilter) list = list.filter((n) => n.tags.includes(tagFilter));
-      if (folderFilter) list = list.filter((n) => n.folder === folderFilter);
+      if (folderFilter === FOLDER_FILTER_ANY) list = list.filter((n) => !!n.folder);
+      else if (folderFilter) list = list.filter((n) => n.folder === folderFilter);
+
+      if (tagFilter === TAG_FILTER_ANY) list = list.filter((n) => Array.isArray(n.tags) && n.tags.length > 0);
+      else if (tagFilter) list = list.filter((n) => n.tags.includes(tagFilter));
     }
 
     if (q) {
@@ -384,9 +386,9 @@ export default function NotesHub() {
             <div className={styles.catalog} role="list" aria-label="Folder list">
               <button
                 type="button"
-                className={sidebarItemClass(!folderFilter)}
+                className={sidebarItemClass(folderFilter === FOLDER_FILTER_ANY)}
                 role="listitem"
-                onClick={() => setFolderFilter(null)}
+                onClick={() => setFolderFilter((prev) => (prev === FOLDER_FILTER_ANY ? null : FOLDER_FILTER_ANY))}
                 aria-label="All folders"
               >
                 <i className="fa-solid fa-folder-open" aria-hidden="true" />
@@ -443,9 +445,9 @@ export default function NotesHub() {
             <div className={styles.catalog} role="list" aria-label="Tag list">
               <button
                 type="button"
-                className={tagPillClass(!tagFilter)}
+                className={tagPillClass(tagFilter === TAG_FILTER_ANY)}
                 role="listitem"
-                onClick={() => setTagFilter(null)}
+                onClick={() => setTagFilter((prev) => (prev === TAG_FILTER_ANY ? null : TAG_FILTER_ANY))}
                 aria-label="All tags"
               >
                 <span className="notesDot notesDot--mint" aria-hidden="true" />
