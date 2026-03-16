@@ -28,10 +28,6 @@ export default function BattleGrid() {
                 </div>
               </div>
 
-              <div className={styles.contentBottom}>
-                <div className={styles.kicker}>Highlights</div>
-                <div className={styles.meta}>Top topic: Calculus • Current streak: 3</div>
-              </div>
             </div>
           </div>
         </div>
