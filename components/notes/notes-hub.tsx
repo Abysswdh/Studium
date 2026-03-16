@@ -394,7 +394,7 @@ export default function NotesHub() {
                 <span className="notesSidebarItem__count">{allFolderNoteCount}</span>
               </button>
               {store.folderCatalog.map((f) => (
-                <div key={f.id} className="flex items-center gap-2">
+                <div key={f.id} className={[styles.hoverRow, "flex items-center gap-2"].join(" ")}>
                   <button
                     type="button"
                     className={[sidebarItemClass(folderFilter === f.id), "flex-1 min-w-0"].join(" ")}
@@ -408,7 +408,7 @@ export default function NotesHub() {
                   </button>
                   <button
                     type="button"
-                    className="notesInlineIconBtn gridCard"
+                    className={["notesInlineIconBtn gridCard", styles.hoverRevealBtn].join(" ")}
                     aria-label={`Delete folder ${f.label}`}
                     title="Delete folder"
                     onClick={(e) => {
@@ -451,7 +451,7 @@ export default function NotesHub() {
                 <span className="notesSidebarItem__count">{allTaggedNoteCount}</span>
               </button>
               {store.tagCatalog.map((t) => (
-                <div key={t.id} className="flex items-center gap-2">
+                <div key={t.id} className={[styles.hoverRow, "flex items-center gap-2"].join(" ")}>
                   <button
                     type="button"
                     className={[tagPillClass(tagFilter === t.id), "flex-1 min-w-0"].join(" ")}
@@ -465,7 +465,7 @@ export default function NotesHub() {
                   </button>
                   <button
                     type="button"
-                    className="notesInlineIconBtn gridCard"
+                    className={["notesInlineIconBtn gridCard", styles.hoverRevealBtn].join(" ")}
                     aria-label={`Delete tag ${t.label}`}
                     title="Delete tag"
                     onClick={(e) => {

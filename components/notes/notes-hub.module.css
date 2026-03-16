@@ -110,6 +110,18 @@
   flex-direction: column;
 }
 
+.hoverRow:hover .hoverRevealBtn,
+.hoverRow:focus-within .hoverRevealBtn {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.hoverRevealBtn {
+  opacity: 0;
+  transform: translateX(4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
 .colTitle {
   min-width: 0;
   display: flex;
