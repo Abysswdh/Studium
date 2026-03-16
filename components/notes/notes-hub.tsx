@@ -301,21 +301,17 @@ export default function NotesHub() {
       </div>
 
       <div className={styles.body} aria-label="Notes content">
-        <section className={styles.panel} aria-label="Folders">
-          <div className={styles.panelHead}>
-            <div className={styles.cardHead}>
-              <div>
-                <div className={styles.cardTitle}>Folders</div>
-                <div className={styles.cardSub}>{store.folderCatalog.length} folder(s)</div>
-              </div>
-              <button type="button" className="notesPrimaryBtn gridCard" aria-label="Add folder" title="Add folder" onClick={addFolder}>
-                <i className="fa-solid fa-plus" aria-hidden="true" />
-                Add folder
-              </button>
+        <div className={styles.col} aria-label="Folders column">
+          <div className={styles.colHead} aria-label="Folders header">
+            <div className={styles.colTitle}>
+              <div className={styles.cardTitle}>Folder</div>
             </div>
+            <button type="button" className={styles.outsideBtn} aria-label="Add folder" title="Add folder" onClick={addFolder}>
+              Add Folder
+            </button>
           </div>
 
-          <div className={styles.panelBody}>
+          <section className={styles.panel} aria-label="Folders">
             <div className={styles.catalog} role="list" aria-label="Folder list">
               <button
                 type="button"
@@ -343,24 +339,20 @@ export default function NotesHub() {
                 </button>
               ))}
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
-        <section className={styles.panel} aria-label="Tags">
-          <div className={styles.panelHead}>
-            <div className={styles.cardHead}>
-              <div>
-                <div className={styles.cardTitle}>Tags</div>
-                <div className={styles.cardSub}>{store.tagCatalog.length} tag(s)</div>
-              </div>
-              <button type="button" className="notesPrimaryBtn gridCard" aria-label="Add tag" title="Add tag" onClick={addTag}>
-                <i className="fa-solid fa-plus" aria-hidden="true" />
-                Add tag
-              </button>
+        <div className={styles.col} aria-label="Tags column">
+          <div className={styles.colHead} aria-label="Tags header">
+            <div className={styles.colTitle}>
+              <div className={styles.cardTitle}>Tags</div>
             </div>
+            <button type="button" className={styles.outsideBtn} aria-label="Add tag" title="Add tag" onClick={addTag}>
+              Add tags
+            </button>
           </div>
 
-          <div className={styles.panelBody}>
+          <section className={styles.panel} aria-label="Tags">
             <div className={styles.catalog} role="list" aria-label="Tag list">
               <button
                 type="button"
@@ -388,82 +380,68 @@ export default function NotesHub() {
                 </button>
               ))}
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
-        <section className={styles.panel} aria-label="Notes list">
-          <div className={styles.panelHead}>
-            <div className={styles.cardHead}>
-              <div>
-                <div className={styles.cardTitle}>{viewLabel}</div>
-                <div className={styles.cardSub}>
-                  {viewCount} note(s)
-                  {folderFilter ? ` | ${folderLabelById[folderFilter] || folderFilter}` : ""}
-                  {tagFilter ? ` | ${tagLabelById[tagFilter] || tagFilter}` : ""}
-                </div>
-              </div>
-              <div className={styles.headRight} aria-label="Notes list controls">
-                <div className={styles.tabs} aria-label="Notes list tabs">
-                  <button
-                    type="button"
-                    className={[styles.tabBtn, view === "all" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
-                    onClick={() => setView("all")}
-                    aria-label="All notes"
-                  >
-                    <span className="notesRowItem">All</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={[styles.tabBtn, view === "favorites" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
-                    onClick={() => setView("favorites")}
-                    aria-label="Favorites"
-                  >
-                    <span className="notesRowItem">Fav</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={[styles.tabBtn, view === "hidden" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
-                    onClick={() => setView("hidden")}
-                    aria-label="Hidden notes"
-                  >
-                    <span className="notesRowItem">Hid</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={[styles.tabBtn, view === "recently" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
-                    onClick={() => setView("recently")}
-                    aria-label="Recently updated"
-                  >
-                    <span className="notesRowItem">Recent</span>
-                  </button>
-                </div>
-                {view === "all" ? (
-                  <Link
-                    href="/notes/new?fullscreen=1&new=1"
-                    className="notesIconBtn gridCard"
-                    aria-label="Add note"
-                    title="Add note"
-                  >
-                    <i className="fa-solid fa-plus" aria-hidden="true" />
-                  </Link>
-                ) : null}
-              </div>
+        <div className={styles.col} aria-label="All notes column">
+          <div className={styles.colHead} aria-label="All notes header">
+            <div className={styles.colTitle}>
+              <div className={styles.cardTitle}>All Notes</div>
             </div>
-
-            <div className="notesSearchWrap">
-              <i className="fa-solid fa-magnifying-glass text-white/55" aria-hidden="true" />
-              <input
-                className="notesSearchInput"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search notes..."
-                aria-label="Search notes"
-              />
-            </div>
+            {view === "all" ? (
+              <Link href="/notes/new?fullscreen=1&new=1" className={styles.outsideBtn} aria-label="Add note" title="Add note">
+                Add Note
+              </Link>
+            ) : null}
           </div>
 
-          <div className={styles.panelBody}>
+          <div className={styles.tabs} aria-label="All notes tabs">
+            <button
+              type="button"
+              className={[styles.tabBtn, view === "all" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+              onClick={() => setView("all")}
+              aria-label="All notes"
+            >
+              <span className="notesRowItem">All</span>
+            </button>
+            <button
+              type="button"
+              className={[styles.tabBtn, view === "favorites" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+              onClick={() => setView("favorites")}
+              aria-label="Favorites"
+            >
+              <span className="notesRowItem">Fav</span>
+            </button>
+            <button
+              type="button"
+              className={[styles.tabBtn, view === "hidden" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+              onClick={() => setView("hidden")}
+              aria-label="Hidden notes"
+            >
+              <span className="notesRowItem">Hid</span>
+            </button>
+            <button
+              type="button"
+              className={[styles.tabBtn, view === "recently" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
+              onClick={() => setView("recently")}
+              aria-label="Recently updated"
+            >
+              <span className="notesRowItem">Recent</span>
+            </button>
+          </div>
+
+          <section className={styles.panel} aria-label="Notes list">
             <div className={styles.list} role="list" aria-label="Notes list items">
+              <div className="notesSearchWrap">
+                <i className="fa-solid fa-magnifying-glass text-white/55" aria-hidden="true" />
+                <input
+                  className="notesSearchInput"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search notes..."
+                  aria-label="Search notes"
+                />
+              </div>
               {filteredNotes.map((n) => (
                 <button
                   key={n.id}
@@ -491,58 +469,54 @@ export default function NotesHub() {
               ))}
               {filteredNotes.length === 0 ? <div className="notesEmptyState">No notes match your filters.</div> : null}
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
         <section className={styles.panel} aria-label="Selected note">
-          <div className={styles.panelHead}>
-            <div className={styles.cardHead}>
-              <div>
-                <div className={styles.cardTitle}>Preview</div>
-                <div className={styles.cardSub}>{activeNote ? formatRelative(activeNote.updatedAt) : "Pick a note from the list."}</div>
-              </div>
-              <button
-                type="button"
-                className={styles.openBtn}
-                aria-label="Open editor"
-                title="Open editor"
-                disabled={!activeNote?.id}
-                onClick={() => {
-                  if (!activeNote?.id) return;
-                  const href = `/notes/new?note=${encodeURIComponent(activeNote.id)}`;
-                  try {
-                    const payload = openTargetPayload(activeNote);
-                    sessionStorage.setItem(openTargetKey(), payload);
-                    sessionStorage.setItem(OPEN_TARGET_KEY_FALLBACK, payload);
-                    localStorage.setItem(openTargetKey(), payload);
-                    localStorage.setItem(OPEN_TARGET_KEY_FALLBACK, payload);
-                  } catch {
-                    // ignore
-                  }
-                  router.push(href);
-                }}
-              >
-                <i className="fa-solid fa-pen-to-square" aria-hidden="true" />
-                Open
-              </button>
+          <div className={styles.cardHead}>
+            <div>
+              <div className={styles.cardTitle}>Preview</div>
+              <div className={styles.cardSub}>{activeNote ? formatRelative(activeNote.updatedAt) : "Pick a note from the list."}</div>
             </div>
+            <button
+              type="button"
+              className={styles.openBtn}
+              aria-label="Open editor"
+              title="Open editor"
+              disabled={!activeNote?.id}
+              onClick={() => {
+                if (!activeNote?.id) return;
+                const href = `/notes/new?note=${encodeURIComponent(activeNote.id)}`;
+                try {
+                  const payload = openTargetPayload(activeNote);
+                  sessionStorage.setItem(openTargetKey(), payload);
+                  sessionStorage.setItem(OPEN_TARGET_KEY_FALLBACK, payload);
+                  localStorage.setItem(openTargetKey(), payload);
+                  localStorage.setItem(OPEN_TARGET_KEY_FALLBACK, payload);
+                } catch {
+                  // ignore
+                }
+                router.push(href);
+              }}
+            >
+              <i className="fa-solid fa-pen-to-square" aria-hidden="true" />
+              Open
+            </button>
           </div>
 
-          <div className={styles.panelBody}>
-            <div className={styles.selected} aria-label="Selected note preview">
-              {activeNote ? (
-                <div className={styles.selectedInner} aria-label="Selected note details">
-                  <div className={styles.selectedTitle}>{activeNote.title || "Untitled"}</div>
-                  <div
-                    className="notesPreviewBody notesPreviewBody--html"
-                    aria-label="Selected note content"
-                    dangerouslySetInnerHTML={{ __html: previewHtml || '<span class="notesPreviewEmpty">No content yet.</span>' }}
-                  />
-                </div>
-              ) : (
-                <div className="notesEmptyPreview">Select a note from the list.</div>
-              )}
-            </div>
+          <div className={styles.selected} aria-label="Selected note preview">
+            {activeNote ? (
+              <div className={styles.selectedInner} aria-label="Selected note details">
+                <div className={styles.selectedTitle}>{activeNote.title || "Untitled"}</div>
+                <div
+                  className="notesPreviewBody notesPreviewBody--html"
+                  aria-label="Selected note content"
+                  dangerouslySetInnerHTML={{ __html: previewHtml || '<span class="notesPreviewEmpty">No content yet.</span>' }}
+                />
+              </div>
+            ) : (
+              <div className="notesEmptyPreview">Select a note from the list.</div>
+            )}
           </div>
         </section>
       </div>
