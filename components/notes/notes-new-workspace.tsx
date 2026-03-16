@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type NotesView = "all" | "favorites" | "hidden" | "deleted";
@@ -550,12 +550,14 @@ function isUnderlineActive(text: string, start: number, end: number) {
 }
 
 export default function NotesNewWorkspace() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const deepLinkNoteId = (searchParams.get("note") || "").trim();
   const fullscreen = ["1", "true", "yes"].includes(String(searchParams.get("fullscreen") || "").trim().toLowerCase());
   const forceNew = ["1", "true", "yes"].includes(String(searchParams.get("new") || "").trim().toLowerCase());
 
   const [store, setStore] = useState<NotesStore>(() => ({ notes: [], lastDraftId: null, tagCatalog: DEFAULT_TAGS, folderCatalog: DEFAULT_FOLDERS }));
+  const [hydrated, setHydrated] = useState(false);
   const [view, setView] = useState<NotesView>("all");
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [folderFilter, setFolderFilter] = useState<string | null>(null);
@@ -591,6 +593,8 @@ export default function NotesNewWorkspace() {
     | "unlockHidden"
     | "reminder"
     | "textColor"
+    | "insertLink"
+    | "leaveUnsaved"
     | "createTag"
     | "createFolder"
     | "deleteTag"
@@ -604,6 +608,8 @@ export default function NotesNewWorkspace() {
   const [deleteTarget, setDeleteTarget] = useState<null | { kind: "tag" | "folder"; id: string; label: string }>(null);
   const [unlockPassword, setUnlockPassword] = useState("");
   const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [linkUrlDraft, setLinkUrlDraft] = useState("");
+  const [linkError, setLinkError] = useState<string | null>(null);
   const [reminderDraft, setReminderDraft] = useState<string>("");
   const [textColorDraft, setTextColorDraft] = useState<{ hex: string; r: number; g: number; b: number }>({ hex: "#ffffff", r: 255, g: 255, b: 255 });
 
@@ -612,6 +618,8 @@ export default function NotesNewWorkspace() {
   const saveTimer = useRef<number | null>(null);
   const didInitForNewRoute = useRef(false);
   const didNormalizeRefs = useRef(false);
+  const uncommittedIdsRef = useRef<Set<string>>(new Set());
+  const [pendingLeaveHref, setPendingLeaveHref] = useState<string | null>(null);
   const didApplyDeepLink = useRef(false);
   const pendingOpenTargetRef = useRef<string>("");
   const swappedStoreForOpenTargetRef = useRef<string>("");
@@ -642,11 +650,36 @@ export default function NotesNewWorkspace() {
 
   useEffect(() => {
     setStore(loadStore());
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (didApplyDeepLink.current) return;
-    if (!store.notes.length) return;
+    if (!hydrated) return;
+    const forceNewNow = (() => {
+      if (forceNew) return true;
+      try {
+        if (typeof window === "undefined") return false;
+        const v = String(new URLSearchParams(window.location.search).get("new") || "")
+          .trim()
+          .toLowerCase();
+        return ["1", "true", "yes"].includes(v);
+      } catch {
+        return false;
+      }
+    })();
+    if (forceNewNow) {
+      try {
+        sessionStorage.removeItem(openTargetKey());
+        sessionStorage.removeItem(OPEN_TARGET_KEY_FALLBACK);
+        localStorage.removeItem(openTargetKey());
+        localStorage.removeItem(OPEN_TARGET_KEY_FALLBACK);
+      } catch {
+        // ignore
+      }
+      didApplyDeepLink.current = true;
+      return;
+    }
     const fromUrl = deepLinkNoteId || (() => {
       try {
         if (typeof window === "undefined") return "";
@@ -735,7 +768,7 @@ export default function NotesNewWorkspace() {
     }
 
     setView("all");
-  }, [deepLinkNoteId, store.notes]);
+  }, [deepLinkNoteId, forceNew, hydrated, store.notes]);
 
   useEffect(() => {
     // Clear the open-target guard only after React applies the activeId state,
@@ -761,11 +794,22 @@ export default function NotesNewWorkspace() {
 
   useEffect(() => {
     if (didInitForNewRoute.current) return;
-    if (!store.notes.length) return;
     if (typeof window === "undefined") return;
     if (!window.location.pathname.endsWith("/notes/new")) return;
+    if (!hydrated) return;
+    const forceNewNow = (() => {
+      if (forceNew) return true;
+      try {
+        const v = String(new URLSearchParams(window.location.search).get("new") || "")
+          .trim()
+          .toLowerCase();
+        return ["1", "true", "yes"].includes(v);
+      } catch {
+        return false;
+      }
+    })();
     const openTarget = (() => {
-      if (forceNew) return "";
+      if (forceNewNow) return "";
       const fromUrl = deepLinkNoteId || (() => {
         try {
           return (new URLSearchParams(window.location.search).get("note") || "").trim();
@@ -782,11 +826,11 @@ export default function NotesNewWorkspace() {
         return "";
       }
     })();
-    if (!forceNew && openTarget) return;
+    if (!forceNewNow && openTarget) return;
 
     didInitForNewRoute.current = true;
 
-    if (forceNew) {
+    if (forceNewNow) {
       try {
         sessionStorage.removeItem(openTargetKey());
         sessionStorage.removeItem(OPEN_TARGET_KEY_FALLBACK);
@@ -820,12 +864,19 @@ export default function NotesNewWorkspace() {
 
     createDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store.notes.length]);
+  }, [deepLinkNoteId, forceNew, hydrated, store.notes.length]);
 
   useEffect(() => {
     if (!store.notes.length) return;
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => saveStore(store), 250);
+    const persisted = (() => {
+      const exclude = uncommittedIdsRef.current;
+      if (!exclude.size) return store;
+      const notes = store.notes.filter((n) => !exclude.has(n.id));
+      const lastDraftId = store.lastDraftId && exclude.has(store.lastDraftId) ? null : store.lastDraftId;
+      return notes.length === store.notes.length && lastDraftId === store.lastDraftId ? store : { ...store, notes, lastDraftId };
+    })();
+    saveTimer.current = window.setTimeout(() => saveStore(persisted), 250);
     return () => {
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
     };
@@ -1096,6 +1147,8 @@ export default function NotesNewWorkspace() {
       deletedAt: null,
     };
 
+    uncommittedIdsRef.current.add(id);
+
     setStore((prev) => ({ ...prev, notes: [draft, ...prev.notes], lastDraftId: id }));
     setActiveId(id);
     setView("all");
@@ -1153,9 +1206,23 @@ export default function NotesNewWorkspace() {
 
   const confirmMoveToTrash = () => {
     if (!activeNote) return;
+    const deleteId = activeNote.id;
     const t = now();
-    updateNote(activeNote.id, { deletedAt: t, hiddenAt: null, archivedAt: null });
+    setStore((prev) => {
+      const next: NotesStore = {
+        ...prev,
+        notes: prev.notes.map((n) => (n.id === deleteId ? { ...n, deletedAt: t, hiddenAt: null, archivedAt: null, updatedAt: now() } : n)),
+      };
+      const exclude = uncommittedIdsRef.current;
+      const persisted =
+        exclude.size === 0
+          ? next
+          : { ...next, notes: next.notes.filter((n) => !exclude.has(n.id)), lastDraftId: next.lastDraftId && exclude.has(next.lastDraftId) ? null : next.lastDraftId };
+      saveStore(persisted);
+      return next;
+    });
     setModal(null);
+    router.push("/notes?view=deleted");
   };
 
   const confirmPermanentDelete = async () => {
@@ -1183,9 +1250,19 @@ export default function NotesNewWorkspace() {
       store.notes.find((n) => n.id !== deleteId && !!n.deletedAt)?.id ||
       "";
 
-    setStore((prev) => ({ ...prev, notes: prev.notes.filter((n) => n.id !== deleteId) }));
+    setStore((prev) => {
+      const next: NotesStore = { ...prev, notes: prev.notes.filter((n) => n.id !== deleteId) };
+      const exclude = uncommittedIdsRef.current;
+      const persisted =
+        exclude.size === 0
+          ? next
+          : { ...next, notes: next.notes.filter((n) => !exclude.has(n.id)), lastDraftId: next.lastDraftId && exclude.has(next.lastDraftId) ? null : next.lastDraftId };
+      saveStore(persisted);
+      return next;
+    });
     setActiveId(nextActive);
     setModal(null);
+    router.push("/notes?view=deleted");
   };
 
   const restoreFromTrash = () => {
@@ -1607,11 +1684,155 @@ export default function NotesNewWorkspace() {
   };
 
   const insertLink = () => {
-    const url = window.prompt("Link URL:");
-    if (!url) return;
-    const safe = url.trim();
-    if (!safe) return;
-    exec("createLink", safe);
+    if (!editing) return;
+    if (typeof window === "undefined") return;
+    const sel = window.getSelection();
+    let prefill = "";
+    try {
+      const root = editorRef.current;
+      if (root && sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        const inEditor = root.contains(range.commonAncestorContainer);
+        if (inEditor) {
+          let node: Node | null = range.commonAncestorContainer;
+          if (node && node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+          let el = node instanceof HTMLElement ? node : (node as any as Element | null);
+          while (el && el instanceof HTMLElement && el !== root) {
+            if (el.tagName === "A") {
+              prefill = String((el as HTMLAnchorElement).getAttribute("href") || "").trim();
+              break;
+            }
+            el = el.parentElement;
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    setLinkUrlDraft(prefill);
+    setLinkError(null);
+    setModal("insertLink");
+  };
+
+  const normalizeUrl = (raw: string) => {
+    const s = String(raw || "").trim();
+    if (!s) return "";
+    const lower = s.toLowerCase();
+    if (lower.startsWith("http://") || lower.startsWith("https://") || lower.startsWith("mailto:") || lower.startsWith("tel:")) return s;
+    if (lower.startsWith("javascript:")) return s;
+    // If user typed a domain/path without scheme, assume https.
+    return `https://${s.replace(/^\/+/, "")}`;
+  };
+
+  const confirmInsertLink = () => {
+    const raw = linkUrlDraft.trim();
+    if (!raw) return;
+    const safe = normalizeUrl(raw);
+    if (!safe.trim()) return;
+    if (safe.trim().toLowerCase().startsWith("javascript:")) {
+      setLinkError("Invalid URL.");
+      return;
+    }
+    exec("createLink", safe.trim());
+    setModal(null);
+    setLinkError(null);
+    try {
+      saveEditorToStore();
+    } catch {
+      // ignore
+    }
+    try {
+      editorRef.current?.focus();
+    } catch {
+      // ignore
+    }
+  };
+
+  const persistCurrentStore = (opts?: { includeUncommitted?: boolean }) => {
+    const includeUncommitted = !!opts?.includeUncommitted;
+    setStore((prev) => {
+      const patch = (() => {
+        if (!editing) return null;
+        if (!activeNote?.id) return null;
+        const el = editorRef.current;
+        if (!el) return null;
+        const html = sanitizeNoteHtml(el.innerHTML);
+        return { id: activeNote.id, html };
+      })();
+
+      const next: NotesStore = patch
+        ? {
+            ...prev,
+            notes: prev.notes.map((n) => (n.id === patch.id ? { ...n, body: patch.html, bodyFormat: "html", updatedAt: now() } : n)),
+          }
+        : prev;
+
+      const exclude = includeUncommitted ? new Set<string>() : uncommittedIdsRef.current;
+      const persisted =
+        exclude.size === 0
+          ? next
+          : {
+              ...next,
+              notes: next.notes.filter((n) => !exclude.has(n.id)),
+              lastDraftId: next.lastDraftId && exclude.has(next.lastDraftId) ? null : next.lastDraftId,
+            };
+      saveStore(persisted);
+      return next;
+    });
+  };
+
+  const requestLeave = (href: string) => {
+    const note = activeNote;
+    if (!note?.id) {
+      router.push(href);
+      return;
+    }
+    const uncommitted = uncommittedIdsRef.current.has(note.id);
+    if (!uncommitted) {
+      // best-effort flush pending autosave before leaving
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+      persistCurrentStore({ includeUncommitted: false });
+      router.push(href);
+      return;
+    }
+    setPendingLeaveHref(href);
+    setModal("leaveUnsaved");
+  };
+
+  const confirmLeaveWithoutSaving = () => {
+    const href = pendingLeaveHref || "/notes";
+    const note = activeNote;
+    if (note?.id && uncommittedIdsRef.current.has(note.id)) {
+      uncommittedIdsRef.current.delete(note.id);
+      setStore((prev) => ({
+        ...prev,
+        notes: prev.notes.filter((n) => n.id !== note.id),
+        lastDraftId: prev.lastDraftId === note.id ? null : prev.lastDraftId,
+      }));
+    }
+    setModal(null);
+    setPendingLeaveHref(null);
+    router.push(href);
+  };
+
+  const confirmSaveAndLeave = () => {
+    const href = pendingLeaveHref || "/notes";
+    const note = activeNote;
+    if (note?.id) uncommittedIdsRef.current.delete(note.id);
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    persistCurrentStore({ includeUncommitted: true });
+    setModal(null);
+    setPendingLeaveHref(null);
+    router.push(href);
+  };
+
+  const saveNow = () => {
+    const note = activeNote;
+    if (!note?.id) return;
+    uncommittedIdsRef.current.delete(note.id);
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    persistCurrentStore({ includeUncommitted: true });
   };
 
   const pickImage = () => {
@@ -1771,15 +1992,29 @@ export default function NotesNewWorkspace() {
     setModal(null);
     setDeleteTarget(null);
     setUnlockError(null);
+    setLinkError(null);
+    if (modal === "leaveUnsaved") setPendingLeaveHref(null);
   };
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col gap-[var(--shell-gap)]" aria-label="Notes workspace">
-      <div className="flex items-center justify-start">
-        <Link href="/notes" className="notesBackBtn gridCard" data-focus="notes.back" aria-label="Back to Notes">
+      <div className="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          className="notesBackBtn gridCard"
+          data-focus="notes.back"
+          aria-label="Back to Notes"
+          onClick={() => requestLeave("/notes")}
+        >
           <i className="fa-solid fa-arrow-left" aria-hidden="true" />
           Back
-        </Link>
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="text-[12px] font-extrabold text-white/55">Auto-save</div>
+          <button type="button" className="notesPrimaryBtn gridCard" onClick={saveNow} disabled={!activeNote || !!activeNote?.deletedAt}>
+            <i className="fa-solid fa-floppy-disk" aria-hidden="true" /> Save
+          </button>
+        </div>
       </div>
 
       <div
@@ -2743,6 +2978,8 @@ export default function NotesNewWorkspace() {
                 {modal === "unlockHidden" ? <div className="studiumModalTitle">Unlock hidden notes</div> : null}
                 {modal === "reminder" ? <div className="studiumModalTitle">Reminder</div> : null}
                 {modal === "textColor" ? <div className="studiumModalTitle">Text color</div> : null}
+                {modal === "insertLink" ? <div className="studiumModalTitle">Insert link</div> : null}
+                {modal === "leaveUnsaved" ? <div className="studiumModalTitle">Unsaved note</div> : null}
                 {modal === "createTag" ? <div className="studiumModalTitle">Create tag</div> : null}
                 {modal === "createFolder" ? <div className="studiumModalTitle">Create folder</div> : null}
                 {modal === "tags" ? <div className="studiumModalTitle">Add tags to note</div> : null}
@@ -2758,6 +2995,8 @@ export default function NotesNewWorkspace() {
                 {modal === "unlockHidden" ? <div className="studiumModalSubtitle">Enter password to view hidden notes.</div> : null}
                 {modal === "reminder" ? <div className="studiumModalSubtitle">Set a reminder time for this note.</div> : null}
                 {modal === "textColor" ? <div className="studiumModalSubtitle">Pick a color, or enter RGB values.</div> : null}
+                {modal === "insertLink" ? <div className="studiumModalSubtitle">Paste a URL to create a link from your selection.</div> : null}
+                {modal === "leaveUnsaved" ? <div className="studiumModalSubtitle">You haven’t saved this note yet. Leave without saving?</div> : null}
                 {modal === "createTag" ? <div className="studiumModalSubtitle">Create a new tag for your sidebar.</div> : null}
                 {modal === "createFolder" ? <div className="studiumModalSubtitle">Create a new folder for your sidebar.</div> : null}
                 {modal === "tags" ? <div className="studiumModalSubtitle">Choose one or more tags for this note.</div> : null}
@@ -2883,6 +3122,38 @@ export default function NotesNewWorkspace() {
                       ))}
                     </div>
                   </div>
+                </div>
+              ) : null}
+
+              {modal === "insertLink" ? (
+                <div className="grid gap-3" aria-label="Insert link form">
+                  <div className="notesSearchWrap">
+                    <i className="fa-solid fa-link text-white/55" aria-hidden="true" />
+                    <input
+                      autoFocus
+                      className="notesSearchInput"
+                      value={linkUrlDraft}
+                      onChange={(e) => {
+                        setLinkUrlDraft(e.target.value);
+                        if (linkError) setLinkError(null);
+                      }}
+                      placeholder="https://example.com"
+                      aria-label="Link URL"
+                      inputMode="url"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") confirmInsertLink();
+                      }}
+                    />
+                  </div>
+                  {linkError ? <div className="text-[12px] font-extrabold text-red-200/90">{linkError}</div> : null}
+                  <div className="text-[12px] font-extrabold text-white/55">Tip: if you omit the scheme, it will assume https://</div>
+                </div>
+              ) : null}
+
+              {modal === "leaveUnsaved" ? (
+                <div className="panelItem rounded-[18px] px-4 py-3 text-[13px] font-extrabold text-white/80">
+                  <div className="truncate text-white/90">{activeNote?.title || "Untitled"}</div>
+                  <div className="mt-1 text-[12px] font-extrabold text-white/55">Choose “Save first” to keep it, or “Leave” to discard it.</div>
                 </div>
               ) : null}
 
@@ -3062,6 +3333,21 @@ export default function NotesNewWorkspace() {
                   </button>
                   <button type="button" className="notesPrimaryBtn gridCard" onClick={() => applyTextColor(textColorDraft.hex)} disabled={!activeNote || !editing}>
                     Apply
+                  </button>
+                </>
+              ) : null}
+              {modal === "insertLink" ? (
+                <button type="button" className="notesPrimaryBtn gridCard" onClick={confirmInsertLink} disabled={!editing || !linkUrlDraft.trim()}>
+                  Insert
+                </button>
+              ) : null}
+              {modal === "leaveUnsaved" ? (
+                <>
+                  <button type="button" className="notesPrimaryBtn notesPrimaryBtn--danger gridCard" onClick={confirmLeaveWithoutSaving}>
+                    Leave
+                  </button>
+                  <button type="button" className="notesPrimaryBtn gridCard" onClick={confirmSaveAndLeave} disabled={!activeNote}>
+                    Save first
                   </button>
                 </>
               ) : null}

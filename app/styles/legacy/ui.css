@@ -2573,6 +2573,20 @@ body[data-subview="study-room"].focus-strict .shell {
 
 .notesPreviewBody--html {
   white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.notesPreviewBody--html a {
+  color: rgba(170, 225, 255, 0.95);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.notesPreviewBody--html a:hover {
+  color: rgba(210, 245, 255, 0.98);
 }
 
 .notesPreviewBody--html h1,

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import styles from "./notes-hub.module.css";
 
@@ -94,10 +94,6 @@ function openTargetKey() {
   return getScopedKey("studium:notes:openNoteId:v1");
 }
 
-function hiddenUnlockKey() {
-  return getScopedKey("studium:notes:hiddenUnlocked:v1");
-}
-
 const OPEN_TARGET_KEY_FALLBACK = "studium:notes:openNoteId:v1";
 
 function openTargetPayload(note: Note) {
@@ -120,11 +116,16 @@ function sanitizeForPreview(html: string) {
   try {
     const doc = new DOMParser().parseFromString(String(html || ""), "text/html");
     doc.querySelectorAll("script,style,iframe,object,embed,link,meta").forEach((n) => n.remove());
-    doc.querySelectorAll("img,audio,video").forEach((el) => {
-      const block = doc.createElement("div");
-      block.className = "notesAttachment--missing";
-      block.textContent = "Attachment";
-      el.replaceWith(block);
+    // Remove editor-only controls.
+    doc.querySelectorAll("button, [role='button']").forEach((el) => {
+      const cls = String(el.getAttribute("class") || "");
+      const action = String(el.getAttribute("data-action") || "");
+      if (cls.includes("notesAssetDelete") || action === "delete-asset") el.remove();
+    });
+    doc.querySelectorAll("[contenteditable]").forEach((el) => el.removeAttribute("contenteditable"));
+    // Strip src/href that could be unsafe; attachment src will be injected from IndexedDB via data-asset-id.
+    doc.querySelectorAll("img,audio,video,source").forEach((el) => {
+      el.removeAttribute("src");
     });
     doc.querySelectorAll("*").forEach((el) => {
       Array.from(el.attributes).forEach((a) => {
@@ -132,13 +133,90 @@ function sanitizeForPreview(html: string) {
         const value = String(a.value || "");
         if (name.startsWith("on")) el.removeAttribute(a.name);
         if (name === "href" && value.trim().toLowerCase().startsWith("javascript:")) el.removeAttribute(a.name);
-        if (name === "src" && value.trim().toLowerCase().startsWith("javascript:")) el.removeAttribute(a.name);
       });
     });
     return doc.body.innerHTML;
   } catch {
     return String(html || "");
   }
+}
+
+type AssetKind = "image" | "audio";
+type NoteAsset = {
+  id: string;
+  kind: AssetKind;
+  mime: string;
+  createdAt: number;
+  blob: Blob;
+};
+
+function assetsDbName() {
+  return getScopedKey("studium_notes_assets_v1");
+}
+
+function openAssetsDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === "undefined") return reject(new Error("IndexedDB not available"));
+    const req = indexedDB.open(assetsDbName(), 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains("assets")) db.createObjectStore("assets", { keyPath: "id" });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error("Failed to open DB"));
+  });
+}
+
+async function getAsset(id: string) {
+  const db = await openAssetsDb();
+  const rec = await new Promise<NoteAsset | null>((resolve, reject) => {
+    const tx = db.transaction("assets", "readonly");
+    const req = tx.objectStore("assets").get(id);
+    req.onsuccess = () => resolve((req.result as NoteAsset) || null);
+    req.onerror = () => reject(req.error || new Error("Failed to read asset"));
+  });
+  db.close();
+  return rec;
+}
+
+function parseAssetIds(body: string) {
+  const re = /\[\[(image|audio):([a-zA-Z0-9_\-]+)\]\]/g;
+  const ids = new Set<string>();
+  let m: RegExpExecArray | null = null;
+  while ((m = re.exec(body))) ids.add(m[2]);
+  const attrRe = /data-asset-id="([^"]+)"/g;
+  while ((m = attrRe.exec(body))) ids.add(m[1]);
+  return Array.from(ids);
+}
+
+function escapeHtml(s: string) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function plainBodyToPreviewHtml(body: string) {
+  const re = /\[\[(image|audio):([a-zA-Z0-9_\-]+)\]\]/g;
+  let out = "";
+  let last = 0;
+  let m: RegExpExecArray | null = null;
+  while ((m = re.exec(body))) {
+    const idx = m.index;
+    if (idx > last) out += escapeHtml(body.slice(last, idx)).replace(/\n/g, "<br/>");
+    const kind = m[1];
+    const id = m[2];
+    if (kind === "image") {
+      out += `<div class="notesAttachment notesAttachment--image"><img data-asset-id="${escapeHtml(id)}" alt="" /></div>`;
+    } else {
+      out += `<div class="notesAttachment notesAttachment--audio"><audio controls data-asset-id="${escapeHtml(id)}"></audio></div>`;
+    }
+    last = idx + m[0].length;
+  }
+  if (last < body.length) out += escapeHtml(body.slice(last)).replace(/\n/g, "<br/>");
+  return out;
 }
 
 function loadStore(): NotesStore {
@@ -181,30 +259,33 @@ function formatRelative(ts: number) {
 
 export default function NotesHub() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [store, setStore] = useState<NotesStore>(() => ({ notes: [], tagCatalog: DEFAULT_TAGS, folderCatalog: DEFAULT_FOLDERS }));
   const [view, setView] = useState<NotesView>("all");
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [folderFilter, setFolderFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string>("");
-  const [hiddenUnlocked, setHiddenUnlocked] = useState(false);
-  const [modal, setModal] = useState<null | "addFolder" | "addTag" | "deleteFolder" | "deleteTag">(null);
+  const [modal, setModal] = useState<
+    null | "addFolder" | "addTag" | "deleteFolder" | "deleteTag" | "unlockHidden" | "restoreNote" | "permaDeleteNote"
+  >(null);
   const [modalLabel, setModalLabel] = useState("");
   const [tagDotDraft, setTagDotDraft] = useState(TAG_DOT_PALETTE[0] || "notesDot--mint");
   const [deleteTarget, setDeleteTarget] = useState<null | { kind: "folder" | "tag"; id: string; label: string }>(null);
+  const [hiddenPwd, setHiddenPwd] = useState("");
+  const [hiddenPwdError, setHiddenPwdError] = useState("");
+  const [noteActionTarget, setNoteActionTarget] = useState<null | { id: string; title: string }>(null);
+  const [assetUrls, setAssetUrls] = useState<Record<string, string>>({});
+  const previewRootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setStore(loadStore());
   }, []);
 
   useEffect(() => {
-    try {
-      const ok = sessionStorage.getItem(hiddenUnlockKey()) === "1";
-      if (ok) setHiddenUnlocked(true);
-    } catch {
-      // ignore
-    }
-  }, []);
+    const qp = String(searchParams.get("view") || "").trim().toLowerCase();
+    if (qp === "deleted") setView("deleted");
+  }, [searchParams]);
 
   const persistStore = (next: NotesStore) => {
     setStore(next);
@@ -218,8 +299,10 @@ export default function NotesHub() {
     }
   };
 
-  const sidebarItemClass = (active: boolean) => ["notesSidebarItem", "gridCard", active ? "notesSidebarItem--active" : ""].filter(Boolean).join(" ");
-  const tagPillClass = (active: boolean) => ["notesTagPill", "gridCard", active ? "notesTagPill--active" : ""].filter(Boolean).join(" ");
+  const sidebarItemClass = (active: boolean) =>
+    ["notesSidebarItem", "gridCard", active ? "notesSidebarItem--active" : "", active ? styles.activeItem : ""].filter(Boolean).join(" ");
+  const tagPillClass = (active: boolean) =>
+    ["notesTagPill", "gridCard", active ? "notesTagPill--active" : "", active ? styles.activeItem : ""].filter(Boolean).join(" ");
 
   const tagLabelById = useMemo(() => Object.fromEntries(store.tagCatalog.map((t) => [t.id, t.label])), [store.tagCatalog]);
   const folderLabelById = useMemo(() => Object.fromEntries(store.folderCatalog.map((f) => [f.id, f.label])), [store.folderCatalog]);
@@ -314,9 +397,86 @@ export default function NotesHub() {
   const previewHtml = useMemo(() => {
     if (!activeNote) return "";
     if (activeNote.bodyFormat === "html") return sanitizeForPreview(activeNote.body);
-    const safe = String(activeNote.body || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    return safe.replace(/\n/g, "<br/>");
+    const body = String(activeNote.body || "");
+    if (body.includes("[[image:") || body.includes("[[audio:")) return plainBodyToPreviewHtml(body);
+    return escapeHtml(body).replace(/\n/g, "<br/>");
   }, [activeNote]);
+
+  useEffect(() => {
+    const ids = activeNote ? parseAssetIds(activeNote.body || "") : [];
+    if (!ids.length) {
+      setAssetUrls((prev) => {
+        Object.values(prev).forEach((u) => {
+          try {
+            URL.revokeObjectURL(u);
+          } catch {
+            // ignore
+          }
+        });
+        return {};
+      });
+      return;
+    }
+
+    let alive = true;
+    const created: string[] = [];
+
+    (async () => {
+      const next: Record<string, string> = {};
+      for (const id of ids) {
+        try {
+          const rec = await getAsset(id);
+          if (!rec?.blob) continue;
+          const url = URL.createObjectURL(rec.blob);
+          created.push(url);
+          next[id] = url;
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!alive) {
+        created.forEach((u) => {
+          try {
+            URL.revokeObjectURL(u);
+          } catch {
+            // ignore
+          }
+        });
+        return;
+      }
+
+      setAssetUrls((prev) => {
+        Object.values(prev).forEach((u) => {
+          try {
+            URL.revokeObjectURL(u);
+          } catch {
+            // ignore
+          }
+        });
+        return next;
+      });
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [activeNote?.body, activeNote?.id]);
+
+  useEffect(() => {
+    const root = previewRootRef.current;
+    if (!root) return;
+    root.querySelectorAll<HTMLElement>("[data-asset-id]").forEach((el) => {
+      const id = String(el.getAttribute("data-asset-id") || "").trim();
+      if (!id) return;
+      const url = assetUrls[id];
+      if (!url) return;
+      if (el.tagName === "IMG") (el as HTMLImageElement).src = url;
+      if (el.tagName === "AUDIO") (el as HTMLAudioElement).src = url;
+      if (el.tagName === "VIDEO") (el as HTMLVideoElement).src = url;
+      if (el.tagName === "SOURCE") (el as HTMLSourceElement).src = url;
+    });
+  }, [assetUrls, activeNote?.id, previewHtml]);
 
   const addFolder = () => {
     setModalLabel("");
@@ -391,19 +551,56 @@ export default function NotesHub() {
   };
 
   const openHiddenView = () => {
-    if (hiddenUnlocked) {
-      setView("hidden");
+    if (view === "hidden") return;
+    setHiddenPwd("");
+    setHiddenPwdError("");
+    setModal("unlockHidden");
+  };
+
+  const confirmUnlockHidden = () => {
+    const pwd = String(hiddenPwd || "");
+    if (pwd !== "1111") {
+      setHiddenPwdError("Wrong password. Try again.");
       return;
     }
-    const pwd = String(window.prompt("Password for Hidden notes") || "");
-    if (pwd !== "1111") return;
-    setHiddenUnlocked(true);
-    try {
-      sessionStorage.setItem(hiddenUnlockKey(), "1");
-    } catch {
-      // ignore
-    }
+    setModal(null);
+    setHiddenPwdError("");
+    setHiddenPwd("");
     setView("hidden");
+  };
+
+  const requestRestoreNote = () => {
+    if (!activeNote) return;
+    if (!activeNote.deletedAt) return;
+    setNoteActionTarget({ id: activeNote.id, title: activeNote.title || "Untitled" });
+    setModal("restoreNote");
+  };
+
+  const confirmRestoreNote = () => {
+    if (!noteActionTarget) return;
+    const id = noteActionTarget.id;
+    const next: NotesStore = { ...store, notes: store.notes.map((n) => (n.id === id ? { ...n, deletedAt: null } : n)) };
+    persistStore(next);
+    if (activeId === id) setActiveId("");
+    setModal(null);
+    setNoteActionTarget(null);
+  };
+
+  const requestPermaDeleteNote = () => {
+    if (!activeNote) return;
+    if (!activeNote.deletedAt) return;
+    setNoteActionTarget({ id: activeNote.id, title: activeNote.title || "Untitled" });
+    setModal("permaDeleteNote");
+  };
+
+  const confirmPermaDeleteNote = () => {
+    if (!noteActionTarget) return;
+    const id = noteActionTarget.id;
+    const next: NotesStore = { ...store, notes: store.notes.filter((n) => n.id !== id) };
+    persistStore(next);
+    if (activeId === id) setActiveId("");
+    setModal(null);
+    setNoteActionTarget(null);
   };
 
   return (
@@ -440,7 +637,7 @@ export default function NotesHub() {
                     type="button"
                     className={[sidebarItemClass(folderFilter === f.id), styles.hoverRowMain].filter(Boolean).join(" ")}
                     role="listitem"
-                    onClick={() => setFolderFilter(f.id)}
+                    onClick={() => setFolderFilter((prev) => (prev === f.id ? null : f.id))}
                     aria-label={`Folder ${f.label}`}
                   >
                     <i className="fa-solid fa-folder" aria-hidden="true" />
@@ -499,7 +696,7 @@ export default function NotesHub() {
                     type="button"
                     className={[tagPillClass(tagFilter === t.id), styles.hoverRowMain].filter(Boolean).join(" ")}
                     role="listitem"
-                    onClick={() => setTagFilter(t.id)}
+                    onClick={() => setTagFilter((prev) => (prev === t.id ? null : t.id))}
                     aria-label={`Tag ${t.label}`}
                   >
                     <span className={["notesDot", t.dotClass].filter(Boolean).join(" ")} aria-hidden="true" />
@@ -548,7 +745,10 @@ export default function NotesHub() {
                   onClick={() => setView("all")}
                   aria-label="All notes"
                 >
-                  <span className={styles.tabLabel}>All</span>
+                  <span className={styles.tabLabel}>
+                    <i className="fa-solid fa-layer-group" aria-hidden="true" />
+                    <span>All</span>
+                  </span>
                   <span className={styles.tabCount} aria-label={`${tabCounts.all} note(s)`}>
                     {tabCounts.all}
                   </span>
@@ -559,7 +759,10 @@ export default function NotesHub() {
                   onClick={() => setView("favorites")}
                   aria-label="Favorite notes"
                 >
-                  <span className={styles.tabLabel}>Favorite</span>
+                  <span className={styles.tabLabel}>
+                    <i className="fa-solid fa-star" aria-hidden="true" />
+                    <span>Favorite</span>
+                  </span>
                   <span className={styles.tabCount} aria-label={`${tabCounts.favorites} favorite note(s)`}>
                     {tabCounts.favorites}
                   </span>
@@ -570,7 +773,10 @@ export default function NotesHub() {
                   onClick={openHiddenView}
                   aria-label="Hidden notes"
                 >
-                  <span className={styles.tabLabel}>Hidden</span>
+                  <span className={styles.tabLabel}>
+                    <i className="fa-solid fa-eye-slash" aria-hidden="true" />
+                    <span>Hidden</span>
+                  </span>
                   <span className={styles.tabCount} aria-label="Hidden notes count is hidden">
                     •
                   </span>
@@ -581,7 +787,10 @@ export default function NotesHub() {
                   onClick={() => setView("deleted")}
                   aria-label="Recently deleted"
                 >
-                  <span className={styles.tabLabel}>Recently deleted</span>
+                  <span className={styles.tabLabel}>
+                    <i className="fa-solid fa-trash" aria-hidden="true" />
+                    <span>Recently deleted</span>
+                  </span>
                   <span className={styles.tabCount} aria-label={`${tabCounts.deleted} deleted note(s)`}>
                     {tabCounts.deleted}
                   </span>
@@ -639,30 +848,57 @@ export default function NotesHub() {
               <div className={styles.colTitle}>
                 <div className={styles.cardTitle}>Preview</div>
               </div>
-              <button
-                type="button"
-                className={styles.outsideBtn}
-                aria-label="Open editor"
-                title="Open editor"
-                disabled={!activeNote?.id}
-                onClick={() => {
-                  if (!activeNote?.id) return;
-                  const href = `/notes/new?fullscreen=1&note=${encodeURIComponent(activeNote.id)}`;
-                  try {
-                    const payload = openTargetPayload(activeNote);
-                    sessionStorage.setItem(openTargetKey(), payload);
-                    sessionStorage.setItem(OPEN_TARGET_KEY_FALLBACK, payload);
-                    localStorage.setItem(openTargetKey(), payload);
-                    localStorage.setItem(OPEN_TARGET_KEY_FALLBACK, payload);
-                  } catch {
-                    // ignore
-                  }
-                  router.push(href);
-                }}
-              >
-                <i className="fa-solid fa-pen-to-square" aria-hidden="true" />
-                Open
-              </button>
+              {view === "deleted" ? (
+                <div className={styles.headRight} aria-label="Deleted actions">
+                  <button
+                    type="button"
+                    className={styles.outsideBtn}
+                    aria-label="Restore note"
+                    title="Restore"
+                    disabled={!activeNote?.id}
+                    onClick={requestRestoreNote}
+                  >
+                    <i className="fa-solid fa-rotate-left" aria-hidden="true" />
+                    Restore
+                  </button>
+                  <button
+                    type="button"
+                    className={[styles.outsideBtn, styles.outsideBtnDanger].join(" ")}
+                    aria-label="Delete note permanently"
+                    title="Delete permanently"
+                    disabled={!activeNote?.id}
+                    onClick={requestPermaDeleteNote}
+                  >
+                    <i className="fa-solid fa-trash" aria-hidden="true" />
+                    Delete
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.outsideBtn}
+                  aria-label="Open editor"
+                  title="Open editor"
+                  disabled={!activeNote?.id}
+                  onClick={() => {
+                    if (!activeNote?.id) return;
+                    const href = `/notes/new?fullscreen=1&note=${encodeURIComponent(activeNote.id)}`;
+                    try {
+                      const payload = openTargetPayload(activeNote);
+                      sessionStorage.setItem(openTargetKey(), payload);
+                      sessionStorage.setItem(OPEN_TARGET_KEY_FALLBACK, payload);
+                      localStorage.setItem(openTargetKey(), payload);
+                      localStorage.setItem(OPEN_TARGET_KEY_FALLBACK, payload);
+                    } catch {
+                      // ignore
+                    }
+                    router.push(href);
+                  }}
+                >
+                  <i className="fa-solid fa-pen-to-square" aria-hidden="true" />
+                  Open
+                </button>
+              )}
             </div>
           </div>
 
@@ -675,6 +911,7 @@ export default function NotesHub() {
                   <div className={styles.selectedTitle}>{activeNote.title || "Untitled"}</div>
                   <div
                     className="notesPreviewBody notesPreviewBody--html"
+                    ref={previewRootRef}
                     aria-label="Selected note content"
                     dangerouslySetInnerHTML={{ __html: previewHtml || '<span class="notesPreviewEmpty">No content yet.</span>' }}
                   />
@@ -692,18 +929,21 @@ export default function NotesHub() {
           className={styles.modalOverlay}
           role="dialog"
           aria-modal="true"
-          aria-label={
-            modal === "addFolder"
-              ? "Add folder"
-              : modal === "addTag"
-                ? "Add tag"
-                : modal === "deleteFolder"
-                  ? "Delete folder"
-                  : "Delete tag"
-          }
+          aria-label={(() => {
+            if (modal === "addFolder") return "Add folder";
+            if (modal === "addTag") return "Add tag";
+            if (modal === "deleteFolder") return "Delete folder";
+            if (modal === "deleteTag") return "Delete tag";
+            if (modal === "unlockHidden") return "Unlock Hidden notes";
+            if (modal === "restoreNote") return "Restore note";
+            return "Delete note permanently";
+          })()}
           onClick={() => {
             setModal(null);
             setDeleteTarget(null);
+            setHiddenPwd("");
+            setHiddenPwdError("");
+            setNoteActionTarget(null);
           }}
         >
           <div
@@ -790,7 +1030,7 @@ export default function NotesHub() {
                   </button>
                 </div>
               </>
-            ) : (
+            ) : modal === "deleteFolder" || modal === "deleteTag" ? (
               <>
                 <div className={styles.modalTitle}>{modal === "deleteFolder" ? "Delete folder" : "Delete tag"}</div>
                 <div className={styles.modalSub}>
@@ -829,6 +1069,97 @@ export default function NotesHub() {
                     disabled={!deleteTarget}
                   >
                     Delete
+                  </button>
+                </div>
+              </>
+            ) : modal === "unlockHidden" ? (
+              <>
+                <div className={styles.modalTitle}>Hidden notes</div>
+                <div className={styles.modalSub}>Enter password to open Hidden notes.</div>
+
+                <input
+                  autoFocus
+                  className={styles.modalInput}
+                  value={hiddenPwd}
+                  onChange={(e) => {
+                    setHiddenPwd(e.target.value);
+                    if (hiddenPwdError) setHiddenPwdError("");
+                  }}
+                  placeholder="Password"
+                  aria-label="Hidden notes password"
+                  type="password"
+                  inputMode="numeric"
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      setModal(null);
+                      setHiddenPwd("");
+                      setHiddenPwdError("");
+                      return;
+                    }
+                    if (e.key === "Enter") confirmUnlockHidden();
+                  }}
+                />
+                {hiddenPwdError ? <div className={styles.modalError}>{hiddenPwdError}</div> : null}
+
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    className={styles.modalBtn}
+                    onClick={() => {
+                      setModal(null);
+                      setHiddenPwd("");
+                      setHiddenPwdError("");
+                    }}
+                    aria-label="Cancel"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className={[styles.modalBtn, styles.modalBtnPrimary].join(" ")}
+                    onClick={confirmUnlockHidden}
+                    aria-label="Unlock Hidden notes"
+                    disabled={!hiddenPwd.trim()}
+                  >
+                    Unlock
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className={styles.modalTitle}>{modal === "restoreNote" ? "Restore note" : "Delete permanently"}</div>
+                <div className={styles.modalSub}>
+                  {noteActionTarget ? `“${noteActionTarget.title || "Untitled"}”` : "Nothing selected."}
+                </div>
+                <div className={styles.modalSub}>
+                  {modal === "restoreNote"
+                    ? "This will restore the note back to your notes list."
+                    : "This will permanently delete the note. This action cannot be undone."}
+                </div>
+
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    className={styles.modalBtn}
+                    onClick={() => {
+                      setModal(null);
+                      setNoteActionTarget(null);
+                    }}
+                    aria-label="Cancel"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className={[styles.modalBtn, modal === "restoreNote" ? styles.modalBtnPrimary : styles.modalBtnDanger].join(" ")}
+                    onClick={() => {
+                      if (modal === "restoreNote") confirmRestoreNote();
+                      else confirmPermaDeleteNote();
+                    }}
+                    aria-label="Confirm"
+                    disabled={!noteActionTarget}
+                  >
+                    {modal === "restoreNote" ? "Restore" : "Delete"}
                   </button>
                 </div>
               </>
