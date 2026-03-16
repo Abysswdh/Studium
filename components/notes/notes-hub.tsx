@@ -182,6 +182,9 @@ export default function NotesHub() {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string>("");
   const [hiddenUnlocked, setHiddenUnlocked] = useState(false);
+  const [modal, setModal] = useState<null | "addFolder" | "addTag">(null);
+  const [modalLabel, setModalLabel] = useState("");
+  const [tagDotDraft, setTagDotDraft] = useState(TAG_DOT_PALETTE[0] || "notesDot--mint");
 
   useEffect(() => {
     setStore(loadStore());
@@ -309,20 +312,33 @@ export default function NotesHub() {
   }, [activeNote]);
 
   const addFolder = () => {
-    const label = String(window.prompt("Folder name") || "").trim();
-    if (!label) return;
-    const id = `f_${makeId()}`;
-    const next: NotesStore = { ...store, folderCatalog: [...store.folderCatalog, { id, label }] };
-    persistStore(next);
+    setModalLabel("");
+    setModal("addFolder");
   };
 
   const addTag = () => {
-    const label = String(window.prompt("Tag name") || "").trim();
-    if (!label) return;
-    const id = `t_${makeId()}`;
-    const dotClass = TAG_DOT_PALETTE[store.tagCatalog.length % TAG_DOT_PALETTE.length] || "notesDot--mint";
-    const next: NotesStore = { ...store, tagCatalog: [...store.tagCatalog, { id, label, dotClass }] };
+    setModalLabel("");
+    setTagDotDraft(TAG_DOT_PALETTE[store.tagCatalog.length % TAG_DOT_PALETTE.length] || "notesDot--mint");
+    setModal("addTag");
+  };
+
+  const createFolder = (rawLabel: string) => {
+    const label = String(rawLabel || "").trim();
+    if (!label) return false;
+    const id = `f_${makeId()}`;
+    const next: NotesStore = { ...store, folderCatalog: [...store.folderCatalog, { id, label }] };
     persistStore(next);
+    return true;
+  };
+
+  const createTag = (rawLabel: string, dotClass: string) => {
+    const label = String(rawLabel || "").trim();
+    if (!label) return false;
+    const id = `t_${makeId()}`;
+    const safeDot = TAG_DOT_PALETTE.includes(dotClass) ? dotClass : TAG_DOT_PALETTE[0] || "notesDot--mint";
+    const next: NotesStore = { ...store, tagCatalog: [...store.tagCatalog, { id, label, dotClass: safeDot }] };
+    persistStore(next);
+    return true;
   };
 
   const deleteFolder = (id: string) => {
@@ -348,6 +364,16 @@ export default function NotesHub() {
       tagCatalog: store.tagCatalog.filter((t) => t.id !== id),
       notes: store.notes.map((n) => ({ ...n, tags: Array.isArray(n.tags) ? n.tags.filter((x) => x !== id) : [] })),
     };
+    persistStore(next);
+  };
+
+  const deleteNote = (id: string) => {
+    const target = store.notes.find((n) => n.id === id) || null;
+    if (!target) return;
+    if (target.deletedAt) return;
+    if (!window.confirm(`Move "${target.title || "Untitled"}" to Recently deleted?`)) return;
+    const t = now();
+    const next: NotesStore = { ...store, notes: store.notes.map((n) => (n.id === id ? { ...n, deletedAt: t, updatedAt: t } : n)) };
     persistStore(next);
   };
 
@@ -564,29 +590,55 @@ export default function NotesHub() {
             <div className={styles.notesPanelBody}>
               <div className={styles.list} role="list" aria-label="Notes list items">
                 {filteredNotes.map((n) => (
-                  <button
-                    key={n.id}
-                    type="button"
-                    className={["notesListItem", "gridCard", styles.noteItem, activeNote?.id === n.id ? "notesListItem--active" : ""].filter(Boolean).join(" ")}
-                    role="listitem"
-                    onClick={() => setActiveId(n.id)}
-                  >
-                    <div className="notesListItem__title">{n.title || "Untitled"}</div>
-                    <div className="notesListItem__excerpt">
-                      {(() => {
-                        const bodyText = n.bodyFormat === "html" ? stripHtmlQuick(n.body) : n.body;
-                        return bodyText.trim() ? bodyText.trim().slice(0, 120) : "Start typing to capture your thoughts...";
-                      })()}
-                    </div>
-                    <div className="notesListItem__meta">
-                      {n.pinned ? "Pinned | " : ""}
-                      {formatRelative(n.updatedAt)}
-                      {n.hiddenAt ? " | Hidden" : ""}
-                      {n.favorite ? " | Favorite" : ""}
-                      {n.folder ? ` | ${folderLabelById[n.folder] || n.folder}` : ""}
-                      {n.tags.length ? ` | ${n.tags.map((id) => tagLabelById[id] || id).join(", ")}` : ""}
-                    </div>
-                  </button>
+                  <div key={n.id} className={styles.hoverRow}>
+                    <button
+                      type="button"
+                      className={[
+                        "notesListItem",
+                        "gridCard",
+                        styles.noteItem,
+                        styles.hoverRowMain,
+                        activeNote?.id === n.id ? "notesListItem--active" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      role="listitem"
+                      onClick={() => setActiveId(n.id)}
+                    >
+                      <div className="notesListItem__title">{n.title || "Untitled"}</div>
+                      <div className="notesListItem__excerpt">
+                        {(() => {
+                          const bodyText = n.bodyFormat === "html" ? stripHtmlQuick(n.body) : n.body;
+                          return bodyText.trim() ? bodyText.trim().slice(0, 120) : "Start typing to capture your thoughts...";
+                        })()}
+                      </div>
+                      <div className="notesListItem__meta">
+                        {n.pinned ? "Pinned | " : ""}
+                        {formatRelative(n.updatedAt)}
+                        {n.hiddenAt ? " | Hidden" : ""}
+                        {n.favorite ? " | Favorite" : ""}
+                        {n.folder ? ` | ${folderLabelById[n.folder] || n.folder}` : ""}
+                        {n.tags.length ? ` | ${n.tags.map((id) => tagLabelById[id] || id).join(", ")}` : ""}
+                      </div>
+                    </button>
+                    {view !== "deleted" && !n.deletedAt ? (
+                      <div className={styles.hoverRowActions}>
+                        <button
+                          type="button"
+                          className={["notesInlineIconBtn gridCard", styles.hoverRevealBtn].join(" ")}
+                          aria-label={`Delete note ${n.title || "Untitled"}`}
+                          title="Delete note"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            deleteNote(n.id);
+                          }}
+                        >
+                          <i className="fa-solid fa-trash" aria-hidden="true" />
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                 ))}
                 {filteredNotes.length === 0 ? <div className="notesEmptyState">No notes match your filters.</div> : null}
               </div>
@@ -647,6 +699,83 @@ export default function NotesHub() {
           </section>
         </div>
       </div>
+
+      {modal ? (
+        <div
+          className={styles.modalOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-label={modal === "addFolder" ? "Add folder" : "Add tag"}
+          onClick={() => setModal(null)}
+        >
+          <div
+            className={styles.modalCard}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <div className={styles.modalTitle}>{modal === "addFolder" ? "Add folder" : "Add tag"}</div>
+            <div className={styles.modalSub}>
+              {modal === "addFolder" ? "Create a folder to organize notes." : "Create a tag to label notes."}
+            </div>
+
+            <input
+              autoFocus
+              className={styles.modalInput}
+              value={modalLabel}
+              onChange={(e) => setModalLabel(e.target.value)}
+              placeholder={modal === "addFolder" ? "Folder name" : "Tag name"}
+              aria-label={modal === "addFolder" ? "Folder name" : "Tag name"}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setModal(null);
+                if (e.key !== "Enter") return;
+                if (modal === "addFolder") {
+                  if (createFolder(modalLabel)) setModal(null);
+                } else {
+                  if (createTag(modalLabel, tagDotDraft)) setModal(null);
+                }
+              }}
+            />
+
+            {modal === "addTag" ? (
+              <div className={styles.dotPicker} aria-label="Pick tag color">
+                {TAG_DOT_PALETTE.map((dot) => (
+                  <button
+                    key={dot}
+                    type="button"
+                    className={[styles.dotBtn, tagDotDraft === dot ? styles.dotBtnActive : ""].filter(Boolean).join(" ")}
+                    aria-label={`Pick ${dot}`}
+                    onClick={() => setTagDotDraft(dot)}
+                  >
+                    <span className={["notesDot", dot].filter(Boolean).join(" ")} aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <div className={styles.modalActions}>
+              <button type="button" className={styles.modalBtn} onClick={() => setModal(null)} aria-label="Cancel">
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={[styles.modalBtn, styles.modalBtnPrimary].join(" ")}
+                onClick={() => {
+                  if (modal === "addFolder") {
+                    if (createFolder(modalLabel)) setModal(null);
+                  } else {
+                    if (createTag(modalLabel, tagDotDraft)) setModal(null);
+                  }
+                }}
+                aria-label={modal === "addFolder" ? "Create folder" : "Create tag"}
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

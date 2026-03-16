@@ -154,6 +154,117 @@
   transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
 }
 
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  z-index: 60;
+}
+
+.modalCard {
+  width: min(520px, 100%);
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(180deg, rgba(30, 30, 30, 0.90), rgba(20, 20, 20, 0.88));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.modalTitle {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.modalSub {
+  font-weight: 800;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.modalInput {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-weight: 900;
+  outline: none;
+}
+
+.modalInput:focus {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
+.dotPicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dotBtn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.dotBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+.dotBtnActive {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.modalBtn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.90);
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.modalBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+.modalBtnPrimary {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.modalBtnPrimary:hover {
+  background: rgba(255, 255, 255, 0.20);
+  border-color: rgba(255, 255, 255, 0.26);
+}
+
 .colTitle {
   min-width: 0;
   display: flex;
