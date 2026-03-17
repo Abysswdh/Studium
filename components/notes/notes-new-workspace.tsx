@@ -97,6 +97,10 @@ function templateDraftKey() {
   return getScopedKey(TEMPLATE_DRAFT_KEY);
 }
 
+function isNotesNewPathname(pathname: string) {
+  return /\/notes\/new\/?$/.test(String(pathname || ""));
+}
+
 type OpenTarget = {
   id?: string;
   createdAt?: number;
@@ -555,6 +559,14 @@ export default function NotesNewWorkspace() {
   const deepLinkNoteId = (searchParams.get("note") || "").trim();
   const fullscreen = ["1", "true", "yes"].includes(String(searchParams.get("fullscreen") || "").trim().toLowerCase());
   const forceNew = ["1", "true", "yes"].includes(String(searchParams.get("new") || "").trim().toLowerCase());
+  const searchToken = (() => {
+    try {
+      const raw = searchParams?.toString?.() || "";
+      return raw ? `?${raw}` : "?";
+    } catch {
+      return "?";
+    }
+  })();
 
   const [store, setStore] = useState<NotesStore>(() => loadStore());
   const [view, setView] = useState<NotesView>("all");
@@ -789,7 +801,7 @@ export default function NotesNewWorkspace() {
   useEffect(() => {
     if (didInitForNewRoute.current) return;
     if (typeof window === "undefined") return;
-    if (!window.location.pathname.endsWith("/notes/new")) return;
+    if (!isNotesNewPathname(window.location.pathname)) return;
     const forceNewNow = (() => {
       if (forceNew) return true;
       try {
@@ -859,7 +871,7 @@ export default function NotesNewWorkspace() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!window.location.pathname.endsWith("/notes/new")) return;
+    if (!isNotesNewPathname(window.location.pathname)) return;
     const forceNewNow = (() => {
       if (forceNew) return true;
       try {
@@ -873,7 +885,8 @@ export default function NotesNewWorkspace() {
     })();
     if (!forceNewNow) return;
 
-    const token = window.location.search || "?";
+    // Re-run draft creation when the query changes (e.g. nonce) while staying on this route.
+    const token = window.location.search || searchToken || "?";
     if (didInitForceNewRef.current === token) return;
     didInitForceNewRef.current = token;
 
@@ -888,7 +901,7 @@ export default function NotesNewWorkspace() {
 
     createDraft({ useTemplate: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forceNew]);
+  }, [forceNew, searchToken]);
 
   useEffect(() => {
     if (!store.notes.length) return;
