@@ -2215,6 +2215,22 @@ body[data-subview="study-room"].focus-strict .shell {
   background: rgba(255, 255, 255, 0.14);
 }
 
+.notesAutoSaveToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notesAutoSaveToggle--on {
+  background: rgba(120, 255, 190, 0.14);
+  border-color: rgba(160, 255, 210, 0.26);
+  color: rgba(235, 255, 246, 0.96);
+}
+
+.notesAutoSaveToggle--on:hover {
+  background: rgba(120, 255, 190, 0.18);
+}
+
 .notesPrimaryBtn--danger {
   background: rgba(255, 80, 80, 0.20);
   border-color: rgba(255, 120, 120, 0.32);

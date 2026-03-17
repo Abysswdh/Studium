@@ -93,6 +93,10 @@ function hiddenUnlockKey() {
   return getScopedKey("studium:notes:hiddenUnlocked:v1");
 }
 
+function autoSaveKey() {
+  return getScopedKey("studium:notes:autoSave:v1");
+}
+
 function templateDraftKey() {
   return getScopedKey(TEMPLATE_DRAFT_KEY);
 }
@@ -623,6 +627,17 @@ export default function NotesNewWorkspace() {
   const [linkError, setLinkError] = useState<string | null>(null);
   const [reminderDraft, setReminderDraft] = useState<string>("");
   const [textColorDraft, setTextColorDraft] = useState<{ hex: string; r: number; g: number; b: number }>({ hex: "#ffffff", r: 255, g: 255, b: 255 });
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(() => {
+    try {
+      const raw = String(localStorage.getItem(autoSaveKey()) ?? "").trim().toLowerCase();
+      if (!raw) return true;
+      if (["1", "true", "yes", "on"].includes(raw)) return true;
+      if (["0", "false", "no", "off"].includes(raw)) return false;
+      return true;
+    } catch {
+      return true;
+    }
+  });
 
   const editorRef = useRef<HTMLDivElement | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
@@ -909,6 +924,13 @@ export default function NotesNewWorkspace() {
 
   useEffect(() => {
     if (!store.notes.length) return;
+    if (!autoSaveEnabled) {
+      if (saveTimer.current) {
+        window.clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+      return;
+    }
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
     const persisted = (() => {
       const exclude = uncommittedIdsRef.current;
@@ -921,7 +943,7 @@ export default function NotesNewWorkspace() {
     return () => {
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
     };
-  }, [store]);
+  }, [autoSaveEnabled, store]);
 
   const counts = useMemo(() => {
     const all = store.notes.filter((n) => !n.deletedAt && !n.hiddenAt).length;
@@ -1145,9 +1167,17 @@ export default function NotesNewWorkspace() {
   }, [activeNote?.body, activeNote?.id]);
 
   const updateNote = (id: string, patch: Partial<Note>) => {
+    const changedKeys = Object.keys(patch).filter((k) => k !== "updatedAt");
     setStore((prev) => ({
       ...prev,
-      notes: prev.notes.map((n) => (n.id === id ? { ...n, ...patch, updatedAt: patch.updatedAt ?? now() } : n)),
+      notes: prev.notes.map((n) => {
+        if (n.id !== id) return n;
+        const next = { ...n, ...patch, updatedAt: patch.updatedAt ?? now() };
+        if (autoSaveEnabled && changedKeys.length > 0 && uncommittedIdsRef.current.has(id)) {
+          uncommittedIdsRef.current.delete(id);
+        }
+        return next;
+      }),
     }));
   };
 
@@ -1836,9 +1866,11 @@ export default function NotesNewWorkspace() {
     }
     const uncommitted = uncommittedIdsRef.current.has(note.id);
     if (!uncommitted) {
-      // best-effort flush pending autosave before leaving
-      if (saveTimer.current) window.clearTimeout(saveTimer.current);
-      persistCurrentStore({ includeUncommitted: false });
+      if (autoSaveEnabled) {
+        // best-effort flush pending autosave before leaving
+        if (saveTimer.current) window.clearTimeout(saveTimer.current);
+        persistCurrentStore({ includeUncommitted: false });
+      }
       router.push(href);
       return;
     }
@@ -1879,6 +1911,22 @@ export default function NotesNewWorkspace() {
     uncommittedIdsRef.current.delete(note.id);
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
     persistCurrentStore({ includeUncommitted: true });
+  };
+
+  const toggleAutoSave = () => {
+    setAutoSaveEnabled((cur) => {
+      const next = !cur;
+      try {
+        localStorage.setItem(autoSaveKey(), next ? "1" : "0");
+      } catch {
+        // ignore
+      }
+      if (next) {
+        if (saveTimer.current) window.clearTimeout(saveTimer.current);
+        persistCurrentStore({ includeUncommitted: false });
+      }
+      return next;
+    });
   };
 
   const pickImage = () => {
@@ -2044,7 +2092,7 @@ export default function NotesNewWorkspace() {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col gap-[var(--shell-gap)]" aria-label="Notes workspace">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"
           className="notesBackBtn gridCard"
@@ -2055,8 +2103,18 @@ export default function NotesNewWorkspace() {
           <i className="fa-solid fa-arrow-left" aria-hidden="true" />
           Back
         </button>
-        <div className="flex items-center gap-2">
-          <div className="text-[12px] font-extrabold text-white/55">Auto-save</div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            className={["notesPrimaryBtn", "gridCard", "notesAutoSaveToggle", autoSaveEnabled ? "notesAutoSaveToggle--on" : ""].join(" ")}
+            aria-label="Toggle auto-save"
+            title="Toggle auto-save"
+            aria-pressed={autoSaveEnabled}
+            onClick={toggleAutoSave}
+          >
+            <i className={["fa-solid", autoSaveEnabled ? "fa-square-check" : "fa-square"].join(" ")} aria-hidden="true" />
+            Auto-save
+          </button>
           <button type="button" className="notesPrimaryBtn gridCard" onClick={saveNow} disabled={!activeNote || !!activeNote?.deletedAt}>
             <i className="fa-solid fa-floppy-disk" aria-hidden="true" /> Save
           </button>
@@ -3315,9 +3373,11 @@ export default function NotesNewWorkspace() {
             </div>
 
             <div className="flex items-center justify-end gap-2">
-              <button type="button" className="notesPrimaryBtn gridCard" onClick={closeModal}>
-                Cancel
-              </button>
+              {modal !== "leaveUnsaved" ? (
+                <button type="button" className="notesPrimaryBtn gridCard" onClick={closeModal}>
+                  Cancel
+                </button>
+              ) : null}
               {modal === "deleteNote" ? (
                 <button
                   type="button"
