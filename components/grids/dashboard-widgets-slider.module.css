@@ -67,17 +67,22 @@
 }
 
 .viewport {
+  width: 100%;
+  min-width: 0;
   overflow: hidden;
 }
 
 .track {
   display: flex;
+  width: 100%;
+  min-width: 0;
   transition: transform 280ms ease;
   will-change: transform;
 }
 
 .slide {
   flex: 0 0 100%;
+  width: 100%;
   min-width: 0;
 }
 
