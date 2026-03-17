@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import styles from "./notes-hub.module.css";
@@ -274,6 +275,7 @@ export default function NotesHub() {
   const [noteActionTarget, setNoteActionTarget] = useState<null | { id: string; title: string }>(null);
   const [assetUrls, setAssetUrls] = useState<Record<string, string>>({});
   const previewRootRef = useRef<HTMLDivElement | null>(null);
+  const noteBtnRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   useEffect(() => {
     setStore(loadStore());
@@ -584,6 +586,94 @@ export default function NotesHub() {
     setModal("permaDeleteNote");
   };
 
+  const focusNoteBtn = (id: string) => {
+    const el = noteBtnRefs.current.get(id);
+    if (!el) return;
+    try {
+      el.focus({ preventScroll: true });
+    } catch {
+      el.focus();
+    }
+  };
+
+  const onNotesListKeyDown = (e: ReactKeyboardEvent<HTMLElement>) => {
+    const key = e.key;
+    if (!["ArrowDown", "ArrowUp", "Home", "End", "PageDown", "PageUp"].includes(key)) return;
+    const t = e.target as HTMLElement | null;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || (t as any).isContentEditable)) return;
+
+    const ids = filteredNotes.map((n) => n.id);
+    if (!ids.length) return;
+
+    e.preventDefault();
+
+    const focusedId =
+      (t?.closest?.("[data-note-id]") as HTMLElement | null)?.getAttribute("data-note-id") || (activeId && ids.includes(activeId) ? activeId : ids[0]);
+    const currentIdx = Math.max(0, ids.indexOf(focusedId));
+
+    let nextIdx = currentIdx;
+    if (key === "Home") nextIdx = 0;
+    else if (key === "End") nextIdx = ids.length - 1;
+    else {
+      const jump = key === "PageDown" ? 6 : key === "PageUp" ? -6 : key === "ArrowDown" ? 1 : -1;
+      nextIdx = Math.max(0, Math.min(ids.length - 1, currentIdx + jump));
+    }
+
+    const nextId = ids[nextIdx];
+    if (!nextId) return;
+    setActiveId(nextId);
+    requestAnimationFrame(() => focusNoteBtn(nextId));
+  };
+
+  const onTabsKeyDown = (e: ReactKeyboardEvent<HTMLElement>) => {
+    const key = e.key;
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(key)) return;
+    const t = e.currentTarget as HTMLElement;
+    const btns = Array.from(t.querySelectorAll<HTMLButtonElement>("button"));
+    if (!btns.length) return;
+    const active = document.activeElement as HTMLElement | null;
+    const idx = Math.max(0, btns.findIndex((b) => b === active));
+    e.preventDefault();
+
+    let next = idx;
+    if (key === "Home") next = 0;
+    else if (key === "End") next = btns.length - 1;
+    else next = (idx + (key === "ArrowRight" ? 1 : -1) + btns.length) % btns.length;
+
+    const el = btns[next];
+    if (!el) return;
+    try {
+      el.focus({ preventScroll: true });
+    } catch {
+      el.focus();
+    }
+  };
+
+  const onCatalogKeyDown = (kind: "folder" | "tag") => (e: ReactKeyboardEvent<HTMLElement>) => {
+    const key = e.key;
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(key)) return;
+    const t = e.currentTarget as HTMLElement;
+    const selector = kind === "folder" ? "[data-folder-id]" : "[data-tag-id]";
+    const btns = Array.from(t.querySelectorAll<HTMLButtonElement>(selector));
+    if (!btns.length) return;
+    const active = document.activeElement as HTMLElement | null;
+    const idx = Math.max(0, btns.findIndex((b) => b === active));
+    e.preventDefault();
+
+    let next = idx;
+    if (key === "Home") next = 0;
+    else if (key === "End") next = btns.length - 1;
+    else next = Math.max(0, Math.min(btns.length - 1, idx + (key === "ArrowDown" ? 1 : -1)));
+
+    const el = btns[next];
+    if (!el) return;
+    try {
+      el.focus({ preventScroll: true });
+    } catch {
+      el.focus();
+    }
+  };
+
   const confirmPermaDeleteNote = () => {
     if (!noteActionTarget) return;
     const id = noteActionTarget.id;
@@ -610,13 +700,14 @@ export default function NotesHub() {
           </div>
 
           <section className={styles.panel} aria-label="Folders">
-            <div className={styles.catalog} role="list" aria-label="Folder list">
+            <div className={styles.catalog} role="list" aria-label="Folder list" onKeyDown={onCatalogKeyDown("folder")}>
               {store.folderCatalog.map((f) => (
                 <div key={f.id} className={styles.hoverRow}>
                   <button
                     type="button"
                     className={[sidebarItemClass(folderFilter === f.id), styles.hoverRowMain].filter(Boolean).join(" ")}
                     role="listitem"
+                    data-folder-id={f.id}
                     onClick={() => setFolderFilter((prev) => (prev === f.id ? null : f.id))}
                     aria-label={`Folder ${f.label}`}
                   >
@@ -658,13 +749,14 @@ export default function NotesHub() {
           </div>
 
           <section className={styles.panel} aria-label="Tags">
-            <div className={styles.catalog} role="list" aria-label="Tag list">
+            <div className={styles.catalog} role="list" aria-label="Tag list" onKeyDown={onCatalogKeyDown("tag")}>
               {store.tagCatalog.map((t) => (
                 <div key={t.id} className={styles.hoverRow}>
                   <button
                     type="button"
                     className={[tagPillClass(tagFilter === t.id), styles.hoverRowMain].filter(Boolean).join(" ")}
                     role="listitem"
+                    data-tag-id={t.id}
                     onClick={() => setTagFilter((prev) => (prev === t.id ? null : t.id))}
                     aria-label={`Tag ${t.label}`}
                   >
@@ -723,11 +815,13 @@ export default function NotesHub() {
 
           <section className={styles.panel} aria-label="Notes list">
             <div className={styles.notesPanelHead} aria-label="Notes list header">
-              <div className={styles.tabs} aria-label="All notes tabs">
+              <div className={styles.tabs} aria-label="All notes tabs" role="tablist" onKeyDown={onTabsKeyDown}>
                 <button
                   type="button"
                   className={[styles.tabBtn, view === "all" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
                   onClick={() => setView("all")}
+                  role="tab"
+                  aria-selected={view === "all"}
                   aria-label="All notes"
                 >
                   <span className={styles.tabLabel}>
@@ -742,6 +836,8 @@ export default function NotesHub() {
                   type="button"
                   className={[styles.tabBtn, view === "favorites" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
                   onClick={() => setView("favorites")}
+                  role="tab"
+                  aria-selected={view === "favorites"}
                   aria-label="Favorite notes"
                 >
                   <span className={styles.tabLabel}>
@@ -756,6 +852,8 @@ export default function NotesHub() {
                   type="button"
                   className={[styles.tabBtn, view === "hidden" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
                   onClick={openHiddenView}
+                  role="tab"
+                  aria-selected={view === "hidden"}
                   aria-label="Hidden notes"
                 >
                   <span className={styles.tabLabel}>
@@ -770,6 +868,8 @@ export default function NotesHub() {
                   type="button"
                   className={[styles.tabBtn, view === "deleted" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
                   onClick={() => setView("deleted")}
+                  role="tab"
+                  aria-selected={view === "deleted"}
                   aria-label="Recently deleted"
                 >
                   <span className={styles.tabLabel}>
@@ -795,11 +895,16 @@ export default function NotesHub() {
             </div>
 
             <div className={styles.notesPanelBody}>
-              <div className={styles.list} role="list" aria-label="Notes list items">
+              <div className={styles.list} role="list" aria-label="Notes list items" onKeyDown={onNotesListKeyDown}>
                 {filteredNotes.map((n) => (
                   <button
                     key={n.id}
                     type="button"
+                    data-note-id={n.id}
+                    ref={(el) => {
+                      if (el) noteBtnRefs.current.set(n.id, el);
+                      else noteBtnRefs.current.delete(n.id);
+                    }}
                     className={["notesListItem", "gridCard", styles.noteItem, activeNote?.id === n.id ? "notesListItem--active" : ""].filter(Boolean).join(" ")}
                     role="listitem"
                     onClick={() => setActiveId(n.id)}
