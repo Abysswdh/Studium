@@ -1221,9 +1221,16 @@ export default function NotesNewWorkspace() {
       deletedAt: null,
     };
 
-    uncommittedIdsRef.current.add(id);
+    if (!autoSaveEnabled) uncommittedIdsRef.current.add(id);
 
-    setStore((prev) => ({ ...prev, notes: [draft, ...prev.notes], lastDraftId: id }));
+    setStore((prev) => {
+      const next: NotesStore = { ...prev, notes: [draft, ...prev.notes], lastDraftId: id };
+      if (autoSaveEnabled) {
+        // Auto-save behaves like Save: persist immediately on creation.
+        saveStore(next);
+      }
+      return next;
+    });
     setActiveId(id);
     setView("all");
     setTagFilter(null);
@@ -1867,42 +1874,7 @@ export default function NotesNewWorkspace() {
     const uncommitted = uncommittedIdsRef.current.has(note.id);
     if (uncommitted && autoSaveEnabled) {
       // Auto-save ON: never show the leave prompt.
-      // If the draft is still empty, discard it. Otherwise, commit and persist.
-      const snapshot = (() => {
-        let body = note.body || "";
-        let bodyFormat: "plain" | "html" = note.bodyFormat;
-        try {
-          if (editing) {
-            const el = editorRef.current;
-            if (el) {
-              body = sanitizeNoteHtml(el.innerHTML || "");
-              bodyFormat = "html";
-            }
-          } else {
-            const el = previewRef.current;
-            if (el) {
-              body = sanitizeNoteHtml(el.innerHTML || "");
-              bodyFormat = "html";
-            }
-          }
-        } catch {
-          // ignore
-        }
-        return { title: note.title || "Untitled", body, bodyFormat };
-      })();
-      const title = String(snapshot.title || "").trim();
-      const bodyText = snapshot.bodyFormat === "html" ? stripHtmlQuick(snapshot.body) : String(snapshot.body || "").trim();
-      const hasAsset = parseAssetIds(snapshot.body || "").length > 0;
-      if (title === "Untitled" && !bodyText && !hasAsset) {
-        uncommittedIdsRef.current.delete(note.id);
-        setStore((prev) => ({
-          ...prev,
-          notes: prev.notes.filter((n) => n.id !== note.id),
-          lastDraftId: prev.lastDraftId === note.id ? null : prev.lastDraftId,
-        }));
-        router.push(href);
-        return;
-      }
+      // Commit + persist immediately, just like pressing Save.
       uncommittedIdsRef.current.delete(note.id);
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
       persistCurrentStore({ includeUncommitted: true });
@@ -1966,8 +1938,10 @@ export default function NotesNewWorkspace() {
         // ignore
       }
       if (next) {
+        // Auto-save ON behaves like Save: commit any unsaved drafts.
+        uncommittedIdsRef.current.clear();
         if (saveTimer.current) window.clearTimeout(saveTimer.current);
-        persistCurrentStore({ includeUncommitted: false });
+        persistCurrentStore({ includeUncommitted: true });
       }
       return next;
     });
