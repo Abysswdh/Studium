@@ -166,6 +166,74 @@
   line-height: 1.6;
 }
 
+.qsQuestEmpty[hidden] {
+  display: none;
+}
+
+.qsQuestList:empty {
+  display: none;
+}
+
+.qsQuestList {
+  display: grid;
+  gap: 10px;
+}
+
+.qsQuestItem {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  border-radius: 18px;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.qsQuestItem:hover {
+  filter: brightness(1.06);
+}
+
+.qsQuestItemMain {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.qsQuestItemTitle {
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
+  letter-spacing: 0.15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qsQuestItemMeta {
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qsQuestItemChevron {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.qsQuestItemChevron i {
+  font-size: 14px;
+}
+
 .qsPanelFooter {
   display: flex;
   align-items: center;

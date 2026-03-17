@@ -476,15 +476,26 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         </div>
 
         <div className="qsPanelBody" aria-label="Quest content">
-          <div className="qsPanelCard" aria-label="Quest card">
-            <div className="qsPanelCardTitle">Today&apos;s quests</div>
-            <div className="qsPanelCardSub">Jump back into your quests and keep the streak going.</div>
+          <div className="qsPanelCard" aria-label="Quest summary">
+            <div className="qsPanelCardTitle" id="qsQuestSummaryTitle">
+              Active quests
+            </div>
+            <div className="qsPanelCardSub" id="qsQuestSummarySub">
+              Loading your quests...
+            </div>
+          </div>
+
+          <div className="qsQuestList" id="qsQuestList" role="list" aria-label="Quest list"></div>
+
+          <div className="qsPanelCard qsQuestEmpty" id="qsQuestEmpty" hidden aria-hidden="true" aria-label="No quests">
+            <div className="qsPanelCardTitle">No quests yet</div>
+            <div className="qsPanelCardSub">Create a quest to start earning XP and streaks.</div>
           </div>
         </div>
 
         <div className="qsPanelFooter" aria-label="Quest actions">
           <button className="qsPanelFooterBtn qsPanelFooterBtn--primary headerAction" id="qsQuestOpenBtn" type="button" aria-label="Open quest page">
-            Open Quest
+            View all quests
           </button>
         </div>
       </section>

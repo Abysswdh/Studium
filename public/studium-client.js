@@ -785,6 +785,10 @@ try {
   const qsQuestPanel = document.getElementById("qsQuestPanel");
   const qsQuestCloseBtn = document.getElementById("qsQuestCloseBtn");
   const qsQuestOpenBtn = document.getElementById("qsQuestOpenBtn");
+  const qsQuestList = document.getElementById("qsQuestList");
+  const qsQuestEmpty = document.getElementById("qsQuestEmpty");
+  const qsQuestSummaryTitle = document.getElementById("qsQuestSummaryTitle");
+  const qsQuestSummarySub = document.getElementById("qsQuestSummarySub");
   const qsSchedulePanel = document.getElementById("qsSchedulePanel");
   const qsScheduleCloseBtn = document.getElementById("qsScheduleCloseBtn");
   const qsScheduleOpenBtn = document.getElementById("qsScheduleOpenBtn");
@@ -933,6 +937,7 @@ try {
   const LS_MUSIC_IDX = "studium:qs_music_index";
   const LS_QS_ADV = "studium:qs_advanced_open";
   const LS_QS_PROFILE_STATUS = "studium:qs_profile_status_on";
+  const LS_QUESTS_BASE = "studium:quests_v1";
 
   const QS_MOBILE_MAX = 900;
   const isMobileQs = () => typeof window !== "undefined" && window.innerWidth <= QS_MOBILE_MAX;
@@ -986,6 +991,7 @@ try {
 
     if (name === "profile") syncProfileStatusToggle();
     if (name === "notif") syncNotifUi();
+    if (name === "quest") syncQuestUi();
 
     if (isMobileQs()) {
       try {
@@ -1089,6 +1095,118 @@ try {
       qsNotifPill.textContent = on ? "On" : "Off";
       qsNotifPill.classList.toggle("qsMenuPill--off", !on);
     }
+  };
+
+  const currentUserId = () => {
+    try {
+      const root = document.querySelector(".shellRoot");
+      const raw = (root && root.dataset ? root.dataset.userId : "") || (document.body && document.body.dataset ? document.body.dataset.userId : "") || "";
+      const id = Number(raw);
+      return Number.isFinite(id) && id > 0 ? id : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const scopedPlannerKey = (base) => {
+    const uid = currentUserId();
+    return uid ? `${base}:u${uid}` : base;
+  };
+
+  const readQuests = () => {
+    const raw = safeLocalGet(scopedPlannerKey(LS_QUESTS_BASE));
+    if (!raw) return [];
+    try {
+      const v = JSON.parse(raw);
+      return Array.isArray(v) ? v : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const isQuestDone = (q) => {
+    const stages = q && Array.isArray(q.stages) ? q.stages : [];
+    if (!stages.length) return false;
+    return stages.every((s) => !!(s && s.done));
+  };
+
+  const formatDue = (iso) => {
+    if (!iso) return "";
+    try {
+      const d = new Date(String(iso));
+      if (Number.isNaN(d.getTime())) return "";
+      return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    } catch {
+      return "";
+    }
+  };
+
+  const syncQuestUi = () => {
+    if (!qsQuestList) return;
+    const quests = readQuests().filter((q) => q && q.id && !isQuestDone(q));
+    quests.sort((a, b) => {
+      const ad = a && a.dueAt ? new Date(String(a.dueAt)).getTime() : Number.POSITIVE_INFINITY;
+      const bd = b && b.dueAt ? new Date(String(b.dueAt)).getTime() : Number.POSITIVE_INFINITY;
+      if (ad !== bd) return ad - bd;
+      const au = a && a.createdAt ? new Date(String(a.createdAt)).getTime() : 0;
+      const bu = b && b.createdAt ? new Date(String(b.createdAt)).getTime() : 0;
+      return bu - au;
+    });
+
+    const shown = quests.slice(0, 6);
+    qsQuestList.innerHTML = "";
+
+    if (qsQuestEmpty) {
+      const empty = shown.length === 0;
+      qsQuestEmpty.hidden = !empty;
+      qsQuestEmpty.setAttribute("aria-hidden", empty ? "false" : "true");
+    }
+
+    if (qsQuestSummaryTitle) qsQuestSummaryTitle.textContent = `Active quests${quests.length ? ` (${quests.length})` : ""}`;
+    if (qsQuestSummarySub) qsQuestSummarySub.textContent = shown.length ? "Tap a quest to open details." : "Create a quest to start earning XP and streaks.";
+
+    shown.forEach((q, idx) => {
+      const title = String(q.title || "Untitled").trim() || "Untitled";
+      const context = String(q.context || "").trim();
+      const stages = Array.isArray(q.stages) ? q.stages : [];
+      const done = stages.filter((s) => s && s.done).length;
+      const total = stages.length;
+      const due = formatDue(q.dueAt);
+      const metaParts = [];
+      if (context) metaParts.push(context);
+      if (total) metaParts.push(`${done}/${total} stages`);
+      if (due) metaParts.push(`Due ${due}`);
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "qsQuestItem headerAction";
+      btn.setAttribute("role", "listitem");
+      btn.setAttribute("data-quest-id", String(q.id));
+      btn.setAttribute("aria-label", `Open quest ${title}`);
+      btn.setAttribute("data-focus", `drawer.quest.${idx + 1}`);
+
+      const main = document.createElement("span");
+      main.className = "qsQuestItemMain";
+
+      const t = document.createElement("span");
+      t.className = "qsQuestItemTitle";
+      t.textContent = title;
+
+      const m = document.createElement("span");
+      m.className = "qsQuestItemMeta";
+      m.textContent = metaParts.join(" • ");
+
+      const ch = document.createElement("span");
+      ch.className = "qsQuestItemChevron";
+      ch.setAttribute("aria-hidden", "true");
+      ch.innerHTML = '<i class="fa-solid fa-chevron-right" aria-hidden="true"></i>';
+
+      main.appendChild(t);
+      main.appendChild(m);
+      btn.appendChild(main);
+      btn.appendChild(ch);
+      qsQuestList.appendChild(btn);
+    });
   };
 
   const setPendingFocus = (key) => {
@@ -1714,6 +1832,28 @@ try {
   if (qsStudyOpenBtn) qsStudyOpenBtn.addEventListener("click", () => navShortcut("/study"));
   if (qsBattleOpenBtn) qsBattleOpenBtn.addEventListener("click", () => navShortcut("/battle"));
   if (qsNotesOpenBtn) qsNotesOpenBtn.addEventListener("click", () => navShortcut("/notes"));
+
+  if (qsQuestList) {
+    qsQuestList.addEventListener("click", (e) => {
+      const t = e.target;
+      const btn = t && t.closest ? t.closest("[data-quest-id]") : null;
+      if (!btn) return;
+      const id = btn.getAttribute("data-quest-id") || "";
+      if (!id) return;
+      navShortcut(`/quest?quest=${encodeURIComponent(id)}&detail=1`);
+    });
+  }
+
+  try {
+    window.addEventListener("studium:planner_updated", () => {
+      if (isQsPanelOpen("quest")) syncQuestUi();
+    });
+    window.addEventListener("storage", () => {
+      if (isQsPanelOpen("quest")) syncQuestUi();
+    });
+  } catch {
+    // ignore
+  }
 
   const setProfileTab = (tab) => {
     if (!qsProfilePanel) return;
