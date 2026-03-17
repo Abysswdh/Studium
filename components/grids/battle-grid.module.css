@@ -5,9 +5,6 @@
   flex-direction: column;
   position: relative;
   overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
   padding-bottom: 6px;
 }
 
