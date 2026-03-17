@@ -464,7 +464,7 @@
   align-items: center;
   gap: 10px;
   white-space: nowrap;
-  flex: 1 1 0;
+  flex: 0 0 auto;
   min-width: 0;
   justify-content: space-between;
   transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
@@ -645,6 +645,7 @@
   }
 
   .tabBtn {
+    flex: 1 1 0;
     padding: 6px 7px;
     font-size: 10px;
   }
