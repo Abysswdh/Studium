@@ -436,13 +436,6 @@ function stripHtmlQuick(html: string) {
     .trim();
 }
 
-function noteLooksEmpty(n: Note) {
-  const title = String(n.title || "").trim();
-  const bodyText = n.bodyFormat === "html" ? stripHtmlQuick(n.body) : String(n.body || "").trim();
-  const hasAsset = parseAssetIds(n.body || "").length > 0;
-  return title === "Untitled" && !bodyText && !hasAsset;
-}
-
 function parseAssetIds(body: string) {
   const re = /\[\[(image|audio):([a-zA-Z0-9_\-]+)\]\]/g;
   const ids = new Set<string>();
@@ -1875,7 +1868,32 @@ export default function NotesNewWorkspace() {
     if (uncommitted && autoSaveEnabled) {
       // Auto-save ON: never show the leave prompt.
       // If the draft is still empty, discard it. Otherwise, commit and persist.
-      if (noteLooksEmpty(note)) {
+      const snapshot = (() => {
+        let body = note.body || "";
+        let bodyFormat: "plain" | "html" = note.bodyFormat;
+        try {
+          if (editing) {
+            const el = editorRef.current;
+            if (el) {
+              body = sanitizeNoteHtml(el.innerHTML || "");
+              bodyFormat = "html";
+            }
+          } else {
+            const el = previewRef.current;
+            if (el) {
+              body = sanitizeNoteHtml(el.innerHTML || "");
+              bodyFormat = "html";
+            }
+          }
+        } catch {
+          // ignore
+        }
+        return { title: note.title || "Untitled", body, bodyFormat };
+      })();
+      const title = String(snapshot.title || "").trim();
+      const bodyText = snapshot.bodyFormat === "html" ? stripHtmlQuick(snapshot.body) : String(snapshot.body || "").trim();
+      const hasAsset = parseAssetIds(snapshot.body || "").length > 0;
+      if (title === "Untitled" && !bodyText && !hasAsset) {
         uncommittedIdsRef.current.delete(note.id);
         setStore((prev) => ({
           ...prev,
