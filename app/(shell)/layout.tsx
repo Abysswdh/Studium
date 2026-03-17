@@ -260,6 +260,26 @@ export default async function ShellLayout({ children }: { children: React.ReactN
                 </span>
               </button>
 
+              <button className="qsMenuBtn headerAction" id="qsScheduleShortcutBtn" data-focus="drawer.shortcutSchedule" type="button" aria-label="Go to Schedule">
+                <span className="qsMenuIcon" aria-hidden="true">
+                  <i className="fa-solid fa-calendar-days"></i>
+                </span>
+                <span className="qsMenuText">Schedule</span>
+                <span className="qsMenuChevron" aria-hidden="true">
+                  <i className="fa-solid fa-chevron-right"></i>
+                </span>
+              </button>
+
+              <button className="qsMenuBtn headerAction" id="qsStudyShortcutBtn" data-focus="drawer.shortcutStudy" type="button" aria-label="Go to Study Room">
+                <span className="qsMenuIcon" aria-hidden="true">
+                  <i className="fa-solid fa-book-open"></i>
+                </span>
+                <span className="qsMenuText">Study Room</span>
+                <span className="qsMenuChevron" aria-hidden="true">
+                  <i className="fa-solid fa-chevron-right"></i>
+                </span>
+              </button>
+
               <button className="qsMenuBtn headerAction" id="qsBattleBtn" data-focus="drawer.shortcutBattle" type="button" aria-label="Go to Battle">
                 <span className="qsMenuIcon" aria-hidden="true">
                   <i className="fa-solid fa-fire"></i>
@@ -465,6 +485,54 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         <div className="qsPanelFooter" aria-label="Quest actions">
           <button className="qsPanelFooterBtn qsPanelFooterBtn--primary headerAction" id="qsQuestOpenBtn" type="button" aria-label="Open quest page">
             Open Quest
+          </button>
+        </div>
+      </section>
+
+      <section className="qsPanel" id="qsSchedulePanel" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Schedule panel">
+        <div className="qsPanelTop">
+          <div className="qsPanelTitle">Schedule</div>
+          <div className="qsPanelTopRight">
+            <button className="qsPanelClose headerAction" id="qsScheduleCloseBtn" type="button" aria-label="Close schedule panel">
+              <i className="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div className="qsPanelBody" aria-label="Schedule content">
+          <div className="qsPanelCard" aria-label="Schedule card">
+            <div className="qsPanelCardTitle">Agenda + deadlines</div>
+            <div className="qsPanelCardSub">Plan your day and track deadlines that feed your routine.</div>
+          </div>
+        </div>
+
+        <div className="qsPanelFooter" aria-label="Schedule actions">
+          <button className="qsPanelFooterBtn qsPanelFooterBtn--primary headerAction" id="qsScheduleOpenBtn" type="button" aria-label="Open schedule page">
+            Open Schedule
+          </button>
+        </div>
+      </section>
+
+      <section className="qsPanel" id="qsStudyPanel" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Study room panel">
+        <div className="qsPanelTop">
+          <div className="qsPanelTitle">Study Room</div>
+          <div className="qsPanelTopRight">
+            <button className="qsPanelClose headerAction" id="qsStudyCloseBtn" type="button" aria-label="Close study room panel">
+              <i className="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div className="qsPanelBody" aria-label="Study room content">
+          <div className="qsPanelCard" aria-label="Study room card">
+            <div className="qsPanelCardTitle">Pick a mode</div>
+            <div className="qsPanelCardSub">Set goals, then start your study session.</div>
+          </div>
+        </div>
+
+        <div className="qsPanelFooter" aria-label="Study room actions">
+          <button className="qsPanelFooterBtn qsPanelFooterBtn--primary headerAction" id="qsStudyOpenBtn" type="button" aria-label="Open study room page">
+            Open Study Room
           </button>
         </div>
       </section>

@@ -780,9 +780,17 @@ try {
   const qsNotifToggle = document.getElementById("qsNotifToggle");
   const qsNotifPill = document.getElementById("qsNotifPill");
   const qsQuestBtn = document.getElementById("qsQuestBtn");
+  const qsScheduleShortcutBtn = document.getElementById("qsScheduleShortcutBtn");
+  const qsStudyShortcutBtn = document.getElementById("qsStudyShortcutBtn");
   const qsQuestPanel = document.getElementById("qsQuestPanel");
   const qsQuestCloseBtn = document.getElementById("qsQuestCloseBtn");
   const qsQuestOpenBtn = document.getElementById("qsQuestOpenBtn");
+  const qsSchedulePanel = document.getElementById("qsSchedulePanel");
+  const qsScheduleCloseBtn = document.getElementById("qsScheduleCloseBtn");
+  const qsScheduleOpenBtn = document.getElementById("qsScheduleOpenBtn");
+  const qsStudyPanel = document.getElementById("qsStudyPanel");
+  const qsStudyCloseBtn = document.getElementById("qsStudyCloseBtn");
+  const qsStudyOpenBtn = document.getElementById("qsStudyOpenBtn");
   const qsBattleBtn = document.getElementById("qsBattleBtn");
   const qsBattlePanel = document.getElementById("qsBattlePanel");
   const qsBattleCloseBtn = document.getElementById("qsBattleCloseBtn");
@@ -933,6 +941,8 @@ try {
     profile: { panel: qsProfilePanel, btn: qsProfileBtn },
     notif: { panel: qsNotifPanel, btn: qsNotifBtn },
     quest: { panel: qsQuestPanel, btn: qsQuestBtn },
+    schedule: { panel: qsSchedulePanel, btn: qsScheduleShortcutBtn },
+    study: { panel: qsStudyPanel, btn: qsStudyShortcutBtn },
     battle: { panel: qsBattlePanel, btn: qsBattleBtn },
     notes: { panel: qsNotesPanel, btn: qsNotesBtn },
   };
@@ -1573,6 +1583,20 @@ try {
     });
   }
 
+  if (qsScheduleCloseBtn) {
+    qsScheduleCloseBtn.addEventListener("click", () => {
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      closeQsPanel("schedule", { focusBtn: true });
+    });
+  }
+
+  if (qsStudyCloseBtn) {
+    qsStudyCloseBtn.addEventListener("click", () => {
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      closeQsPanel("study", { focusBtn: true });
+    });
+  }
+
   if (qsBattleCloseBtn) {
     qsBattleCloseBtn.addEventListener("click", () => {
       if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
@@ -1633,6 +1657,18 @@ try {
       if (isQsPanelOpen("quest")) closeQsPanel("quest", { focusBtn: true });
       else openQsPanel("quest", { focusFirst: true });
     });
+  if (qsScheduleShortcutBtn)
+    qsScheduleShortcutBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      if (isQsPanelOpen("schedule")) closeQsPanel("schedule", { focusBtn: true });
+      else openQsPanel("schedule", { focusFirst: true });
+    });
+  if (qsStudyShortcutBtn)
+    qsStudyShortcutBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      if (isQsPanelOpen("study")) closeQsPanel("study", { focusBtn: true });
+      else openQsPanel("study", { focusFirst: true });
+    });
   if (qsBattleBtn)
     qsBattleBtn.addEventListener("click", () => {
       if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
@@ -1674,6 +1710,8 @@ try {
   }
 
   if (qsQuestOpenBtn) qsQuestOpenBtn.addEventListener("click", () => navShortcut("/quest"));
+  if (qsScheduleOpenBtn) qsScheduleOpenBtn.addEventListener("click", () => navShortcut("/schedules"));
+  if (qsStudyOpenBtn) qsStudyOpenBtn.addEventListener("click", () => navShortcut("/study"));
   if (qsBattleOpenBtn) qsBattleOpenBtn.addEventListener("click", () => navShortcut("/battle"));
   if (qsNotesOpenBtn) qsNotesOpenBtn.addEventListener("click", () => navShortcut("/notes"));
 
