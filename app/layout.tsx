@@ -6,6 +6,8 @@ import "./styles/legacy/drawer.css";
 import "./styles/shell/responsive.css";
 import "./styles/shell/quick-settings.css";
 
+import BootingCleaner from "../components/booting-cleaner";
+
 export const metadata = {
   title: "Studium",
   description: "Study like a game, finish like a pro.",
@@ -13,7 +15,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="booting" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -29,7 +31,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           referrerPolicy="no-referrer"
         />
       </head>
-      <body className="nav-mode" data-view="dashboard">
+      <body className="nav-mode booting" data-view="dashboard" suppressHydrationWarning>
+        <BootingCleaner />
         {children}
       </body>
     </html>
