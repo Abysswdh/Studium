@@ -2,21 +2,20 @@ import RouteBridge from "../../components/route-bridge";
 import ShellBackground from "../../components/shell-background";
 import NotificationIsland from "../../components/notifications/notification-island";
 import QSStreakPane from "../../components/quick-settings/qs-streak-pane";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "../../lib/auth/current-user";
+import DemoUserName from "../../components/demo/demo-user-name";
 import Script from "next/script";
 import { appData } from "@/lib/app-data";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+const DEMO_USER = {
+  id: 1,
+  xp: 1350,
+  level: 12,
+  avatarUrl: "/blockyPng/profilePicture.png",
+};
 
-export default async function ShellLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
-  if (!user.onboardingCompletedAt) redirect("/onboarding");
-
+export default function ShellLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="shellRoot" data-user-id={user.id}>
+    <main className="shellRoot" data-user-id={DEMO_USER.id}>
       <RouteBridge />
 
       <div className="shell">
@@ -29,17 +28,19 @@ export default async function ShellLayout({ children }: { children: React.ReactN
             aria-label="Quick settings"
           >
             <div className="userAvatar" aria-hidden="true">
-              <img className="userAvatar__img" src={user.avatarUrl} alt="" />
+              <img className="userAvatar__img" src={DEMO_USER.avatarUrl} alt="" />
             </div>
             <div className="userMeta">
-              <div className="userName">{user.displayName}</div>
+              <div className="userName">
+                <DemoUserName fallback="Demo User" />
+              </div>
               <div className="userXp">
                 <span className="bolt" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none">
                     <path d="M13 2L3 14h8l-1 8 11-14h-8l0-6z" fill="currentColor" />
                   </svg>
                 </span>
-                <span className="userXp__value">{user.xp.toLocaleString()} XP</span>
+                <span className="userXp__value">{DEMO_USER.xp.toLocaleString()} XP</span>
               </div>
             </div>
           </button>
@@ -202,12 +203,14 @@ export default async function ShellLayout({ children }: { children: React.ReactN
             <div className="drawerSectionTitle">Profile</div>
             <button className="drawerUser headerAction" id="qsProfileBtn" data-focus="drawer.profile" type="button" aria-label="Open profile settings">
               <div className="drawerAvatar" aria-hidden="true">
-                <img className="drawerAvatar__img" src={user.avatarUrl} alt="" />
+                <img className="drawerAvatar__img" src={DEMO_USER.avatarUrl} alt="" />
               </div>
               <div className="drawerUserMeta">
-                <div className="drawerUserName">{user.displayName}</div>
+                <div className="drawerUserName">
+                  <DemoUserName fallback="Demo User" />
+                </div>
                 <div className="drawerUserSub">
-                  {user.xp.toLocaleString()} XP | LVL {user.level}
+                  {DEMO_USER.xp.toLocaleString()} XP | LVL {DEMO_USER.level}
                 </div>
               </div>
               <span className="drawerUserChevron" aria-hidden="true">
@@ -370,12 +373,14 @@ export default async function ShellLayout({ children }: { children: React.ReactN
 
         <div className="qsProfileHero" aria-label="Profile summary">
           <div className="qsProfileAvatar" aria-hidden="true">
-            <img className="qsProfileAvatarImg" src={user.avatarUrl} alt="" />
+            <img className="qsProfileAvatarImg" src={DEMO_USER.avatarUrl} alt="" />
           </div>
           <div className="qsProfileMeta">
-            <div className="qsProfileName">{user.displayName}</div>
+            <div className="qsProfileName">
+              <DemoUserName fallback="Demo User" />
+            </div>
             <div className="qsProfileSub">
-              {user.xp.toLocaleString()} XP | LVL {user.level}
+              {DEMO_USER.xp.toLocaleString()} XP | LVL {DEMO_USER.level}
             </div>
           </div>
         </div>
