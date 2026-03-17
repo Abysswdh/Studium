@@ -547,12 +547,27 @@
 @media (max-width: 1180px) {
   .body {
     grid-template-columns: 1fr 1fr;
+    overflow-y: auto;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
 @media (max-width: 900px) {
+  .topBar {
+    flex-wrap: wrap;
+  }
+
+  .colHeadTop {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
   .body {
     grid-template-columns: 1fr;
+    overflow-y: auto;
+    padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
