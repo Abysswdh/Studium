@@ -799,6 +799,15 @@ try {
   const qsBattlePanel = document.getElementById("qsBattlePanel");
   const qsBattleCloseBtn = document.getElementById("qsBattleCloseBtn");
   const qsBattleOpenBtn = document.getElementById("qsBattleOpenBtn");
+  const qsBattleModeBtn = document.getElementById("qsBattleModeBtn");
+  const qsBattleStatEloVal = document.getElementById("qsBattleStatEloVal");
+  const qsBattleStatRankVal = document.getElementById("qsBattleStatRankVal");
+  const qsBattleStatWinrateVal = document.getElementById("qsBattleStatWinrateVal");
+  const qsBattleStatXpVal = document.getElementById("qsBattleStatXpVal");
+  const qsBattleQuestSub = document.getElementById("qsBattleQuestSub");
+  const qsBattleQuestList = document.getElementById("qsBattleQuestList");
+  const qsBattleQuestEmpty = document.getElementById("qsBattleQuestEmpty");
+  const qsBattleLbList = document.getElementById("qsBattleLbList");
   const qsNotesBtn = document.getElementById("qsNotesBtn");
   const qsNotesPanel = document.getElementById("qsNotesPanel");
   const qsNotesCloseBtn = document.getElementById("qsNotesCloseBtn");
@@ -992,6 +1001,7 @@ try {
     if (name === "profile") syncProfileStatusToggle();
     if (name === "notif") syncNotifUi();
     if (name === "quest") syncQuestUi();
+    if (name === "battle") syncBattleUi();
 
     if (isMobileQs()) {
       try {
@@ -1207,6 +1217,127 @@ try {
       btn.appendChild(ch);
       qsQuestList.appendChild(btn);
     });
+  };
+
+  const fmtNum = (n) => {
+    try {
+      return Number(n).toLocaleString();
+    } catch {
+      return String(n);
+    }
+  };
+
+  const DUMMY_BATTLE_LB = [
+    { id: "u1", name: "Abyss", xp: 6240, elo: 1420, tag: "B29" },
+    { id: "u2", name: "Putra", xp: 5180, elo: 1350, tag: "B29" },
+    { id: "u3", name: "Nara", xp: 4820, elo: 1288, tag: "B29" },
+    { id: "u4", name: "Raka", xp: 4550, elo: 1210, tag: "B29" },
+    { id: "u5", name: "Salsa", xp: 4390, elo: 1194, tag: "B29" },
+  ];
+
+  const syncBattleUi = () => {
+    const elo = 1350;
+    const rank = "Silver II";
+    const winrate = "62%";
+    const battleXp = "+240";
+
+    if (qsBattleStatEloVal) qsBattleStatEloVal.textContent = fmtNum(elo);
+    if (qsBattleStatRankVal) qsBattleStatRankVal.textContent = rank;
+    if (qsBattleStatWinrateVal) qsBattleStatWinrateVal.textContent = winrate;
+    if (qsBattleStatXpVal) qsBattleStatXpVal.textContent = battleXp;
+
+    if (qsBattleLbList) {
+      qsBattleLbList.innerHTML = "";
+      DUMMY_BATTLE_LB.forEach((e, i) => {
+        const row = document.createElement("div");
+        row.className = "qsBattleLbRow";
+        row.setAttribute("role", "listitem");
+        row.setAttribute("aria-label", `Rank ${i + 1} ${e.name}`);
+
+        const r = document.createElement("div");
+        r.className = "qsBattleLbRank";
+        r.textContent = `#${i + 1}`;
+
+        const main = document.createElement("div");
+        main.className = "qsBattleLbMain";
+
+        const name = document.createElement("div");
+        name.className = "qsBattleLbName";
+        name.textContent = e.name;
+
+        const meta = document.createElement("div");
+        meta.className = "qsBattleLbMeta";
+        meta.textContent = `${fmtNum(e.xp)} XP • ${fmtNum(e.elo)} ELO`;
+
+        const tag = document.createElement("div");
+        tag.className = "qsBattleLbTag";
+        tag.textContent = e.tag;
+
+        main.appendChild(name);
+        main.appendChild(meta);
+        row.appendChild(r);
+        row.appendChild(main);
+        row.appendChild(tag);
+        qsBattleLbList.appendChild(row);
+      });
+    }
+
+    if (qsBattleQuestList) {
+      const quests = readQuests().filter((q) => q && q.id && !isQuestDone(q));
+      const shown = quests.slice(0, 2);
+      qsBattleQuestList.innerHTML = "";
+
+      if (qsBattleQuestEmpty) {
+        const empty = shown.length === 0;
+        qsBattleQuestEmpty.hidden = !empty;
+        qsBattleQuestEmpty.setAttribute("aria-hidden", empty ? "false" : "true");
+      }
+
+      if (qsBattleQuestSub) {
+        qsBattleQuestSub.textContent = quests.length
+          ? `Recommendations from your active quests (${quests.length}).`
+          : "Create a quest to get battle recommendations.";
+      }
+
+      shown.forEach((q, idx) => {
+        const title = String(q.title || "Untitled").trim() || "Untitled";
+        const dueMs = q && q.dueAt ? new Date(String(q.dueAt)).getTime() : Number.POSITIVE_INFINITY;
+        const days = Number.isFinite(dueMs) ? (dueMs - Date.now()) / 86_400_000 : Number.POSITIVE_INFINITY;
+        const dueSoon = Number.isFinite(days) && days <= 7;
+        const recMode = dueSoon ? "Ranked" : "Practice";
+        const reward = dueSoon ? "+120 XP" : "10m";
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "qsBattleQuestItem headerAction";
+        btn.setAttribute("role", "listitem");
+        btn.setAttribute("data-quest-id", String(q.id));
+        btn.setAttribute("aria-label", `Open battle based on ${title}`);
+        btn.setAttribute("data-focus", `drawer.battle.quest.${idx + 1}`);
+
+        const wrap = document.createElement("span");
+        wrap.style.minWidth = "0";
+
+        const t = document.createElement("div");
+        t.className = "qsBattleQuestItemTitle";
+        t.textContent = title;
+
+        const m = document.createElement("div");
+        m.className = "qsBattleQuestItemMeta";
+        m.textContent = `Recommended: ${recMode} • ${reward}`;
+
+        const ch = document.createElement("span");
+        ch.className = "qsBattleQuestItemChevron";
+        ch.setAttribute("aria-hidden", "true");
+        ch.innerHTML = '<i class="fa-solid fa-chevron-right" aria-hidden="true"></i>';
+
+        wrap.appendChild(t);
+        wrap.appendChild(m);
+        btn.appendChild(wrap);
+        btn.appendChild(ch);
+        qsBattleQuestList.appendChild(btn);
+      });
+    }
   };
 
   const setPendingFocus = (key) => {
@@ -1757,9 +1888,9 @@ try {
     closeDrawer({ focusProfile: false, immediate: isMobileQs() });
     setTimeout(() => {
       try {
-        const seg = String(href || "").split("?")[0].split("#")[0].replace(/^\//, "");
-        if (seg && typeof window.studiumRoutePush === "function") {
-          window.studiumRoutePush(seg);
+        const full = String(href || "").trim();
+        if (full && typeof window.studiumRoutePush === "function") {
+          window.studiumRoutePush(full);
           return;
         }
       } catch {
@@ -1832,6 +1963,7 @@ try {
   if (qsStudyOpenBtn) qsStudyOpenBtn.addEventListener("click", () => navShortcut("/study"));
   if (qsBattleOpenBtn) qsBattleOpenBtn.addEventListener("click", () => navShortcut("/battle"));
   if (qsNotesOpenBtn) qsNotesOpenBtn.addEventListener("click", () => navShortcut("/notes"));
+  if (qsBattleModeBtn) qsBattleModeBtn.addEventListener("click", () => navShortcut("/battle"));
 
   if (qsQuestList) {
     qsQuestList.addEventListener("click", (e) => {
@@ -1844,12 +1976,23 @@ try {
     });
   }
 
+  if (qsBattleQuestList) {
+    qsBattleQuestList.addEventListener("click", (e) => {
+      const t = e.target;
+      const btn = t && t.closest ? t.closest("[data-quest-id]") : null;
+      if (!btn) return;
+      navShortcut("/battle");
+    });
+  }
+
   try {
     window.addEventListener("studium:planner_updated", () => {
       if (isQsPanelOpen("quest")) syncQuestUi();
+      if (isQsPanelOpen("battle")) syncBattleUi();
     });
     window.addEventListener("storage", () => {
       if (isQsPanelOpen("quest")) syncQuestUi();
+      if (isQsPanelOpen("battle")) syncBattleUi();
     });
   } catch {
     // ignore

@@ -31,12 +31,26 @@ export default function RouteBridge() {
   const didMountRef = useRef(false);
 
   useEffect(() => {
-    (window as any).studiumRoutePush = (view: string) => {
-      const nextView = VIEW_META[view] ? view : "dashboard";
-      const href = `/${nextView}`;
+    (window as any).studiumRoutePush = (viewOrHref: string) => {
+      const raw = String(viewOrHref || "").trim();
+      const looksLikeHref = raw.startsWith("/") || raw.includes("?") || raw.includes("#");
+
+      let href = raw;
+      if (!looksLikeHref) {
+        const nextView = VIEW_META[raw] ? raw : "dashboard";
+        href = `/${nextView}`;
+      } else if (!href.startsWith("/")) {
+        href = `/${href}`;
+      }
+
+      const seg = href.split("?")[0].split("#")[0].split("/").filter(Boolean)[0] || "dashboard";
+      const nextView = seg === "study-room" ? "study" : seg;
+      const safeView = VIEW_META[nextView] ? nextView : "dashboard";
+      if (safeView === "dashboard" && nextView !== "dashboard") href = "/dashboard";
+
       const anyDoc = document as any;
       const currentView = document.body?.dataset?.view || "";
-      const wantsScheduleTransition = nextView === "schedules" || currentView === "schedules";
+      const wantsScheduleTransition = safeView === "schedules" || currentView === "schedules";
 
       if (wantsScheduleTransition && typeof anyDoc?.startViewTransition === "function") {
         document.documentElement.classList.add("vt-schedules");

@@ -559,9 +559,60 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         </div>
 
         <div className="qsPanelBody" aria-label="Battle content">
-          <div className="qsPanelCard" aria-label="Battle card">
-            <div className="qsPanelCardTitle">1v1 battle</div>
-            <div className="qsPanelCardSub">Start a quick match and climb the leaderboard.</div>
+          <button className="qsMenuBtn qsBattleModeBar headerAction" id="qsBattleModeBtn" type="button" aria-label="Open battle modes">
+            <span className="qsMenuIcon" aria-hidden="true">
+              <i className="fa-solid fa-trophy" aria-hidden="true"></i>
+            </span>
+            <span className="qsMenuText">Battle mode</span>
+            <span className="qsMenuChevron" aria-hidden="true">
+              <i className="fa-solid fa-chevron-right"></i>
+            </span>
+          </button>
+
+          <div className="qsPanelCard" aria-label="Battle statistics">
+            <div className="qsPanelCardTitle">Statistics</div>
+            <div className="qsBattleStatGrid" aria-label="Battle stats grid">
+              <div className="qsBattleStat">
+                <div className="qsBattleStatLabel">ELO</div>
+                <div className="qsBattleStatValue" id="qsBattleStatEloVal">
+                  0
+                </div>
+              </div>
+              <div className="qsBattleStat">
+                <div className="qsBattleStatLabel">Rank</div>
+                <div className="qsBattleStatValue" id="qsBattleStatRankVal">
+                  —
+                </div>
+              </div>
+              <div className="qsBattleStat">
+                <div className="qsBattleStatLabel">Winrate</div>
+                <div className="qsBattleStatValue" id="qsBattleStatWinrateVal">
+                  0%
+                </div>
+              </div>
+              <div className="qsBattleStat">
+                <div className="qsBattleStatLabel">Battle XP</div>
+                <div className="qsBattleStatValue" id="qsBattleStatXpVal">
+                  +0
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="qsPanelCard" aria-label="Based on your quest">
+            <div className="qsPanelCardTitle">Based on your quest</div>
+            <div className="qsPanelCardSub" id="qsBattleQuestSub">
+              Recommendations from your active quests.
+            </div>
+            <div className="qsBattleQuestList" id="qsBattleQuestList" role="list" aria-label="Quest-based battle list"></div>
+            <div className="qsBattleQuestEmpty" id="qsBattleQuestEmpty" hidden aria-hidden="true" aria-label="No quest-based battle recommendations">
+              No active quests yet.
+            </div>
+          </div>
+
+          <div className="qsPanelCard" aria-label="Leaderboard">
+            <div className="qsPanelCardTitle">Leaderboard</div>
+            <div className="qsBattleLbList" id="qsBattleLbList" role="list" aria-label="Battle leaderboard list"></div>
           </div>
         </div>
 
