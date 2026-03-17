@@ -362,10 +362,6 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         <div className="qsProfileTop">
           <div className="qsProfileTitle">Profile</div>
           <div className="qsProfileTopRight">
-            <label className="qsProfileMiniToggle" aria-label="Toggle status">
-              <input id="qsProfileStatusToggle" className="qsProfileMiniToggleInput" type="checkbox" defaultChecked />
-              <span className="qsProfileMiniSwitch" aria-hidden="true" />
-            </label>
             <button className="qsProfileClose headerAction" id="qsProfileCloseBtn" type="button" aria-label="Close profile panel">
               <i className="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
