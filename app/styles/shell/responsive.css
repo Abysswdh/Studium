@@ -23,6 +23,12 @@ html {
   padding-bottom: calc(var(--shell-pad-y) + env(safe-area-inset-bottom, 0px));
 }
 
+#routeOutlet {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .header {
   min-height: clamp(56px, 8vh, 70px);
   position: relative;
