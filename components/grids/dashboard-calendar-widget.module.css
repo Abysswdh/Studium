@@ -93,6 +93,7 @@
 
 @media (max-width: 520px) {
   .root {
+    height: auto;
     padding: 12px;
     gap: 8px;
   }

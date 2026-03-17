@@ -68,13 +68,15 @@
 
 .viewport {
   width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
   min-width: 0;
   overflow: hidden;
 }
 
 .track {
   display: flex;
-  width: 100%;
+  flex-wrap: nowrap;
   min-width: 0;
   transition: transform 280ms ease;
   will-change: transform;
@@ -82,8 +84,10 @@
 
 .slide {
   flex: 0 0 100%;
-  width: 100%;
   min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .slidePad {
@@ -91,6 +95,8 @@
   display: flex;
   flex-direction: column;
   gap: clamp(8px, 1.2vw, 10px);
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -103,5 +109,19 @@
   .wrap {
     width: 100%;
     height: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  /* Phone: keep the widget panel contained and scrollable. */
+  .card {
+    max-height: min(70vh, 560px);
+  }
+
+  .slide {
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 }

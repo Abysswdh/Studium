@@ -40,8 +40,9 @@ export default function BattleLeaderboard({ kicker = "Leaderboard" }: { kicker?:
   const [scope, setScope] = useState<"global" | "campus">("global");
   const [sortBy, setSortBy] = useState<"xp" | "elo">("xp");
 
-  const selectedCampus: Campus = appData.battle.leaderboard.selectedCampus;
-  const entries: Entry[] = appData.battle.leaderboard.entries;
+  const lb = (appData as any)?.battle?.leaderboard as { selectedCampus?: Campus; entries?: Entry[] } | undefined;
+  const selectedCampus: Campus = lb?.selectedCampus ?? { university: "", major: "", cohort: "" };
+  const entries: Entry[] = Array.isArray(lb?.entries) ? (lb!.entries as Entry[]) : [];
 
   const rows = useMemo(() => {
     const filtered = scope === "campus" ? entries.filter((e) => campusKey(e.campus) === campusKey(selectedCampus)) : entries.slice();
@@ -52,7 +53,7 @@ export default function BattleLeaderboard({ kicker = "Leaderboard" }: { kicker?:
   const podium = rows.slice(0, 3);
   const rest = rows.slice(3, 12);
 
-  const campusLabel = `${selectedCampus.university} • ${selectedCampus.major} • ${selectedCampus.cohort}`;
+  const campusLabel = [selectedCampus.university, selectedCampus.major, selectedCampus.cohort].filter(Boolean).join(" \u2022 ");
 
   return (
     <div className={styles.root}>

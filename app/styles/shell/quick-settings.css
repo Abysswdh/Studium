@@ -610,9 +610,10 @@
   line-height: 1.4;
 }
 
-.streakCal--qs {
-  --streak-cell: 12px;
-  --streak-gap: 4px;
+.streakCal--qs,
+.streakMonth--qs {
+  --streak-cell: 14px;
+  --streak-gap: 6px;
   padding: 6px 6px 0;
 }
 

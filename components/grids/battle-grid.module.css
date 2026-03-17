@@ -316,6 +316,19 @@
     grid-column: 1 / -1;
     grid-row: 3;
   }
+
+  /* Tablet layout: the leaderboard sits in its own row, so it needs an intrinsic height. */
+  #battle-leaderboard {
+    min-height: 360px;
+  }
+
+  .leaderboardCard {
+    flex: 0 0 auto;
+  }
+
+  .leaderboardCard .content {
+    height: auto;
+  }
 }
 
 @media (max-width: 1024px) and (min-width: 701px) {

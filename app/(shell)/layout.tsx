@@ -107,16 +107,11 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             <span className="arenaKey">C</span>
             <span className="arenaKey">D</span>
             <span className="arenaDockHint">or 1–4</span>
-            <span className="arenaKey">H</span>
-            <span className="arenaDockHint">hint</span>
           </div>
 
           <div className="arenaDockActions" aria-label="Arena actions">
             <button className="arenaDockBtn headerAction" id="arenaPauseBtn" type="button" aria-label="Pause match">
               Pause
-            </button>
-            <button className="arenaDockBtn headerAction" id="arenaMusicBtn" type="button" aria-label="Toggle music">
-              Music
             </button>
             <button className="arenaDockBtn arenaDockBtnDanger headerAction" id="arenaSurrenderBtn" type="button" aria-label="Surrender match">
               Surrender
@@ -305,59 +300,6 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
 
-          <div className="drawerCard">
-            <div className="drawerSectionTitle">Music</div>
-
-            <div className="qsAudioBar" aria-label="Music player">
-              <audio id="qsMusicAudio" preload="metadata" />
-
-              <div className="qsPlayer">
-                <div className="qsMusicIcon" id="qsMusicIcon" aria-hidden="true">
-                  <i className="fa-solid fa-music" aria-hidden="true"></i>
-                </div>
-
-                <div className="qsPlayerMain">
-                  <div className="qsTrack">
-                    <div className="qsTrackTitle" id="qsTrackTitle">
-                      Music
-                    </div>
-                    <div className="qsTrackSub" id="qsTrackSub">
-                      Loading playlist...
-                    </div>
-                  </div>
-
-                  <div className="qsPlayerControls" aria-label="Music controls">
-                    <button className="qsCtl headerAction" id="qsMusicPrevBtn" data-focus="drawer.music.prev" type="button" aria-label="Previous track">
-                      <i className="fa-solid fa-backward-step" aria-hidden="true"></i>
-                    </button>
-                    <button className="qsCtl headerAction" id="qsMusicPlayBtn" data-focus="drawer.music.play" type="button" aria-label="Play or pause">
-                      <i className="fa-solid fa-play" aria-hidden="true"></i>
-                    </button>
-                    <button className="qsCtl headerAction" id="qsMusicNextBtn" data-focus="drawer.music.next" type="button" aria-label="Next track">
-                      <i className="fa-solid fa-forward-step" aria-hidden="true"></i>
-                    </button>
-
-                    <button className="qsCtl headerAction" id="toggleMusicBtn" data-focus="drawer.music.toggle" type="button" aria-label="Toggle music output">
-                      <i className="fa-solid fa-volume-high qsMusicOnIcon" aria-hidden="true"></i>
-                      <i className="fa-solid fa-volume-xmark qsMusicOffIcon" aria-hidden="true"></i>
-                    </button>
-                  </div>
-
-                  <input
-                    className="qsSeek"
-                    id="qsMusicSeek"
-                    type="range"
-                    min={0}
-                    max={1000}
-                    step={1}
-                    defaultValue={0}
-                    aria-label="Track position"
-                    data-focus="drawer.music.seek"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </aside>
 

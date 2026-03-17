@@ -27,7 +27,7 @@ export default function DashboardWidgetsSlider() {
   const slides = useMemo(
     () => [
       { key: "calendar", label: "Calendar", node: <DashboardCalendarWidget /> },
-      { key: "leaderboard", label: "Leaderboard", node: <div className={styles.slidePad}><BattleLeaderboard /></div> },
+      { key: "leaderboard", label: "Leaderboard", node: <div className={styles.slidePad}><BattleLeaderboard kicker={null} /></div> },
     ],
     [],
   );

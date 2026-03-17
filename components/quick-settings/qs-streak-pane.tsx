@@ -1,21 +1,23 @@
 "use client";
 
-import StreakCalendar from "../streak/streak-calendar";
 import { useStreakData } from "../streak/use-streak-data";
+import StreakMonth from "../streak/streak-month";
+import { useStreakMonthData } from "../streak/use-streak-month";
 
 export default function QSStreakPane() {
-  const data = useStreakData(365);
+  const year = useStreakData(365);
+  const month = useStreakMonthData();
 
   return (
     <div className="qsStreakPane" aria-label="Streak summary">
       <div className="qsStreakHead">
-        <div className="qsStreakTitle">{data.totalDone.toLocaleString()} contributions in the last year</div>
+        <div className="qsStreakTitle">Streak shower • {month.label}</div>
         <div className="qsStreakSub">
-          Current {Math.max(0, data.streakCurrent)} days · Best {Math.max(0, data.streakBest)}
+          Done {month.totalDone.toLocaleString()} • Current {Math.max(0, year.streakCurrent)} days • Best {Math.max(0, year.streakBest)}
         </div>
       </div>
 
-      <StreakCalendar data={data} className="streakCal--qs" />
+      <StreakMonth data={month} className="streakMonth--qs" />
     </div>
   );
 }

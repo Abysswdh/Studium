@@ -303,7 +303,7 @@ export default function BattleArena() {
       if (typing) return;
 
       const k = String(e.key || "").toLowerCase();
-      const supported = k === "escape" || k === "backspace" || k === "p" || k === "m" || k === "s" || k === "x";
+      const supported = k === "escape" || k === "backspace" || k === "p" || k === "s" || k === "x";
       if (!supported) return;
 
       e.preventDefault();
@@ -318,11 +318,6 @@ export default function BattleArena() {
         if (k === "escape" || k === "p") return setPauseOpen((v) => !v);
         if (k === "x" || k === "backspace") return setExitConfirmOpen(true);
         if (k === "s") return setSurrenderConfirmOpen(true);
-        if (k === "m") {
-          const btn = document.getElementById("arenaMusicBtn") as HTMLButtonElement | null;
-          btn?.click();
-          return;
-        }
         return;
       }
 
@@ -768,19 +763,6 @@ export default function BattleArena() {
                   onClick={() => setPauseOpen(false)}
                 >
                   Resume
-                </button>
-                <button
-                  type="button"
-                  className="rounded-2xl border border-white/12 bg-black/25 px-4 py-3 text-sm font-[900] text-white/90 hover:bg-black/35"
-                  onClick={() => {
-                    try {
-                      (window as any).studiumMusicApi?.playPause?.();
-                    } catch {
-                      // ignore
-                    }
-                  }}
-                >
-                  Music (Play/Pause)
                 </button>
                 <button
                   type="button"

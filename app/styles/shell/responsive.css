@@ -273,80 +273,76 @@ body[data-view="dashboard"] .dashBottomRight {
     gap: 12px;
   }
 
-  /* Reduce vertical bloat: use aspect ratios instead of large min-heights. */
-  .gridContainer {
+  /* Dashboard: reduce vertical bloat using aspect ratios (keep other views on legacy ui.css rules). */
+  body[data-view="dashboard"] .gridContainer {
     min-height: 0;
     height: auto;
   }
 
-  .gridContainerLeft,
-  .gridContainerRight {
+  body[data-view="dashboard"] .gridContainerLeft,
+  body[data-view="dashboard"] .gridContainerRight {
     height: auto;
   }
 
-  .gridContainerLeftTop {
+  body[data-view="dashboard"] .gridContainerLeftTop {
     flex: 0 0 auto;
     min-height: 0;
     aspect-ratio: 21 / 9;
   }
 
-  .gridContainerLeftBottom {
+  body[data-view="dashboard"] .gridContainerLeftBottom {
     flex: 0 0 auto;
     min-height: 0;
   }
 
-  .gridContainerLeftBottomLeft,
-  .gridContainerLeftBottomRight {
+  body[data-view="dashboard"] .gridContainerLeftBottomLeft,
+  body[data-view="dashboard"] .gridContainerLeftBottomRight {
     height: auto;
     aspect-ratio: 3 / 2;
   }
 
-  .dashHero .cardInner {
+  body[data-view="dashboard"] .dashHero .cardInner {
     padding-right: clamp(140px, 34vw, 220px);
   }
 
-  .dashHeroMascot {
+  body[data-view="dashboard"] .dashHeroMascot {
     width: clamp(180px, 44vw, 320px);
     right: 0px;
     bottom: -74px;
   }
 
-  .dashQuickInner i {
+  body[data-view="dashboard"] .dashQuickInner i {
     font-size: clamp(22px, 5.8vw, 32px);
   }
 
-  .dashHeatmap {
+  body[data-view="dashboard"] .dashHeatmap {
     grid-template-columns: repeat(7, 16px);
     grid-template-rows: repeat(4, 16px);
     gap: 7px;
   }
 
-  .dashHeatCell {
+  body[data-view="dashboard"] .dashHeatCell {
     width: 16px;
     height: 16px;
     border-radius: 6px;
   }
 
-  .streakCal--dash {
+  body[data-view="dashboard"] .streakMonth--dash {
     --streak-cell: 10px;
     --streak-gap: 3px;
   }
 
-  .gridContainerRightLeftOne,
-  .gridContainerRightLeftTwo,
-  .gridContainerRightLeftThree,
-  .gridContainerRightLeftFour {
-    flex: 0 0 auto;
-    min-height: 0;
-    height: auto;
-    aspect-ratio: 3 / 2;
+  /* Dashboard: keep right-side cards from collapsing on tablet widths. */
+  body[data-view="dashboard"] .gridContainerRightLeftOne,
+  body[data-view="dashboard"] .gridContainerRightLeftTwo,
+  body[data-view="dashboard"] .gridContainerRightLeftThree,
+  body[data-view="dashboard"] .gridContainerRightLeftFour,
+  body[data-view="dashboard"] .dashQuestCard {
+    min-height: 140px;
   }
 
-  .gridContainerRightRight {
-    flex: 0 0 auto;
-    min-height: 0;
-    height: auto;
-    aspect-ratio: 21 / 10;
+  body[data-view="dashboard"] .gridContainerRightRight {
+    min-height: 280px;
   }
 
   .footerHUD {
@@ -400,13 +396,9 @@ body[data-view="dashboard"] .dashBottomRight {
     --nav-icon-size: clamp(18px, 5.2vw, 21px);
   }
 
-  /* Keep a 2-col quest grid longer; drop to 1-col only on very small screens. */
-  .gridContainerRightLeft {
+  /* Dashboard: keep a 2-col quest grid longer; drop to 1-col only on very small screens. */
+  body[data-view="dashboard"] .gridContainerRightLeft {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .gridContainerLeftBottom {
-    flex-direction: row;
   }
 
   body[data-view="dashboard"] .gridContainerRightLeftOne,
@@ -439,7 +431,7 @@ body[data-view="dashboard"] .dashBottomRight {
     border-radius: 5px;
   }
 
-  body[data-view="dashboard"] .streakCal--dash {
+  body[data-view="dashboard"] .streakMonth--dash {
     --streak-cell: 9px;
     --streak-gap: 3px;
   }
@@ -667,6 +659,15 @@ body[data-view="dashboard"] .dashBottomRight {
 
 @media (max-width: 900px) {
   /* Dashboard: keep content-driven heights (avoid clipped widgets due to aspect-ratio rules). */
+  body[data-view="dashboard"] .gridContainerRight {
+    flex-direction: column;
+  }
+
+  body[data-view="dashboard"] .dashQuestWrap,
+  body[data-view="dashboard"] .dashWidgetsWrap {
+    flex: 0 0 auto;
+  }
+
   body[data-view="dashboard"] .gridContainerLeftTop {
     aspect-ratio: auto;
   }
@@ -678,6 +679,18 @@ body[data-view="dashboard"] .dashBottomRight {
   body[data-view="dashboard"] .gridContainerRightRight {
     aspect-ratio: auto;
     height: auto;
+  }
+
+  /* Keep cards from collapsing to ~0px height in the 520–900px range. */
+  body[data-view="dashboard"] .gridContainerRightLeftOne,
+  body[data-view="dashboard"] .gridContainerRightLeftTwo,
+  body[data-view="dashboard"] .gridContainerRightLeftThree,
+  body[data-view="dashboard"] .gridContainerRightLeftFour {
+    min-height: 140px;
+  }
+
+  body[data-view="dashboard"] .gridContainerRightRight {
+    min-height: 280px;
   }
 
   /* Dashboard: quests read better as a 2-col grid on touch widths. */
