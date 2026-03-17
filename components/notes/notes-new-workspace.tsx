@@ -556,8 +556,7 @@ export default function NotesNewWorkspace() {
   const fullscreen = ["1", "true", "yes"].includes(String(searchParams.get("fullscreen") || "").trim().toLowerCase());
   const forceNew = ["1", "true", "yes"].includes(String(searchParams.get("new") || "").trim().toLowerCase());
 
-  const [store, setStore] = useState<NotesStore>(() => ({ notes: [], lastDraftId: null, tagCatalog: DEFAULT_TAGS, folderCatalog: DEFAULT_FOLDERS }));
-  const [hydrated, setHydrated] = useState(false);
+  const [store, setStore] = useState<NotesStore>(() => loadStore());
   const [view, setView] = useState<NotesView>("all");
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [folderFilter, setFolderFilter] = useState<string | null>(null);
@@ -650,13 +649,7 @@ export default function NotesNewWorkspace() {
   }, []);
 
   useEffect(() => {
-    setStore(loadStore());
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
     if (didApplyDeepLink.current) return;
-    if (!hydrated) return;
     const forceNewNow = (() => {
       if (forceNew) return true;
       try {
@@ -769,7 +762,7 @@ export default function NotesNewWorkspace() {
     }
 
     setView("all");
-  }, [deepLinkNoteId, forceNew, hydrated, store.notes]);
+  }, [deepLinkNoteId, forceNew, store.notes]);
 
   useEffect(() => {
     // Clear the open-target guard only after React applies the activeId state,
@@ -797,7 +790,6 @@ export default function NotesNewWorkspace() {
     if (didInitForNewRoute.current) return;
     if (typeof window === "undefined") return;
     if (!window.location.pathname.endsWith("/notes/new")) return;
-    if (!hydrated) return;
     const forceNewNow = (() => {
       if (forceNew) return true;
       try {
@@ -863,10 +855,9 @@ export default function NotesNewWorkspace() {
 
     createDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deepLinkNoteId, forceNew, hydrated, store.notes.length]);
+  }, [deepLinkNoteId, forceNew, store.notes.length]);
 
   useEffect(() => {
-    if (!hydrated) return;
     if (typeof window === "undefined") return;
     if (!window.location.pathname.endsWith("/notes/new")) return;
     const forceNewNow = (() => {
@@ -895,9 +886,9 @@ export default function NotesNewWorkspace() {
       // ignore
     }
 
-    createDraft();
+    createDraft({ useTemplate: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forceNew, hydrated]);
+  }, [forceNew]);
 
   useEffect(() => {
     if (!store.notes.length) return;
@@ -1143,22 +1134,25 @@ export default function NotesNewWorkspace() {
     }));
   };
 
-  const createDraft = () => {
-    const template = (() => {
-      try {
-        const raw = localStorage.getItem(templateDraftKey());
-        if (!raw) return null;
-        localStorage.removeItem(templateDraftKey());
-        const v = JSON.parse(raw) as any;
-        if (!v || typeof v !== "object" || v.v !== 1) return null;
-        const title = String(v.title ?? "").trim();
-        const body = String(v.body ?? "");
-        const bodyFormat = v.bodyFormat === "html" ? "html" : "plain";
-        return { title, body, bodyFormat } as { title: string; body: string; bodyFormat: "plain" | "html" };
-      } catch {
-        return null;
-      }
-    })();
+  const createDraft = (opts?: { useTemplate?: boolean }) => {
+    const useTemplate = opts?.useTemplate !== false;
+    const template = useTemplate
+      ? (() => {
+          try {
+            const raw = localStorage.getItem(templateDraftKey());
+            if (!raw) return null;
+            localStorage.removeItem(templateDraftKey());
+            const v = JSON.parse(raw) as any;
+            if (!v || typeof v !== "object" || v.v !== 1) return null;
+            const title = String(v.title ?? "").trim();
+            const body = String(v.body ?? "");
+            const bodyFormat = v.bodyFormat === "html" ? "html" : "plain";
+            return { title, body, bodyFormat } as { title: string; body: string; bodyFormat: "plain" | "html" };
+          } catch {
+            return null;
+          }
+        })()
+      : null;
 
     const id = makeId();
     const t = now();
@@ -2365,7 +2359,13 @@ export default function NotesNewWorkspace() {
                 </>
               ) : null}
               {view !== "deleted" ? (
-                <button type="button" className="notesIconBtn gridCard" data-focus="notes.list.new" aria-label="Create new note" onClick={createDraft}>
+                <button
+                  type="button"
+                  className="notesIconBtn gridCard"
+                  data-focus="notes.list.new"
+                  aria-label="Create new note"
+                  onClick={() => createDraft({ useTemplate: false })}
+                >
                   <i className="fa-solid fa-plus" aria-hidden="true" />
                 </button>
               ) : null}

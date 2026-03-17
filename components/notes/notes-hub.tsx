@@ -730,9 +730,25 @@ export default function NotesHub() {
               <div className={styles.colTitle}>
                 <div className={styles.cardTitle}>All Notes</div>
               </div>
-              <Link href="/notes/new?fullscreen=1&new=1" className={styles.outsideBtn} aria-label="Add note" title="Add note">
+              <button
+                type="button"
+                className={styles.outsideBtn}
+                aria-label="Add note"
+                title="Add note"
+                onClick={() => {
+                  try {
+                    sessionStorage.removeItem(openTargetKey());
+                    sessionStorage.removeItem(OPEN_TARGET_KEY_FALLBACK);
+                    localStorage.removeItem(openTargetKey());
+                    localStorage.removeItem(OPEN_TARGET_KEY_FALLBACK);
+                  } catch {
+                    // ignore
+                  }
+                  router.push(`/notes/new?fullscreen=1&new=1&nonce=${Date.now()}`);
+                }}
+              >
                 Add Note
-              </Link>
+              </button>
             </div>
           </div>
 
