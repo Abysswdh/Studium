@@ -60,7 +60,7 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(180px, 0.75fr) minmax(180px, 0.78fr) minmax(380px, 1.7fr) minmax(340px, 1.25fr);
+  grid-template-columns: minmax(160px, 0.68fr) minmax(160px, 0.68fr) minmax(420px, 1.9fr) minmax(340px, 1.25fr);
   gap: 14px;
 }
 
@@ -419,18 +419,16 @@
   min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  flex: 1 1 auto;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  gap: 6px;
+  flex: 0 0 auto;
   white-space: nowrap;
 }
 
 .tabCount {
   flex: 0 0 auto;
   font-weight: 900;
-  font-size: 12px;
-  padding: 2px 8px;
+  font-size: 11px;
+  padding: 2px 7px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.10);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -443,9 +441,9 @@
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.80);
   border-radius: 999px;
-  padding: 7px 9px;
+  padding: 6px 8px;
   font-weight: 900;
-  font-size: 11px;
+  font-size: 10.5px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
