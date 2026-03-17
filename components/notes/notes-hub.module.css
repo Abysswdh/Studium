@@ -60,7 +60,7 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(220px, 0.9fr) minmax(220px, 0.95fr) minmax(320px, 1.25fr) minmax(360px, 1.5fr);
+  grid-template-columns: minmax(175px, 0.72fr) minmax(175px, 0.72fr) minmax(400px, 1.8fr) minmax(340px, 1.25fr);
   gap: 14px;
 }
 
@@ -319,8 +319,18 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.col[aria-label="Folders column"] .outsideBtn,
+.col[aria-label="Tags column"] .outsideBtn {
+  padding: 9px 10px;
+  gap: 8px;
 }
 
 .outsideBtn:hover {
@@ -360,7 +370,8 @@
 .cardHead {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -375,8 +386,20 @@
 .tabs {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex-wrap: nowrap;
+  padding-left: calc(2px + env(safe-area-inset-left, 0px));
+  padding-right: calc(2px + env(safe-area-inset-right, 0px));
+  padding-bottom: 4px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.tabs::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .activeItem {
@@ -398,18 +421,24 @@
   min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex: 1 1 auto;
+  white-space: nowrap;
+}
+
+.tabLabel > span {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: left;
 }
 
 .tabCount {
   flex: 0 0 auto;
   font-weight: 900;
-  font-size: 12px;
-  padding: 2px 8px;
+  font-size: 10px;
+  padding: 2px 7px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.10);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -422,14 +451,17 @@
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.80);
   border-radius: 999px;
-  padding: 8px 10px;
+  padding: 6px 7px;
   font-weight: 900;
-  font-size: 12px;
+  font-size: 10px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   white-space: nowrap;
+  flex: 0 0 auto;
+  min-width: 0;
+  justify-content: space-between;
   transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
 }
 
@@ -492,12 +524,12 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   padding-right: 4px;
 }
 
 .selected :global(.notesPreviewBody) {
-  overflow-x: auto;
+  overflow-x: hidden;
 }
 
 .selected :global(pre),
@@ -576,10 +608,83 @@
 
   .panel {
     flex: 0 0 auto;
-    max-height: min(520px, 70vh);
+    max-height: 85vh;
+    max-height: 85dvh;
   }
+
+  .notesPanelHead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    gap: 10px;
+    padding-bottom: 10px;
+    padding-top: 2px;
+    background: linear-gradient(180deg, rgba(10, 12, 18, 0.92), rgba(10, 12, 18, 0.62));
+    backdrop-filter: blur(10px);
+  }
+
+  .notesPanelHead :global(.notesSearchWrap) {
+    padding: 6px 9px;
+    border-radius: 999px;
+  }
+
+  .notesPanelHead :global(.notesSearchInput) {
+    font-size: 12px;
+  }
+
 }
 
+@media (max-width: 520px) {
+  .tabs {
+    overflow: hidden;
+    padding-right: calc(2px + env(safe-area-inset-right, 0px));
+    gap: 5px;
+  }
+
+  .tabBtn {
+    flex: 1 1 0;
+    padding: 6px 7px;
+    font-size: 10px;
+  }
+
+  .tabLabel {
+    gap: 5px;
+  }
+
+  .tabLabel i {
+    font-size: 11px;
+  }
+
+  .tabCount {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .tabBtn[aria-label="All notes"] {
+    flex: 0.75 1 0;
+  }
+
+  .tabBtn[aria-label="Favorite notes"] {
+    flex: 1.18 1 0;
+  }
+
+  .tabBtn[aria-label="Recently deleted"] {
+    flex: 1.45 1 0;
+  }
+
+  .tabBtn[aria-label="Recently deleted"] .tabLabel {
+    align-items: flex-start;
+  }
+
+  .tabBtn[aria-label="Recently deleted"] .tabLabel > span {
+    white-space: normal;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.12;
+  }
+}
 @media (max-width: 520px) {
   .title {
     font-size: 20px;

@@ -21,12 +21,25 @@ export default function RouteBridge() {
   const didMountRef = useRef(false);
 
   useEffect(() => {
-    (window as any).studiumRoutePush = (view: string) => {
-      const nextView = VIEW_META[view] ? view : "dashboard";
-      const href = appData.navigation.items.find((x) => x.id === nextView)?.href || `/${nextView}`;
+    (window as any).studiumRoutePush = (viewOrHref: string) => {
+      const raw = String(viewOrHref || "").trim();
+      const looksLikeHref = raw.startsWith("/") || raw.includes("?") || raw.includes("#");
+
+      let href = raw;
+      if (!looksLikeHref) {
+        const nextView = VIEW_META[raw] ? raw : "dashboard";
+        href = `/${nextView}`;
+      } else if (!href.startsWith("/")) {
+        href = `/${href}`;
+      }
+
+      const seg = href.split("?")[0].split("#")[0].split("/").filter(Boolean)[0] || "dashboard";
+      const nextView = seg === "study-room" ? "study" : seg;
+      const safeView = VIEW_META[nextView] ? nextView : "dashboard";
+      if (safeView === "dashboard" && nextView !== "dashboard") href = "/dashboard";
       const anyDoc = document as any;
       const currentView = document.body?.dataset?.view || "";
-      const wantsScheduleTransition = nextView === "schedules" || currentView === "schedules";
+      const wantsScheduleTransition = safeView === "schedules" || currentView === "schedules";
 
       if (wantsScheduleTransition && typeof anyDoc?.startViewTransition === "function") {
         document.documentElement.classList.add("vt-schedules");
@@ -106,6 +119,33 @@ export default function RouteBridge() {
       el.classList.toggle("active", isActive);
       el.setAttribute("aria-selected", isActive ? "true" : "false");
     });
+
+    // Allow Quick Settings shortcuts to land the user on a specific navbar item.
+    try {
+      const pendingNav = sessionStorage.getItem("studium:pending_nav_focus") || "";
+      if (pendingNav) {
+        sessionStorage.removeItem("studium:pending_nav_focus");
+        requestAnimationFrame(() => {
+          try {
+            (window as any).setMode?.("nav");
+            const items = Array.from(document.querySelectorAll<HTMLElement>(".navItem"));
+            const target = items.find((el) => el?.dataset?.page === pendingNav) || null;
+            if (!target) return;
+            items.forEach((el) => el.classList.remove("focused"));
+            target.classList.add("focused");
+            try {
+              target.focus({ preventScroll: true } as any);
+            } catch {
+              target.focus?.();
+            }
+          } catch {
+            // ignore
+          }
+        });
+      }
+    } catch {
+      // ignore
+    }
 
     if (typeof (window as any).setWallpaperForView === "function") {
       (window as any).setWallpaperForView(view);

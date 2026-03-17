@@ -38,6 +38,7 @@ const LS_NAV_ORDER = "studium:nav_order";
 const LS_DENSITY = "studium:ui_density";
 const LS_NOTIF_BASE = "studium:qs_notifications";
 const LS_PROFILE_BASE = "studium:profile_override";
+const PREF_EVENT = "studium:account_prefs_updated";
 
 function scopedAccountKey(base: string, userId: number) {
   return userId > 0 ? `${base}:u${userId}` : base;
@@ -408,7 +409,31 @@ export default function MatchGrid({ user }: Props) {
   }, [density]);
 
   useEffect(() => {
+    const sync = () => setNotificationsOn(safeLocalGet(LS_NOTIF) !== "0");
+    const on = () => sync();
+    try {
+      window.addEventListener(PREF_EVENT, on);
+      window.addEventListener("storage", on);
+    } catch {
+      // ignore
+    }
+    return () => {
+      try {
+        window.removeEventListener(PREF_EVENT, on);
+        window.removeEventListener("storage", on);
+      } catch {
+        // ignore
+      }
+    };
+  }, [LS_NOTIF]);
+
+  useEffect(() => {
     safeLocalSet(LS_NOTIF, notificationsOn ? "1" : "0");
+    try {
+      window.dispatchEvent(new Event(PREF_EVENT));
+    } catch {
+      // ignore
+    }
   }, [notificationsOn]);
 
   const persistNavOrder = (next: ViewId[]) => {

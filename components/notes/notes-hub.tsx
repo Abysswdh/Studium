@@ -35,9 +35,6 @@ type NotesStore = {
   folderCatalog: FolderDef[];
 };
 
-const FOLDER_FILTER_ANY = "__any_folder__";
-const TAG_FILTER_ANY = "__any_tag__";
-
 const TAG_DOT_PALETTE = ["notesDot--mint", "notesDot--aqua", "notesDot--violet", "notesDot--gold"];
 const TAG_DOT_LABEL: Record<string, string> = {
   "notesDot--mint": "Mint",
@@ -324,9 +321,6 @@ export default function NotesHub() {
     return map;
   }, [store.notes]);
 
-  const allFolderNoteCount = useMemo(() => store.notes.filter((n) => !n.deletedAt && !n.hiddenAt && !!n.folder).length, [store.notes]);
-  const allTaggedNoteCount = useMemo(() => store.notes.filter((n) => !n.deletedAt && !n.hiddenAt && Array.isArray(n.tags) && n.tags.length > 0).length, [store.notes]);
-
   const tabCounts = useMemo(() => {
     const all = store.notes.filter((n) => !n.deletedAt && !n.hiddenAt).length;
     const favorites = store.notes.filter((n) => !n.deletedAt && !n.hiddenAt && n.favorite).length;
@@ -346,11 +340,8 @@ export default function NotesHub() {
 
     // Tag/folder filters shouldn't affect Deleted.
     if (view !== "deleted") {
-      if (folderFilter === FOLDER_FILTER_ANY) list = list.filter((n) => !!n.folder);
-      else if (folderFilter) list = list.filter((n) => n.folder === folderFilter);
-
-      if (tagFilter === TAG_FILTER_ANY) list = list.filter((n) => Array.isArray(n.tags) && n.tags.length > 0);
-      else if (tagFilter) list = list.filter((n) => n.tags.includes(tagFilter));
+      if (folderFilter) list = list.filter((n) => n.folder === folderFilter);
+      if (tagFilter) list = list.filter((n) => n.tags.includes(tagFilter));
     }
 
     if (q) {
@@ -605,7 +596,14 @@ export default function NotesHub() {
               <div className={styles.colTitle}>
                 <div className={styles.cardTitle}>Folder</div>
               </div>
-              <button type="button" className={styles.outsideBtn} aria-label="Add folder" title="Add folder" onClick={addFolder}>
+              <button
+                type="button"
+                data-focus="notes.folder.add"
+                className={styles.outsideBtn}
+                aria-label="Add folder"
+                title="Add folder"
+                onClick={addFolder}
+              >
                 Add Folder
               </button>
             </div>
@@ -613,25 +611,23 @@ export default function NotesHub() {
 
           <section className={styles.panel} aria-label="Folders">
             <div className={styles.catalog} role="list" aria-label="Folder list">
-              <button
-                type="button"
-                className={sidebarItemClass(folderFilter === FOLDER_FILTER_ANY)}
-                role="listitem"
-                onClick={() => setFolderFilter((prev) => (prev === FOLDER_FILTER_ANY ? null : FOLDER_FILTER_ANY))}
-                aria-label="All folders"
-              >
-                <i className="fa-solid fa-folder-open" aria-hidden="true" />
-                <span className="notesSidebarItem__label">All</span>
-                <span className="notesSidebarItem__count">{allFolderNoteCount}</span>
-              </button>
               {store.folderCatalog.map((f) => (
                 <div key={f.id} className={styles.hoverRow}>
                   <button
                     type="button"
+                    data-focus={`notes.folder.${f.id}`}
                     className={[sidebarItemClass(folderFilter === f.id), styles.hoverRowMain].filter(Boolean).join(" ")}
                     role="listitem"
+                    data-folder-id={f.id}
                     onClick={() => setFolderFilter((prev) => (prev === f.id ? null : f.id))}
                     aria-label={`Folder ${f.label}`}
+                    onFocus={(e) => {
+                      try {
+                        (e.currentTarget as HTMLElement).scrollIntoView({ block: "nearest", inline: "nearest" });
+                      } catch {
+                        // ignore
+                      }
+                    }}
                   >
                     <i className="fa-solid fa-folder" aria-hidden="true" />
                     <span className="notesSidebarItem__label">{f.label}</span>
@@ -664,7 +660,14 @@ export default function NotesHub() {
               <div className={styles.colTitle}>
                 <div className={styles.cardTitle}>Tags</div>
               </div>
-              <button type="button" className={styles.outsideBtn} aria-label="Add tag" title="Add tag" onClick={addTag}>
+              <button
+                type="button"
+                data-focus="notes.tag.add"
+                className={styles.outsideBtn}
+                aria-label="Add tag"
+                title="Add tag"
+                onClick={addTag}
+              >
                 Add tags
               </button>
             </div>
@@ -672,25 +675,23 @@ export default function NotesHub() {
 
           <section className={styles.panel} aria-label="Tags">
             <div className={styles.catalog} role="list" aria-label="Tag list">
-              <button
-                type="button"
-                className={tagPillClass(tagFilter === TAG_FILTER_ANY)}
-                role="listitem"
-                onClick={() => setTagFilter((prev) => (prev === TAG_FILTER_ANY ? null : TAG_FILTER_ANY))}
-                aria-label="All tags"
-              >
-                <span className="notesDot notesDot--mint" aria-hidden="true" />
-                <span className="notesRowItem">All</span>
-                <span className="notesSidebarItem__count">{allTaggedNoteCount}</span>
-              </button>
               {store.tagCatalog.map((t) => (
                 <div key={t.id} className={styles.hoverRow}>
                   <button
                     type="button"
+                    data-focus={`notes.tag.${t.id}`}
                     className={[tagPillClass(tagFilter === t.id), styles.hoverRowMain].filter(Boolean).join(" ")}
                     role="listitem"
+                    data-tag-id={t.id}
                     onClick={() => setTagFilter((prev) => (prev === t.id ? null : t.id))}
                     aria-label={`Tag ${t.label}`}
+                    onFocus={(e) => {
+                      try {
+                        (e.currentTarget as HTMLElement).scrollIntoView({ block: "nearest", inline: "nearest" });
+                      } catch {
+                        // ignore
+                      }
+                    }}
                   >
                     <span className={["notesDot", t.dotClass].filter(Boolean).join(" ")} aria-hidden="true" />
                     <span className="notesRowItem">{t.label}</span>
@@ -725,6 +726,7 @@ export default function NotesHub() {
               </div>
               <button
                 type="button"
+                data-focus="notes.note.add"
                 className={styles.outsideBtn}
                 aria-label="Add note"
                 title="Add note"
@@ -747,11 +749,14 @@ export default function NotesHub() {
 
           <section className={styles.panel} aria-label="Notes list">
             <div className={styles.notesPanelHead} aria-label="Notes list header">
-              <div className={styles.tabs} aria-label="All notes tabs">
+              <div className={styles.tabs} aria-label="All notes tabs" role="tablist">
                 <button
                   type="button"
+                  data-focus="notes.tab.all"
                   className={[styles.tabBtn, view === "all" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
                   onClick={() => setView("all")}
+                  role="tab"
+                  aria-selected={view === "all"}
                   aria-label="All notes"
                 >
                   <span className={styles.tabLabel}>
@@ -764,8 +769,11 @@ export default function NotesHub() {
                 </button>
                 <button
                   type="button"
+                  data-focus="notes.tab.favorites"
                   className={[styles.tabBtn, view === "favorites" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
                   onClick={() => setView("favorites")}
+                  role="tab"
+                  aria-selected={view === "favorites"}
                   aria-label="Favorite notes"
                 >
                   <span className={styles.tabLabel}>
@@ -778,8 +786,11 @@ export default function NotesHub() {
                 </button>
                 <button
                   type="button"
+                  data-focus="notes.tab.hidden"
                   className={[styles.tabBtn, view === "hidden" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
                   onClick={openHiddenView}
+                  role="tab"
+                  aria-selected={view === "hidden"}
                   aria-label="Hidden notes"
                 >
                   <span className={styles.tabLabel}>
@@ -787,13 +798,16 @@ export default function NotesHub() {
                     <span>Hidden</span>
                   </span>
                   <span className={styles.tabCount} aria-label="Hidden notes count is hidden">
-                    •
+                    {"\u2022"}
                   </span>
                 </button>
                 <button
                   type="button"
+                  data-focus="notes.tab.deleted"
                   className={[styles.tabBtn, view === "deleted" ? styles.tabBtnActive : ""].filter(Boolean).join(" ")}
                   onClick={() => setView("deleted")}
+                  role="tab"
+                  aria-selected={view === "deleted"}
                   aria-label="Recently deleted"
                 >
                   <span className={styles.tabLabel}>
@@ -824,9 +838,18 @@ export default function NotesHub() {
                   <button
                     key={n.id}
                     type="button"
+                    data-focus={`notes.note.${n.id}`}
                     className={["notesListItem", "gridCard", styles.noteItem, activeNote?.id === n.id ? "notesListItem--active" : ""].filter(Boolean).join(" ")}
                     role="listitem"
                     onClick={() => setActiveId(n.id)}
+                    onFocus={(e) => {
+                      setActiveId(n.id);
+                      try {
+                        (e.currentTarget as HTMLElement).scrollIntoView({ block: "nearest", inline: "nearest" });
+                      } catch {
+                        // ignore
+                      }
+                    }}
                   >
                     <div className="notesListItem__title">{n.title || "Untitled"}</div>
                     <div className="notesListItem__excerpt">
@@ -885,6 +908,7 @@ export default function NotesHub() {
               ) : (
                 <button
                   type="button"
+                  data-focus="notes.preview.open"
                   className={styles.outsideBtn}
                   aria-label="Open editor"
                   title="Open editor"

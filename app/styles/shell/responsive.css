@@ -327,6 +327,11 @@ body[data-view="dashboard"] .dashBottomRight {
     border-radius: 6px;
   }
 
+  .streakCal--dash {
+    --streak-cell: 10px;
+    --streak-gap: 3px;
+  }
+
   .gridContainerRightLeftOne,
   .gridContainerRightLeftTwo,
   .gridContainerRightLeftThree,
@@ -432,6 +437,11 @@ body[data-view="dashboard"] .dashBottomRight {
     width: 13px;
     height: 13px;
     border-radius: 5px;
+  }
+
+  body[data-view="dashboard"] .streakCal--dash {
+    --streak-cell: 9px;
+    --streak-gap: 3px;
   }
 
   body[data-view="dashboard"] .dashQuickInner i {

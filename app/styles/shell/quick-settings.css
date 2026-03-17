@@ -166,6 +166,247 @@
   line-height: 1.6;
 }
 
+.qsQuestEmpty[hidden] {
+  display: none;
+}
+
+.qsQuestList:empty {
+  display: none;
+}
+
+.qsQuestList {
+  display: grid;
+  gap: 10px;
+}
+
+.qsScheduleList {
+  margin-top: 12px;
+}
+
+.qsScheduleCalendarList {
+  margin-top: 12px;
+}
+
+.qsNotesEmpty[hidden] {
+  display: none;
+}
+
+.qsQuestItem {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  border-radius: 18px;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.qsQuestItem:hover {
+  filter: brightness(1.06);
+}
+
+.qsQuestItemMain {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.qsQuestItemTitle {
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
+  letter-spacing: 0.15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qsQuestItemMeta {
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qsQuestItemChevron {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.qsQuestItemChevron i {
+  font-size: 14px;
+}
+
+.qsBattleModeBar {
+  margin-top: 2px;
+}
+
+.qsBattleStatGrid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.qsBattleStat {
+  border-radius: 16px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.16);
+}
+
+.qsBattleStatLabel {
+  font-weight: 900;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.62);
+  letter-spacing: 0.12px;
+}
+
+.qsBattleStatValue {
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: 0.15px;
+}
+
+.qsBattleQuestList:empty {
+  display: none;
+}
+
+.qsBattleQuestEmpty[hidden] {
+  display: none;
+}
+
+.qsBattleQuestEmpty {
+  margin-top: 10px;
+  font-weight: 900;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.70);
+}
+
+.qsBattleQuestList {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.qsBattleQuestItem {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  border-radius: 16px;
+  padding: 12px 12px;
+  background: rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.16);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.qsBattleQuestItem:hover {
+  filter: brightness(1.06);
+}
+
+.qsBattleQuestItemTitle {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: 0.15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qsBattleQuestItemMeta {
+  margin-top: 4px;
+  font-weight: 800;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.62);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qsBattleQuestItemChevron {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.qsBattleLbList {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.qsBattleLbRow {
+  border-radius: 16px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.qsBattleLbRank {
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.90);
+  font-size: 12px;
+}
+
+.qsBattleLbMain {
+  min-width: 0;
+}
+
+.qsBattleLbName {
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qsBattleLbMeta {
+  margin-top: 3px;
+  font-weight: 800;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.60);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qsBattleLbTag {
+  font-weight: 900;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.70);
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .qsPanelFooter {
   display: flex;
   align-items: center;
@@ -230,50 +471,6 @@
 
 .qsProfileClose i {
   font-size: 18px;
-}
-
-.qsProfileMiniToggle {
-  display: inline-flex;
-  align-items: center;
-}
-
-.qsProfileMiniToggleInput {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.qsProfileMiniSwitch {
-  width: 42px;
-  height: 24px;
-  border-radius: 999px;
-  position: relative;
-  background: rgba(255, 255, 255, 0.10);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
-}
-
-.qsProfileMiniSwitch::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 3px;
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.88);
-  transition: transform 180ms ease, background 180ms ease;
-}
-
-.qsProfileMiniToggle:has(.qsProfileMiniToggleInput:checked) .qsProfileMiniSwitch {
-  background: rgba(105, 175, 255, 0.34);
-  border-color: rgba(105, 175, 255, 0.52);
-}
-
-.qsProfileMiniToggle:has(.qsProfileMiniToggleInput:checked) .qsProfileMiniSwitch::after {
-  transform: translate(18px, -50%);
-  background: rgba(255, 255, 255, 0.92);
 }
 
 .qsProfileHero {
@@ -355,14 +552,23 @@
   background: rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.10);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
-  overflow: auto;
+  display: grid;
+  grid-template: minmax(0, 1fr) / 1fr;
+  overflow: hidden;
 }
 
 .qsProfilePane {
+  grid-area: 1 / 1;
+  min-height: 0;
+  overflow: auto;
   display: grid;
   gap: 8px;
   align-content: start;
-  min-height: 100%;
+}
+
+.qsProfilePane[hidden],
+.qsProfilePane[aria-hidden="true"] {
+  display: none !important;
 }
 
 .qsProfilePlaceholderTitle {
@@ -377,6 +583,37 @@
   color: rgba(255, 255, 255, 0.64);
   font-size: 12px;
   line-height: 1.6;
+}
+
+.qsStreakPane {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.qsStreakHead {
+  display: grid;
+  gap: 3px;
+}
+
+.qsStreakTitle {
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 16px;
+}
+
+.qsStreakSub {
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.streakCal--qs {
+  --streak-cell: 12px;
+  --streak-gap: 4px;
+  padding: 6px 6px 0;
 }
 
 .qsProfileFooter {
@@ -482,6 +719,26 @@
   font-weight: 900;
   letter-spacing: 0.2px;
   color: rgba(255, 255, 255, 0.92);
+}
+
+.qsMenuTextWrap {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.qsMenuSub {
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qsStudyStartBar {
+  margin-top: 2px;
 }
 
 .qsMenuPill {

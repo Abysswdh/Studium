@@ -1,6 +1,7 @@
 import RouteBridge from "../../components/route-bridge";
 import ShellBackground from "../../components/shell-background";
 import NotificationIsland from "../../components/notifications/notification-island";
+import QSStreakPane from "../../components/quick-settings/qs-streak-pane";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth/current-user";
 import Script from "next/script";
@@ -239,6 +240,26 @@ export default async function ShellLayout({ children }: { children: React.ReactN
                 </span>
               </button>
 
+              <button className="qsMenuBtn headerAction" id="qsScheduleShortcutBtn" data-focus="drawer.shortcutSchedule" type="button" aria-label="Go to Schedule">
+                <span className="qsMenuIcon" aria-hidden="true">
+                  <i className="fa-solid fa-calendar-days"></i>
+                </span>
+                <span className="qsMenuText">Schedule</span>
+                <span className="qsMenuChevron" aria-hidden="true">
+                  <i className="fa-solid fa-chevron-right"></i>
+                </span>
+              </button>
+
+              <button className="qsMenuBtn headerAction" id="qsStudyShortcutBtn" data-focus="drawer.shortcutStudy" type="button" aria-label="Go to Study Room">
+                <span className="qsMenuIcon" aria-hidden="true">
+                  <i className="fa-solid fa-book-open"></i>
+                </span>
+                <span className="qsMenuText">Study Room</span>
+                <span className="qsMenuChevron" aria-hidden="true">
+                  <i className="fa-solid fa-chevron-right"></i>
+                </span>
+              </button>
+
               <button className="qsMenuBtn headerAction" id="qsBattleBtn" data-focus="drawer.shortcutBattle" type="button" aria-label="Go to Battle">
                 <span className="qsMenuIcon" aria-hidden="true">
                   <i className="fa-solid fa-fire"></i>
@@ -341,10 +362,6 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         <div className="qsProfileTop">
           <div className="qsProfileTitle">Profile</div>
           <div className="qsProfileTopRight">
-            <label className="qsProfileMiniToggle" aria-label="Toggle status">
-              <input id="qsProfileStatusToggle" className="qsProfileMiniToggleInput" type="checkbox" defaultChecked />
-              <span className="qsProfileMiniSwitch" aria-hidden="true" />
-            </label>
             <button className="qsProfileClose headerAction" id="qsProfileCloseBtn" type="button" aria-label="Close profile panel">
               <i className="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
@@ -377,8 +394,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
 
         <div className="qsProfileBody" aria-label="Profile content">
           <div className="qsProfilePane" data-pane="streak" aria-label="Streak tab">
-            <div className="qsProfilePlaceholderTitle">Streak</div>
-            <div className="qsProfilePlaceholderSub">Hook this to your streak data when ready.</div>
+            <QSStreakPane />
           </div>
           <div className="qsProfilePane" data-pane="ranking" hidden aria-hidden="true" aria-label="Ranking tab">
             <div className="qsProfilePlaceholderTitle">Ranking</div>
@@ -439,15 +455,105 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         </div>
 
         <div className="qsPanelBody" aria-label="Quest content">
-          <div className="qsPanelCard" aria-label="Quest card">
-            <div className="qsPanelCardTitle">Today&apos;s quests</div>
-            <div className="qsPanelCardSub">Jump back into your quests and keep the streak going.</div>
+          <div className="qsPanelCard" aria-label="Quest summary">
+            <div className="qsPanelCardTitle" id="qsQuestSummaryTitle">
+              Active quests
+            </div>
+            <div className="qsPanelCardSub" id="qsQuestSummarySub">
+              Loading your quests...
+            </div>
+          </div>
+
+          <div className="qsQuestList" id="qsQuestList" role="list" aria-label="Quest list"></div>
+
+          <div className="qsPanelCard qsQuestEmpty" id="qsQuestEmpty" hidden aria-hidden="true" aria-label="No quests">
+            <div className="qsPanelCardTitle">No quests yet</div>
+            <div className="qsPanelCardSub">Create a quest to start earning XP and streaks.</div>
           </div>
         </div>
 
         <div className="qsPanelFooter" aria-label="Quest actions">
           <button className="qsPanelFooterBtn qsPanelFooterBtn--primary headerAction" id="qsQuestOpenBtn" type="button" aria-label="Open quest page">
-            Open Quest
+            View all quests
+          </button>
+        </div>
+      </section>
+
+      <section className="qsPanel" id="qsSchedulePanel" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Schedule panel">
+        <div className="qsPanelTop">
+          <div className="qsPanelTitle">Schedule</div>
+          <div className="qsPanelTopRight">
+            <button className="qsPanelClose headerAction" id="qsScheduleCloseBtn" type="button" aria-label="Close schedule panel">
+              <i className="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div className="qsPanelBody" aria-label="Schedule content">
+          <div className="qsPanelCard" aria-label="Calendar list">
+            <div className="qsPanelCardTitle" id="qsScheduleSummaryTitle">
+              Calendar
+            </div>
+            <div className="qsPanelCardSub" id="qsScheduleSummarySub">
+              Tap a day to open your schedule.
+            </div>
+            <div className="qsQuestList qsScheduleCalendarList" id="qsScheduleCalendarList" role="list" aria-label="Calendars" />
+            <div className="qsQuestList qsScheduleList" id="qsScheduleList" role="list" aria-label="Upcoming days" />
+          </div>
+
+          <div className="qsPanelCard qsQuestEmpty qsScheduleEmpty" id="qsScheduleEmpty" hidden aria-hidden="true" aria-label="No events">
+            <div className="qsPanelCardTitle">No events yet</div>
+            <div className="qsPanelCardSub">Add events in Schedule to see them here.</div>
+          </div>
+        </div>
+
+        <div className="qsPanelFooter" aria-label="Schedule actions">
+          <button className="qsPanelFooterBtn qsPanelFooterBtn--primary headerAction" id="qsScheduleOpenBtn" type="button" aria-label="Open schedule page">
+            Open Schedule
+          </button>
+        </div>
+      </section>
+
+      <section className="qsPanel" id="qsStudyPanel" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Study room panel">
+        <div className="qsPanelTop">
+          <div className="qsPanelTitle">Study Room</div>
+          <div className="qsPanelTopRight">
+            <button className="qsPanelClose headerAction" id="qsStudyCloseBtn" type="button" aria-label="Close study room panel">
+              <i className="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div className="qsPanelBody" aria-label="Study room content">
+          <div className="qsPanelCard" aria-label="Study stats">
+            <div className="qsPanelCardTitle">Today</div>
+            <div className="qsPanelCardSub" id="qsStudyMinutesSub">
+              Loading your study stats...
+            </div>
+          </div>
+          <button
+            className="qsMenuBtn headerAction qsStudyStartBar"
+            id="qsStudyStartBtn"
+            type="button"
+            aria-label="Open study room"
+            data-focus="drawer.study.start"
+          >
+            <span className="qsMenuIcon" aria-hidden="true">
+              <i className="fa-solid fa-bolt" aria-hidden="true"></i>
+            </span>
+            <span className="qsMenuTextWrap">
+              <span className="qsMenuText">Let's start focus</span>
+              <span className="qsMenuSub">Jump into Study Room</span>
+            </span>
+            <span className="qsMenuChevron" aria-hidden="true">
+              <i className="fa-solid fa-chevron-right"></i>
+            </span>
+          </button>
+        </div>
+
+        <div className="qsPanelFooter" aria-label="Study room actions">
+          <button className="qsPanelFooterBtn qsPanelFooterBtn--primary headerAction" id="qsStudyOpenBtn" type="button" aria-label="Open study room page">
+            Open Study Room
           </button>
         </div>
       </section>
@@ -463,9 +569,60 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         </div>
 
         <div className="qsPanelBody" aria-label="Battle content">
-          <div className="qsPanelCard" aria-label="Battle card">
-            <div className="qsPanelCardTitle">1v1 battle</div>
-            <div className="qsPanelCardSub">Start a quick match and climb the leaderboard.</div>
+          <button className="qsMenuBtn qsBattleModeBar headerAction" id="qsBattleModeBtn" type="button" aria-label="Open battle modes">
+            <span className="qsMenuIcon" aria-hidden="true">
+              <i className="fa-solid fa-trophy" aria-hidden="true"></i>
+            </span>
+            <span className="qsMenuText">Battle mode</span>
+            <span className="qsMenuChevron" aria-hidden="true">
+              <i className="fa-solid fa-chevron-right"></i>
+            </span>
+          </button>
+
+          <div className="qsPanelCard" aria-label="Battle statistics">
+            <div className="qsPanelCardTitle">Statistics</div>
+            <div className="qsBattleStatGrid" aria-label="Battle stats grid">
+              <div className="qsBattleStat">
+                <div className="qsBattleStatLabel">ELO</div>
+                <div className="qsBattleStatValue" id="qsBattleStatEloVal">
+                  0
+                </div>
+              </div>
+              <div className="qsBattleStat">
+                <div className="qsBattleStatLabel">Rank</div>
+                <div className="qsBattleStatValue" id="qsBattleStatRankVal">
+                  —
+                </div>
+              </div>
+              <div className="qsBattleStat">
+                <div className="qsBattleStatLabel">Winrate</div>
+                <div className="qsBattleStatValue" id="qsBattleStatWinrateVal">
+                  0%
+                </div>
+              </div>
+              <div className="qsBattleStat">
+                <div className="qsBattleStatLabel">Battle XP</div>
+                <div className="qsBattleStatValue" id="qsBattleStatXpVal">
+                  +0
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="qsPanelCard" aria-label="Based on your quest">
+            <div className="qsPanelCardTitle">Based on your quest</div>
+            <div className="qsPanelCardSub" id="qsBattleQuestSub">
+              Recommendations from your active quests.
+            </div>
+            <div className="qsBattleQuestList" id="qsBattleQuestList" role="list" aria-label="Quest-based battle list"></div>
+            <div className="qsBattleQuestEmpty" id="qsBattleQuestEmpty" hidden aria-hidden="true" aria-label="No quest-based battle recommendations">
+              No active quests yet.
+            </div>
+          </div>
+
+          <div className="qsPanelCard" aria-label="Leaderboard">
+            <div className="qsPanelCardTitle">Leaderboard</div>
+            <div className="qsBattleLbList" id="qsBattleLbList" role="list" aria-label="Battle leaderboard list"></div>
           </div>
         </div>
 
@@ -487,9 +644,44 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         </div>
 
         <div className="qsPanelBody" aria-label="Notes content">
-          <div className="qsPanelCard" aria-label="Notes card">
-            <div className="qsPanelCardTitle">Quick capture</div>
-            <div className="qsPanelCardSub">Open Notes to review, create, or hide notes.</div>
+          <div className="qsPanelCard" aria-label="Notes summary">
+            <div className="qsPanelCardTitle" id="qsNotesSummaryTitle">
+              Notes
+            </div>
+            <div className="qsPanelCardSub" id="qsNotesSummarySub">
+              Pick something to jump into Notes.
+            </div>
+          </div>
+
+          <div className="qsPanelCard" aria-label="Notes folders">
+            <div className="qsPanelCardTitle">Folders</div>
+            <div className="qsQuestList qsNotesList" id="qsNotesFolderList" role="list" aria-label="Notes folder list"></div>
+            <div className="qsPanelCardSub qsNotesEmpty" id="qsNotesFolderEmpty" hidden aria-hidden="true">
+              No folders yet.
+            </div>
+          </div>
+
+          <div className="qsPanelCard" aria-label="Notes tags">
+            <div className="qsPanelCardTitle">Tags</div>
+            <div className="qsQuestList qsNotesList" id="qsNotesTagList" role="list" aria-label="Notes tag list"></div>
+            <div className="qsPanelCardSub qsNotesEmpty" id="qsNotesTagEmpty" hidden aria-hidden="true">
+              No tags yet.
+            </div>
+          </div>
+
+          <div className="qsPanelCard" aria-label="Recent notes">
+            <div className="qsPanelCardTitle">Recent notes</div>
+            <div className="qsQuestList qsNotesList" id="qsNotesAllList" role="list" aria-label="Notes list"></div>
+            <div className="qsPanelCardSub qsNotesEmpty" id="qsNotesAllEmpty" hidden aria-hidden="true">
+              No notes yet.
+            </div>
+          </div>
+
+          <div className="qsPanelCard" aria-label="Recent notes">
+            <div className="qsQuestList qsNotesList" id="qsNotesRecentList" role="list" aria-label="Recent notes list"></div>
+            <div className="qsPanelCardSub qsNotesEmpty" id="qsNotesRecentEmpty" hidden aria-hidden="true">
+              No notes in the last 6 hours.
+            </div>
           </div>
         </div>
 
