@@ -50,7 +50,7 @@ export default function DashboardWidgetsSlider() {
   const next = () => setIdx((i) => (i + 1) % slides.length);
 
   return (
-    <div className={styles.wrap} id="grid-widget" aria-label="Widgets">
+    <div className={`${styles.wrap} dashWidgetsWrap`} id="grid-widget" aria-label="Widgets">
       <div className={styles.headerRow}>
         <div className={styles.headerLabel}>Widgets</div>
         <div className={styles.controls}>

@@ -180,6 +180,42 @@
   align-items: center;
   gap: 12px;
   justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.resultActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.resultBtn {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.22);
+  padding: 10px 14px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.resultBtn:hover {
+  filter: brightness(1.06);
+}
+
+.resultBtnPrimary {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.96);
 }
 
 .countdownRing {
@@ -572,6 +608,9 @@
     justify-items: start;
   }
   .countdownWrap {
+    justify-content: flex-start;
+  }
+  .resultActions {
     justify-content: flex-start;
   }
   .question {

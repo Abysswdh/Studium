@@ -1098,7 +1098,7 @@ export default function MatchGrid({ user }: Props) {
   return (
     <>
       <div
-        className="grid h-auto w-full min-h-[360px] grid-cols-1 gap-[var(--shell-gap)] min-[641px]:grid-cols-2 min-[901px]:h-full min-[901px]:grid-cols-[minmax(0,1.05fr)_minmax(0,1.35fr)_minmax(0,0.58fr)_minmax(0,1fr)]"
+        className="grid h-auto w-full min-h-[360px] grid-cols-1 gap-[var(--shell-gap)] min-[720px]:grid-cols-2 min-[1200px]:h-full min-[1200px]:grid-cols-[minmax(0,1.05fr)_minmax(0,1.35fr)_minmax(0,0.82fr)_minmax(0,1fr)]"
         aria-label="Options grid"
       >
         {/* tiles (popups only) */}

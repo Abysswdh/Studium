@@ -677,10 +677,10 @@ export default function BattleArena() {
 
               <div className={styles.preludeBottom}>
                 <div className={styles.preludeHint}>Press Exit to go back, or rematch.</div>
-                <div className={styles.countdownWrap}>
+                <div className={styles.resultActions}>
                   <button
                     type="button"
-                    className="rounded-xl border border-white/12 bg-black/30 px-4 py-2 text-xs font-[900] text-white/85 hover:bg-black/40"
+                    className={styles.resultBtn}
                     onClick={() => (window.location.href = "/battle")}
                     aria-label="Back to battle"
                   >
@@ -688,7 +688,7 @@ export default function BattleArena() {
                   </button>
                   <button
                     type="button"
-                    className="rounded-xl border border-white/18 bg-white/10 px-4 py-2 text-xs font-[900] text-white/92 hover:bg-white/15"
+                    className={`${styles.resultBtn} ${styles.resultBtnPrimary}`}
                     onClick={() => window.location.reload()}
                     aria-label="Rematch"
                   >

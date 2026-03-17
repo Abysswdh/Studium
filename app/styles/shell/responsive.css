@@ -54,6 +54,14 @@ html {
   --safe-inline: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
 }
 
+/* Options is content-heavy: allow scroll even on desktop heights. */
+body[data-view="match"] #routeOutlet {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
+  overscroll-behavior: contain;
+}
+
 .shell {
   width: min(100%, var(--shell-maxw));
   margin-inline: auto;
@@ -465,7 +473,7 @@ html {
   }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 320px) {
   .gridContainerLeftBottom {
     flex-direction: column;
   }
@@ -500,6 +508,23 @@ html {
 
   .shell {
     padding-bottom: calc(clamp(6px, 1.2vh, 12px) + env(safe-area-inset-bottom, 0px));
+  }
+
+  body[data-view="dashboard"] #routeOutlet {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+    overscroll-behavior: contain;
+  }
+
+  body[data-view="dashboard"] .gridContainer {
+    height: auto;
+    min-height: 0;
+  }
+
+  body[data-view="dashboard"] .gridContainerLeft,
+  body[data-view="dashboard"] .gridContainerRight {
+    height: auto;
   }
 
   .header {

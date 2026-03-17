@@ -118,34 +118,37 @@ export default function DashboardQuestStack() {
   }, [quests]);
 
   return (
-    <div className="gridContainerRightLeft" aria-label="Quest stack">
+    <div className="dashQuestWrap" aria-label="Quest stack">
       <div className="dashSectionHead" aria-label="Quest stack header">
         <div className="dashSectionTitle">Today&apos;s Quest</div>
       </div>
-      {TILE_META.map((m, idx) => {
-        const tile = tiles[idx];
-        if (!tile) return null;
 
-        const content =
-          tile.kind === "quest"
-            ? tileForQuest(tile.quest)
-            : { kicker: tile.kicker, title: tile.title, meta: tile.meta, href: tile.href, ariaLabel: tile.ariaLabel };
+      <div className="gridContainerRightLeft" aria-label="Quest tiles">
+        {TILE_META.map((m, idx) => {
+          const tile = tiles[idx];
+          if (!tile) return null;
 
-        return (
-          <div key={m.id} className={m.className} aria-label={tile.kind === "quest" ? "Quest tile" : "Shortcut tile"}>
-            <Link
-              href={content.href}
-              className="dashQuestCard gridCard"
-              id={m.id}
-              data-focus={m.focus}
-              aria-label={content.ariaLabel}
-              style={{ display: "block", color: "inherit", textDecoration: "none" }}
-            >
-              <CardChrome title={content.title} meta={content.meta} />
-            </Link>
-          </div>
-        );
-      })}
+          const content =
+            tile.kind === "quest"
+              ? tileForQuest(tile.quest)
+              : { kicker: tile.kicker, title: tile.title, meta: tile.meta, href: tile.href, ariaLabel: tile.ariaLabel };
+
+          return (
+            <div key={m.id} className={m.className} aria-label={tile.kind === "quest" ? "Quest tile" : "Shortcut tile"}>
+              <Link
+                href={content.href}
+                className="dashQuestCard gridCard"
+                id={m.id}
+                data-focus={m.focus}
+                aria-label={content.ariaLabel}
+                style={{ display: "block", color: "inherit", textDecoration: "none" }}
+              >
+                <CardChrome title={content.title} meta={content.meta} />
+              </Link>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

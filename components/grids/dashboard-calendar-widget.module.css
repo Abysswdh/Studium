@@ -1,4 +1,6 @@
 .root {
+  --cal-day-minh: clamp(40px, 7.4vw, 52px);
+  --cal-day-pad: clamp(7px, 1.8vw, 10px);
   height: 100%;
   min-height: 0;
   display: flex;

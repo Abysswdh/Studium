@@ -315,6 +315,32 @@ body.booting .shell {
   color: rgba(255, 255, 255, 0.46);
 }
 
+.dashQuestWrap {
+  width: auto;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dashQuestWrap .gridContainerRightLeft {
+  width: 100%;
+  height: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.dashWidgetsWrap {
+  width: auto;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  flex: 1 1 0;
+}
+
 .dashGeneralWrap {
   width: 100%;
   flex: 1.28;
@@ -339,6 +365,7 @@ body.booting .shell {
   flex: 1;
   min-height: 0;
   width: 100%;
+  overflow: hidden;
 
   background: rgba(255, 255, 255, 0.14);
   border-radius: 16px;
@@ -3411,6 +3438,15 @@ body[data-subview="study-room"].focus-strict .shell {
 
   .gridContainerRightLeft,
   .gridContainerRightRight {
+    width: 100%;
+    height: auto;
+  }
+
+  .dashQuestWrap {
+    width: 100%;
+    height: auto;
+  }
+  .dashWidgetsWrap {
     width: 100%;
     height: auto;
   }
