@@ -34,9 +34,6 @@ type NotesStore = {
   folderCatalog: FolderDef[];
 };
 
-const FOLDER_FILTER_ANY = "__any_folder__";
-const TAG_FILTER_ANY = "__any_tag__";
-
 const TAG_DOT_PALETTE = ["notesDot--mint", "notesDot--aqua", "notesDot--violet", "notesDot--gold"];
 const TAG_DOT_LABEL: Record<string, string> = {
   "notesDot--mint": "Mint",
@@ -331,9 +328,6 @@ export default function NotesHub() {
     return map;
   }, [store.notes]);
 
-  const allFolderNoteCount = useMemo(() => store.notes.filter((n) => !n.deletedAt && !n.hiddenAt && !!n.folder).length, [store.notes]);
-  const allTaggedNoteCount = useMemo(() => store.notes.filter((n) => !n.deletedAt && !n.hiddenAt && Array.isArray(n.tags) && n.tags.length > 0).length, [store.notes]);
-
   const tabCounts = useMemo(() => {
     const all = store.notes.filter((n) => !n.deletedAt && !n.hiddenAt).length;
     const favorites = store.notes.filter((n) => !n.deletedAt && !n.hiddenAt && n.favorite).length;
@@ -353,11 +347,8 @@ export default function NotesHub() {
 
     // Tag/folder filters shouldn't affect Deleted.
     if (view !== "deleted") {
-      if (folderFilter === FOLDER_FILTER_ANY) list = list.filter((n) => !!n.folder);
-      else if (folderFilter) list = list.filter((n) => n.folder === folderFilter);
-
-      if (tagFilter === TAG_FILTER_ANY) list = list.filter((n) => Array.isArray(n.tags) && n.tags.length > 0);
-      else if (tagFilter) list = list.filter((n) => n.tags.includes(tagFilter));
+      if (folderFilter) list = list.filter((n) => n.folder === folderFilter);
+      if (tagFilter) list = list.filter((n) => n.tags.includes(tagFilter));
     }
 
     if (q) {
@@ -620,17 +611,6 @@ export default function NotesHub() {
 
           <section className={styles.panel} aria-label="Folders">
             <div className={styles.catalog} role="list" aria-label="Folder list">
-              <button
-                type="button"
-                className={sidebarItemClass(folderFilter === FOLDER_FILTER_ANY)}
-                role="listitem"
-                onClick={() => setFolderFilter((prev) => (prev === FOLDER_FILTER_ANY ? null : FOLDER_FILTER_ANY))}
-                aria-label="All folders"
-              >
-                <i className="fa-solid fa-folder-open" aria-hidden="true" />
-                <span className="notesSidebarItem__label">All</span>
-                <span className="notesSidebarItem__count">{allFolderNoteCount}</span>
-              </button>
               {store.folderCatalog.map((f) => (
                 <div key={f.id} className={styles.hoverRow}>
                   <button
@@ -679,17 +659,6 @@ export default function NotesHub() {
 
           <section className={styles.panel} aria-label="Tags">
             <div className={styles.catalog} role="list" aria-label="Tag list">
-              <button
-                type="button"
-                className={tagPillClass(tagFilter === TAG_FILTER_ANY)}
-                role="listitem"
-                onClick={() => setTagFilter((prev) => (prev === TAG_FILTER_ANY ? null : TAG_FILTER_ANY))}
-                aria-label="All tags"
-              >
-                <span className="notesDot notesDot--mint" aria-hidden="true" />
-                <span className="notesRowItem">All</span>
-                <span className="notesSidebarItem__count">{allTaggedNoteCount}</span>
-              </button>
               {store.tagCatalog.map((t) => (
                 <div key={t.id} className={styles.hoverRow}>
                   <button
