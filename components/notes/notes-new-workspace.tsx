@@ -623,6 +623,7 @@ export default function NotesNewWorkspace() {
   const didApplyDeepLink = useRef(false);
   const pendingOpenTargetRef = useRef<string>("");
   const swappedStoreForOpenTargetRef = useRef<string>("");
+  const didInitForceNewRef = useRef<string>("");
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const colorInputRef = useRef<HTMLInputElement | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -839,8 +840,6 @@ export default function NotesNewWorkspace() {
       } catch {
         // ignore
       }
-      createDraft();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       return;
     }
 
@@ -865,6 +864,40 @@ export default function NotesNewWorkspace() {
     createDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deepLinkNoteId, forceNew, hydrated, store.notes.length]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (typeof window === "undefined") return;
+    if (!window.location.pathname.endsWith("/notes/new")) return;
+    const forceNewNow = (() => {
+      if (forceNew) return true;
+      try {
+        const v = String(new URLSearchParams(window.location.search).get("new") || "")
+          .trim()
+          .toLowerCase();
+        return ["1", "true", "yes"].includes(v);
+      } catch {
+        return false;
+      }
+    })();
+    if (!forceNewNow) return;
+
+    const token = window.location.search || "?";
+    if (didInitForceNewRef.current === token) return;
+    didInitForceNewRef.current = token;
+
+    try {
+      sessionStorage.removeItem(openTargetKey());
+      sessionStorage.removeItem(OPEN_TARGET_KEY_FALLBACK);
+      localStorage.removeItem(openTargetKey());
+      localStorage.removeItem(OPEN_TARGET_KEY_FALLBACK);
+    } catch {
+      // ignore
+    }
+
+    createDraft();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forceNew, hydrated]);
 
   useEffect(() => {
     if (!store.notes.length) return;
