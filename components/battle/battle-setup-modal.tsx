@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { notifyIsland } from "../notifications/notify";
 
@@ -72,6 +73,7 @@ export default function BattleSetupModal({
   elo: number;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const config = useMemo(() => normalizeCfg(), []);
   const lastActiveRef = useRef<HTMLElement | null>(null);
   const [state, setState] = useState<SetupState | null>(null);
@@ -266,13 +268,30 @@ export default function BattleSetupModal({
   }${state.reviewAfter ? " • Review" : ""}${state.opponentId === "friend" ? ` • Room:${state.roomAction}` : ""}`;
 
   const start = () => {
+    const params = new URLSearchParams();
+    params.set("mode", mode);
+    params.set("material", state.materialId);
+    params.set("difficulty", effectiveDifficulty);
+    params.set("opponent", state.opponentId);
+    params.set("questionCount", String(state.questionCount));
+    params.set("timePerQuestionSec", String(state.timePerQuestionSec));
+    params.set("hints", state.hints ? "1" : "0");
+    params.set("reviewAfter", state.reviewAfter ? "1" : "0");
+    params.set("elo", String(elo));
+    if (state.opponentId === "friend") {
+      params.set("roomAction", state.roomAction);
+      if (state.roomCode) params.set("roomCode", state.roomCode);
+    }
+
     notifyIsland({
-      title: "Battle setup saved",
+      title: "Entering arena",
       message: summary,
-      kind: "success",
-      durationMs: 5200,
+      kind: "info",
+      durationMs: 2400,
     });
+
     onClose();
+    window.setTimeout(() => router.push(`/battle/arena?${params.toString()}`), 0);
   };
 
   return (

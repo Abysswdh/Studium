@@ -103,6 +103,7 @@ function navSwitchLocked() {
   try {
     const p = window.location && window.location.pathname ? String(window.location.pathname) : "";
     if (p.startsWith("/notes/new")) return true;
+    if (document.body && document.body.dataset && document.body.dataset.subview === "battle-arena") return true;
     if (p.startsWith("/study-room")) {
       // Only lock nav switching when strict mode is enabled (Study Room should still be navigable otherwise).
       return document.body && document.body.classList ? document.body.classList.contains("study-strict") : false;
@@ -633,6 +634,7 @@ try {
   function runBootSequence(opts) {
     const mode = (opts && opts.mode) || "enter"; // enter | nav
     const showWelcome = !!(opts && opts.showWelcome);
+    const playSound = !!(opts && opts.playSound);
 
     const fadeMs = Math.max(240, Number((opts && opts.fadeMs) || (mode === "nav" ? 680 : 5000)));
     const logoMs = Math.max(160, Number((opts && opts.logoMs) || (mode === "nav" ? 320 : 1000)));
@@ -668,6 +670,16 @@ try {
       document.documentElement.classList.add("booting");
     } catch {
       // ignore
+    }
+
+    if (playSound) {
+      try {
+        const api = window.SFX;
+        const muted = typeof api?.isMuted === "function" ? api.isMuted() : false;
+        if (!muted && typeof api?.playBoot === "function") api.playBoot();
+      } catch {
+        // ignore
+      }
     }
 
     requestAnimationFrame(() => {
@@ -1660,6 +1672,222 @@ try {
     isOpen: () => document.body.classList.contains("drawer-open"),
     focusables: drawerFocusables,
   };
+
+  window.studiumMusicApi = {
+    isEnabled: () => !!music.enabled,
+    toggleEnabled: () => setMusicEnabled(!music.enabled),
+    playPause: async () => {
+      setMusicEnabled(true);
+      loadPlaylistOnce();
+      if (!qsMusicAudio) return;
+      await ensureMusicGraph();
+      if (!qsMusicAudio.getAttribute("src")) applyTrack(music.index, { autoplay: false });
+      applyMusicGain();
+      try {
+        if (qsMusicAudio.paused) {
+          const p = qsMusicAudio.play();
+          if (p && typeof p.catch === "function") p.catch(() => {});
+        } else qsMusicAudio.pause();
+      } catch {
+        // ignore
+      }
+      setPlayIcon(!qsMusicAudio.paused);
+    },
+  };
+})();
+
+(function initQuickSettingsHoldShortcut() {
+  const HOLD_MS = 650;
+  const host = document.getElementById("qsHoldHost");
+  const pill = document.getElementById("qsHoldPill");
+  const ring = document.getElementById("qsHoldRingPath");
+  if (!host || !pill || !ring) return;
+
+  const setVisible = (on) => {
+    host.hidden = !on;
+    try {
+      document.body.classList.toggle("qs-hold-active", !!on);
+      document.documentElement.style.setProperty("--qs-hold-duration", `${HOLD_MS}ms`);
+    } catch {
+      // ignore
+    }
+    if (!on) return;
+
+    try {
+      pill.style.setProperty("--qs-hold-duration", `${HOLD_MS}ms`);
+    } catch {
+      // ignore
+    }
+
+    // Restart ring animation.
+    try {
+      ring.style.animation = "none";
+      ring.getBoundingClientRect();
+      ring.style.animation = "";
+    } catch {
+      // ignore
+    }
+  };
+
+  const canStart = () => {
+    if (document.body.classList.contains("booting")) return false;
+    if (document.body.classList.contains("drawer-open")) return false;
+    if (typeof getZone === "function" && getZone() === "modal") return false;
+    if (isTypingTarget(document.activeElement)) return false;
+    return true;
+  };
+
+  const openDrawer = () => {
+    try {
+      if (window.profileDrawerApi?.open) return void window.profileDrawerApi.open();
+    } catch {
+      // ignore
+    }
+    try {
+      const btn = document.getElementById("userMenuBtn");
+      if (btn) btn.click();
+    } catch {
+      // ignore
+    }
+  };
+
+  let holding = false;
+  let t = null;
+
+  const cancel = () => {
+    holding = false;
+    if (t) clearTimeout(t);
+    t = null;
+    setVisible(false);
+  };
+
+  const start = () => {
+    if (holding) return;
+    if (!canStart()) return;
+    holding = true;
+    setVisible(true);
+    t = setTimeout(() => {
+      cancel();
+      openDrawer();
+    }, HOLD_MS);
+  };
+
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.defaultPrevented) return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.repeat) return;
+      const key = String(e.key || "").toLowerCase();
+      if (key !== "m") return;
+      start();
+    },
+    true
+  );
+
+  document.addEventListener(
+    "keyup",
+    (e) => {
+      const key = String(e.key || "").toLowerCase();
+      if (key !== "m") return;
+      cancel();
+    },
+    true
+  );
+
+  window.addEventListener("blur", cancel, { passive: true });
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+      if (document.hidden) cancel();
+    },
+    { passive: true }
+  );
+})();
+
+(function initArenaDock() {
+  const dock = document.getElementById("arenaDock");
+  if (!dock) return;
+  const pauseBtn = document.getElementById("arenaPauseBtn");
+  const musicBtn = document.getElementById("arenaMusicBtn");
+  const surrenderBtn = document.getElementById("arenaSurrenderBtn");
+  const quitBtn = document.getElementById("arenaQuitBtn");
+
+  const isArena = () => document.body && document.body.dataset && document.body.dataset.subview === "battle-arena";
+
+  const call = (fn) => {
+    try {
+      const api = window.arenaApi;
+      if (!api || typeof api[fn] !== "function") return false;
+      api[fn]();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  if (pauseBtn)
+    pauseBtn.addEventListener("click", () => {
+      if (!isArena()) return;
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      call("togglePause");
+    });
+
+  if (surrenderBtn)
+    surrenderBtn.addEventListener("click", () => {
+      if (!isArena()) return;
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      call("requestSurrender");
+    });
+
+  if (musicBtn)
+    musicBtn.addEventListener("click", () => {
+      if (!isArena()) return;
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      try {
+        if (window.studiumMusicApi?.playPause) window.studiumMusicApi.playPause();
+        else if (window.studiumMusicApi?.toggleEnabled) window.studiumMusicApi.toggleEnabled();
+      } catch {
+        // ignore
+      }
+    });
+
+  if (quitBtn)
+    quitBtn.addEventListener("click", (e) => {
+      if (!isArena()) return;
+      // In arena, always confirm exit (handled by React modal).
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      call("requestExitConfirm");
+    });
+})();
+
+(function initArenaEscapeConfirm() {
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.defaultPrevented) return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const key = e.key;
+      if (key !== "Escape" && key !== "Esc") return;
+      if (!document.body || document.body.dataset.subview !== "battle-arena") return;
+
+      // Let modal/drawer close handlers work first.
+      if (document.body.classList.contains("drawer-open")) return;
+      if (document.body.classList.contains("modal-open")) return;
+      if (isTypingTarget(document.activeElement)) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        window.arenaApi?.requestExitConfirm?.();
+      } catch {
+        // ignore
+      }
+    },
+    true
+  );
 })();
 
 (function initNavbar() {
@@ -2525,6 +2753,7 @@ try {
           const moved = moveInGrid("down");
           if (!moved) {
             if (document.body.classList.contains("quest-detail")) return;
+            if (document.body && document.body.dataset && document.body.dataset.subview === "battle-arena") return;
             if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
             focusNav();
           }
@@ -2579,13 +2808,18 @@ try {
     return false;
   };
 
+  const EDGE_PX = 22;
+  const EDGE_SWIPE_DX = 86;
+
   let tracking = false;
+  let gesture = null; // "nav" | "qs_edge"
   let sx = 0;
   let sy = 0;
   let st = 0;
 
   const reset = () => {
     tracking = false;
+    gesture = null;
     sx = 0;
     sy = 0;
     st = 0;
@@ -2601,7 +2835,12 @@ try {
       if (shouldIgnoreTarget(e.target)) return;
 
       const t = e.touches[0];
+      const isArena = document.body?.dataset?.subview === "battle-arena";
+      const edge = t.clientX <= EDGE_PX;
+      if (isArena && !edge) return;
+
       tracking = true;
+      gesture = isArena ? "qs_edge" : "nav";
       sx = t.clientX;
       sy = t.clientY;
       st = Date.now();
@@ -2619,12 +2858,27 @@ try {
       const dx = t.clientX - sx;
       const dy = t.clientY - sy;
       const dt = Date.now() - st;
+      const g = gesture;
       reset();
 
       // Horizontal swipe only (avoid vertical scroll).
       if (Math.abs(dx) < 60) return;
       if (Math.abs(dx) < Math.abs(dy) * 1.2) return;
       if (dt > 900) return; // too slow: likely scroll/drag
+
+      // Battle Arena: left-edge swipe opens Quick Settings.
+      if (g === "qs_edge") {
+        if (dx < EDGE_SWIPE_DX) return;
+        if (document.body.classList.contains("drawer-open")) return;
+        try {
+          if (window.profileDrawerApi?.open) window.profileDrawerApi.open();
+          else document.getElementById("userMenuBtn")?.click?.();
+        } catch {
+          // ignore
+        }
+        return;
+      }
+
       if (navSwitchLocked()) return;
 
       const dir = dx < 0 ? 1 : -1; // swipe left -> next

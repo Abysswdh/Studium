@@ -519,6 +519,119 @@ body.booting .shell {
   transition: min-height 320ms ease;
 }
 
+/* Arena: replace bottom navbar with a battle dock. */
+body[data-subview="battle-arena"] .carousel {
+  display: none !important;
+}
+body[data-subview="battle-arena"] .arenaDock {
+  display: flex !important;
+}
+body[data-subview="battle-arena"] .navbar {
+  justify-content: center;
+  padding: 6px 0 8px;
+}
+
+.arenaDock {
+  display: none;
+  width: min(100%, var(--carousel-width));
+  padding: 10px 12px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.18);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.30);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.arenaDockLeft {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.arenaDockTitle {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.60);
+  text-transform: uppercase;
+}
+
+.arenaDockMeta {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: min(46vw, 520px);
+}
+
+.arenaDockKeys {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.arenaDockActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.arenaKey {
+  width: 30px;
+  height: 30px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.arenaDockHint {
+  font-weight: 900;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-left: 2px;
+  white-space: nowrap;
+}
+
+.arenaDockBtn {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.90);
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.arenaDockBtn:hover {
+  filter: brightness(1.06);
+}
+
+.arenaDockBtnDanger {
+  background: linear-gradient(135deg, rgba(255, 86, 86, 0.78), rgba(255, 140, 120, 0.52));
+  border-color: rgba(255, 160, 140, 0.36);
+}
+
 .navbar::before {
   left: 0;
   background: linear-gradient(90deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0));
@@ -831,6 +944,49 @@ body[data-view="notes"] .gridCard:focus::after {
   place-items: center;
 
   color: var(--text-strong);
+}
+
+.hudKey--hold {
+  position: relative;
+  overflow: visible;
+}
+
+.hudKeyText {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.hudHoldRing {
+  position: absolute;
+  inset: -2px;
+  width: calc(100% + 4px);
+  height: calc(100% + 4px);
+  pointer-events: none;
+}
+
+.hudHoldRingPath {
+  stroke: rgba(168, 85, 247, 0.72);
+  stroke-width: 3;
+  stroke-linecap: round;
+  fill: none;
+  opacity: 0;
+  stroke-dasharray: 100 0;
+}
+
+body.qs-hold-active .hudHoldRingPath {
+  opacity: 1;
+  animation: hudHoldCountdown var(--qs-hold-duration, 650ms) linear forwards;
+}
+
+@keyframes hudHoldCountdown {
+  from {
+    stroke-dasharray: 100 0;
+  }
+  to {
+    stroke-dasharray: 0 100;
+  }
 }
 
 .hudKey i {
@@ -3054,6 +3210,111 @@ body[data-subview="study-room"].focus-strict .shell {
   color: rgba(255, 255, 255, 0.46);
 }
 
+/* Hold-to-open HUD (Quick Settings) - uses a notification-like ring countdown. */
+.qsHoldHost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10001;
+}
+
+.qsHoldPill {
+  pointer-events: none;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transform: translateY(-6px) scale(0.96);
+  opacity: 0;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.qsHoldHost:not([hidden]) .qsHoldPill {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.qsHoldRing {
+  position: absolute;
+  inset: -2px;
+  width: calc(100% + 4px);
+  height: calc(100% + 4px);
+  pointer-events: none;
+}
+
+.qsHoldRingPath {
+  stroke: rgba(168, 85, 247, 0.75);
+  stroke-width: 3;
+  stroke-linecap: round;
+  fill: none;
+  stroke-dasharray: 100 0;
+  animation: qsHoldCountdown var(--qs-hold-duration, 650ms) linear forwards;
+}
+
+.qsHoldKey {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.25);
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.qsHoldText {
+  min-width: 0;
+  line-height: 1.05;
+}
+
+.qsHoldTitle {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.qsHoldSub {
+  margin-top: 2px;
+  font-weight: 800;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.70);
+}
+
+@keyframes qsHoldCountdown {
+  from {
+    stroke-dasharray: 100 0;
+  }
+  to {
+    stroke-dasharray: 0 100;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qsHoldPill {
+    transition: opacity 140ms ease;
+    transform: none;
+  }
+  .qsHoldHost:not([hidden]) .qsHoldPill {
+    transform: none;
+  }
+  .qsHoldRingPath {
+    animation: none;
+  }
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .shell {
@@ -3237,6 +3498,18 @@ body[data-subview="study-room"].focus-strict .shell {
   .hudKey {
     width: 26px;
     height: 26px;
+  }
+
+  body[data-subview="battle-arena"] .arenaDock {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 10px 10px;
+    border-radius: 18px;
+  }
+
+  body[data-subview="battle-arena"] .arenaDockMeta {
+    max-width: 92vw;
   }
 }
 
