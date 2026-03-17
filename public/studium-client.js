@@ -792,9 +792,16 @@ try {
   const qsSchedulePanel = document.getElementById("qsSchedulePanel");
   const qsScheduleCloseBtn = document.getElementById("qsScheduleCloseBtn");
   const qsScheduleOpenBtn = document.getElementById("qsScheduleOpenBtn");
+  const qsScheduleCalendarList = document.getElementById("qsScheduleCalendarList");
+  const qsScheduleList = document.getElementById("qsScheduleList");
+  const qsScheduleEmpty = document.getElementById("qsScheduleEmpty");
+  const qsScheduleSummaryTitle = document.getElementById("qsScheduleSummaryTitle");
+  const qsScheduleSummarySub = document.getElementById("qsScheduleSummarySub");
   const qsStudyPanel = document.getElementById("qsStudyPanel");
   const qsStudyCloseBtn = document.getElementById("qsStudyCloseBtn");
   const qsStudyOpenBtn = document.getElementById("qsStudyOpenBtn");
+  const qsStudyStartBtn = document.getElementById("qsStudyStartBtn");
+  const qsStudyMinutesSub = document.getElementById("qsStudyMinutesSub");
   const qsBattleBtn = document.getElementById("qsBattleBtn");
   const qsBattlePanel = document.getElementById("qsBattlePanel");
   const qsBattleCloseBtn = document.getElementById("qsBattleCloseBtn");
@@ -812,6 +819,16 @@ try {
   const qsNotesPanel = document.getElementById("qsNotesPanel");
   const qsNotesCloseBtn = document.getElementById("qsNotesCloseBtn");
   const qsNotesOpenBtn = document.getElementById("qsNotesOpenBtn");
+  const qsNotesSummaryTitle = document.getElementById("qsNotesSummaryTitle");
+  const qsNotesSummarySub = document.getElementById("qsNotesSummarySub");
+  const qsNotesFolderList = document.getElementById("qsNotesFolderList");
+  const qsNotesFolderEmpty = document.getElementById("qsNotesFolderEmpty");
+  const qsNotesTagList = document.getElementById("qsNotesTagList");
+  const qsNotesTagEmpty = document.getElementById("qsNotesTagEmpty");
+  const qsNotesAllList = document.getElementById("qsNotesAllList");
+  const qsNotesAllEmpty = document.getElementById("qsNotesAllEmpty");
+  const qsNotesRecentList = document.getElementById("qsNotesRecentList");
+  const qsNotesRecentEmpty = document.getElementById("qsNotesRecentEmpty");
   const qsHomeBtn = document.getElementById("qsHomeBtn");
   const qsSettingsBtn = document.getElementById("qsSettingsBtn");
   const qsAdvanced = document.getElementById("qsAdvanced");
@@ -939,7 +956,7 @@ try {
   const LS_SFXVOL = "studium:qs_sfx_volume";
   const LS_FS = "studium:pref_fullscreen";
   const LS_WALL = "studium:qs_wallpapers";
-  const LS_NOTIF = "studium:qs_notifications";
+  const LS_NOTIF_BASE = "studium:qs_notifications";
   const LS_MUTE_ALL = "studium:qs_mute_all";
   const LS_MUSIC_ON = "studium:qs_music_on";
   const LS_MUSIC_VOL = "studium:qs_music_volume";
@@ -947,6 +964,10 @@ try {
   const LS_QS_ADV = "studium:qs_advanced_open";
   const LS_QS_PROFILE_STATUS = "studium:qs_profile_status_on";
   const LS_QUESTS_BASE = "studium:quests_v1";
+  const LS_EVENTS_BASE = "studium:events_v1";
+  const LS_NOTES_BASE = "studium:notes:v1";
+  const LS_STUDY_FOCUS_STATE_BASE = "studium:study_focus_room:v1";
+  const PREF_EVENT = "studium:account_prefs_updated";
 
   const QS_MOBILE_MAX = 900;
   const isMobileQs = () => typeof window !== "undefined" && window.innerWidth <= QS_MOBILE_MAX;
@@ -1001,7 +1022,10 @@ try {
     if (name === "profile") syncProfileStatusToggle();
     if (name === "notif") syncNotifUi();
     if (name === "quest") syncQuestUi();
+    if (name === "schedule") syncScheduleUi();
+    if (name === "study") syncStudyUi();
     if (name === "battle") syncBattleUi();
+    if (name === "notes") syncNotesUi();
 
     if (isMobileQs()) {
       try {
@@ -1098,7 +1122,11 @@ try {
   };
 
   const syncNotifUi = () => {
-    const on = safeLocalGet(LS_NOTIF) !== "0";
+    const scoped = scopedUserKey(LS_NOTIF_BASE);
+    let raw = safeLocalGet(scoped);
+    if (raw == null && scoped !== LS_NOTIF_BASE) raw = safeLocalGet(LS_NOTIF_BASE);
+    if (raw != null && scoped !== LS_NOTIF_BASE && safeLocalGet(scoped) == null) safeLocalSet(scoped, raw);
+    const on = raw !== "0";
     if (qsNotifBtn) qsNotifBtn.setAttribute("aria-pressed", on ? "true" : "false");
     if (qsNotifToggle) qsNotifToggle.checked = on;
     if (qsNotifPill) {
@@ -1107,7 +1135,10 @@ try {
     }
   };
 
-  const currentUserId = () => {
+  // Ensure QS notification state matches persisted settings (and migrate legacy key).
+  syncNotifUi();
+
+  function currentUserId() {
     try {
       const root = document.querySelector(".shellRoot");
       const raw = (root && root.dataset ? root.dataset.userId : "") || (document.body && document.body.dataset ? document.body.dataset.userId : "") || "";
@@ -1116,15 +1147,26 @@ try {
     } catch {
       return null;
     }
-  };
+  }
 
-  const scopedPlannerKey = (base) => {
+  function scopedUserKey(base) {
     const uid = currentUserId();
     return uid ? `${base}:u${uid}` : base;
-  };
+  }
 
   const readQuests = () => {
-    const raw = safeLocalGet(scopedPlannerKey(LS_QUESTS_BASE));
+    const raw = safeLocalGet(scopedUserKey(LS_QUESTS_BASE));
+    if (!raw) return [];
+    try {
+      const v = JSON.parse(raw);
+      return Array.isArray(v) ? v : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const readEvents = () => {
+    const raw = safeLocalGet(scopedUserKey(LS_EVENTS_BASE));
     if (!raw) return [];
     try {
       const v = JSON.parse(raw);
@@ -1219,6 +1261,469 @@ try {
     });
   };
 
+  const fmtDayKey = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${dd}`;
+  };
+
+  const fmtDayLabel = (d, idx) => {
+    try {
+      if (idx === 0) return "Today";
+      if (idx === 1) return "Tomorrow";
+      const wd = d.toLocaleDateString(undefined, { weekday: "short" });
+      const md = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      return `${wd}, ${md}`;
+    } catch {
+      return fmtDayKey(d);
+    }
+  };
+
+  const fmtTime = (iso) => {
+    if (!iso) return "";
+    try {
+      const d = new Date(String(iso));
+      if (Number.isNaN(d.getTime())) return "";
+      return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return "";
+    }
+  };
+
+  const syncScheduleUi = () => {
+    if (!qsScheduleList) return;
+
+    const events = readEvents().filter((e) => e && e.id && e.startAt);
+    const bucket = new Map();
+
+    const nowTs = Date.now();
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const horizon = new Date(now);
+    horizon.setDate(now.getDate() + 30);
+    const horizonTs = horizon.getTime();
+
+    let upcomingTotal = 0;
+    let upcomingQuest = 0;
+    let upcomingPersonal = 0;
+    let nextAll = null;
+    let nextQuest = null;
+    let nextPersonal = null;
+    for (const e of events) {
+      try {
+        const d = new Date(String(e.startAt));
+        if (Number.isNaN(d.getTime())) continue;
+
+        const ts = d.getTime();
+        if (ts >= nowTs && ts < horizonTs) {
+          upcomingTotal += 1;
+          const isQuest = !!e.questId;
+          if (isQuest) upcomingQuest += 1;
+          else upcomingPersonal += 1;
+
+          if (!nextAll || ts < nextAll.ts) nextAll = { ts, e };
+          if (isQuest) {
+            if (!nextQuest || ts < nextQuest.ts) nextQuest = { ts, e };
+          } else {
+            if (!nextPersonal || ts < nextPersonal.ts) nextPersonal = { ts, e };
+          }
+        }
+
+        const key = fmtDayKey(d);
+        const list = bucket.get(key) || [];
+        list.push(e);
+        bucket.set(key, list);
+      } catch {
+        // ignore
+      }
+    }
+
+    const fmtNext = (rec) => {
+      if (!rec?.e?.startAt) return "";
+      try {
+        const d = new Date(String(rec.e.startAt));
+        if (Number.isNaN(d.getTime())) return "";
+        const day = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+        return `Next ${day} â€¢ ${time}`;
+      } catch {
+        return "";
+      }
+    };
+
+    if (qsScheduleCalendarList) qsScheduleCalendarList.innerHTML = "";
+
+    if (qsScheduleCalendarList) {
+      const items = [
+        { filter: "all", title: "All calendars", count: upcomingTotal, next: fmtNext(nextAll) },
+        { filter: "quest", title: "Quest milestones", count: upcomingQuest, next: fmtNext(nextQuest) },
+        { filter: "personal", title: "Personal", count: upcomingPersonal, next: fmtNext(nextPersonal) },
+      ];
+      items.forEach((it, idx) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "qsQuestItem headerAction qsScheduleItem";
+        btn.setAttribute("role", "listitem");
+        btn.setAttribute("data-schedule-filter", it.filter);
+        btn.setAttribute("aria-label", `Open schedule: ${it.title}`);
+        btn.setAttribute("data-focus", `drawer.schedule.cal.${idx + 1}`);
+
+        const main = document.createElement("span");
+        main.className = "qsQuestItemMain";
+
+        const t = document.createElement("span");
+        t.className = "qsQuestItemTitle";
+        t.textContent = it.title;
+
+        const m = document.createElement("span");
+        m.className = "qsQuestItemMeta";
+        m.textContent = `${it.count} event${it.count === 1 ? "" : "s"} (30d)${it.next ? ` â€¢ ${it.next}` : ""}`;
+
+        const ch = document.createElement("span");
+        ch.className = "qsQuestItemChevron";
+        ch.setAttribute("aria-hidden", "true");
+        ch.innerHTML = '<i class="fa-solid fa-chevron-right" aria-hidden="true"></i>';
+
+        main.appendChild(t);
+        main.appendChild(m);
+        btn.appendChild(main);
+        btn.appendChild(ch);
+        qsScheduleCalendarList.appendChild(btn);
+      });
+    }
+
+    const start = new Date(now);
+    qsScheduleList.innerHTML = "";
+
+    const daysToShow = [];
+    for (let i = 0; i < 30; i++) {
+      const day = new Date(start);
+      day.setDate(start.getDate() + i);
+      const key = fmtDayKey(day);
+      const list = bucket.get(key) || [];
+      if ((i === 0 && upcomingTotal > 0) || list.length > 0) daysToShow.push({ day, key, list, idx: i });
+      if (daysToShow.length >= 7) break;
+    }
+
+    for (let i = 0; i < daysToShow.length; i++) {
+      const item = daysToShow[i];
+      const day = item.day;
+      const key = item.key;
+      const list = item.list;
+      const labelIdx = item.idx;
+      list.sort((a, b) => {
+        const at = a && a.startAt ? new Date(String(a.startAt)).getTime() : 0;
+        const bt = b && b.startAt ? new Date(String(b.startAt)).getTime() : 0;
+        return at - bt;
+      });
+
+      const count = list.length;
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "qsQuestItem headerAction qsScheduleItem";
+      btn.setAttribute("role", "listitem");
+      btn.setAttribute("data-schedule-day", key);
+      btn.setAttribute("aria-label", `Open schedule for ${fmtDayLabel(day, labelIdx)}`);
+      btn.setAttribute("data-focus", `drawer.schedule.day.${i + 1}`);
+
+      const main = document.createElement("span");
+      main.className = "qsQuestItemMain";
+
+      const t = document.createElement("span");
+      t.className = "qsQuestItemTitle";
+      t.textContent = fmtDayLabel(day, labelIdx);
+
+      const m = document.createElement("span");
+      m.className = "qsQuestItemMeta";
+      const nextTime = count ? fmtTime(list[0]?.startAt) : "";
+      m.textContent = count ? `${count} event${count === 1 ? "" : "s"}${nextTime ? ` • Next ${nextTime}` : ""}` : "No events";
+
+      const ch = document.createElement("span");
+      ch.className = "qsQuestItemChevron";
+      ch.setAttribute("aria-hidden", "true");
+      ch.innerHTML = '<i class="fa-solid fa-chevron-right" aria-hidden="true"></i>';
+
+      main.appendChild(t);
+      main.appendChild(m);
+      btn.appendChild(main);
+      btn.appendChild(ch);
+      qsScheduleList.appendChild(btn);
+    }
+
+    if (qsScheduleSummaryTitle) qsScheduleSummaryTitle.textContent = `Calendar${upcomingTotal ? ` (${upcomingTotal})` : ""}`;
+    if (qsScheduleSummarySub) qsScheduleSummarySub.textContent = upcomingTotal ? "Tap a day to open your schedule." : "No events scheduled for the next 30 days.";
+
+    if (qsScheduleEmpty) {
+      const empty = upcomingTotal === 0;
+      qsScheduleEmpty.hidden = !empty;
+      qsScheduleEmpty.setAttribute("aria-hidden", empty ? "false" : "true");
+    }
+  };
+
+  const fmtRelative = (ts) => {
+    const t = Number(ts || 0);
+    if (!Number.isFinite(t) || t <= 0) return "";
+    const delta = Math.max(0, Date.now() - t);
+    const min = Math.floor(delta / 60000);
+    if (min < 1) return "just now";
+    if (min < 60) return `${min}m ago`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}h ago`;
+    const d = Math.floor(hr / 24);
+    return `${d}d ago`;
+  };
+
+  const readScopedRaw = (base) => {
+    const scoped = scopedUserKey(base);
+    const scopedVal = safeLocalGet(scoped);
+    if (scopedVal != null) return { scoped, raw: scopedVal };
+    if (scoped !== base) {
+      const legacyVal = safeLocalGet(base);
+      if (legacyVal != null) return { scoped, raw: legacyVal, legacy: true };
+    }
+    return { scoped, raw: null };
+  };
+
+  const ensureScoped = (base) => {
+    const { scoped, raw, legacy } = readScopedRaw(base);
+    if (!legacy) return raw;
+    if (raw == null) return null;
+    safeLocalSet(scoped, raw);
+    return raw;
+  };
+
+  const syncStudyUi = () => {
+    if (!qsStudyMinutesSub) return;
+    const raw = ensureScoped(LS_STUDY_FOCUS_STATE_BASE);
+    let sec = 0;
+    let sessions = 0;
+    if (raw) {
+      try {
+        const v = JSON.parse(raw);
+        sec = Number(v?.studySecondsToday ?? 0) || 0;
+        sessions = Number(v?.sessionsToday ?? 0) || 0;
+      } catch {
+        // ignore
+      }
+    }
+    const minutes = Math.floor(Math.max(0, sec) / 60);
+    qsStudyMinutesSub.textContent = `You have studied for ${minutes} minute${minutes === 1 ? "" : "s"} today${sessions ? ` \u2022 ${sessions} session${sessions === 1 ? "" : "s"}` : ""}.`;
+  };
+
+  const readNotesStore = () => {
+    const raw = ensureScoped(LS_NOTES_BASE);
+    if (!raw) return { notes: [], folderCatalog: [], tagCatalog: [] };
+    try {
+      const v = JSON.parse(raw);
+      return {
+        notes: Array.isArray(v?.notes) ? v.notes : [],
+        folderCatalog: Array.isArray(v?.folderCatalog) ? v.folderCatalog : [],
+        tagCatalog: Array.isArray(v?.tagCatalog) ? v.tagCatalog : [],
+      };
+    } catch {
+      return { notes: [], folderCatalog: [], tagCatalog: [] };
+    }
+  };
+
+  const syncNotesUi = () => {
+    const store = readNotesStore();
+    const notes = Array.isArray(store.notes) ? store.notes : [];
+    const folders = Array.isArray(store.folderCatalog) ? store.folderCatalog : [];
+    const tags = Array.isArray(store.tagCatalog) ? store.tagCatalog : [];
+
+    const activeNotes = notes.filter((n) => n && !n.deletedAt && !n.hiddenAt);
+
+    if (qsNotesSummaryTitle) qsNotesSummaryTitle.textContent = `Notes${activeNotes.length ? ` (${activeNotes.length})` : ""}`;
+    if (qsNotesSummarySub) qsNotesSummarySub.textContent = activeNotes.length ? "Tap an item to open Notes." : "Create a note to start capturing ideas.";
+
+    if (qsNotesFolderList) qsNotesFolderList.innerHTML = "";
+    if (qsNotesTagList) qsNotesTagList.innerHTML = "";
+    if (qsNotesRecentList) qsNotesRecentList.innerHTML = "";
+
+    const folderCounts = new Map();
+    for (const n of activeNotes) {
+      const fid = typeof n?.folder === "string" ? n.folder : "";
+      if (!fid) continue;
+      folderCounts.set(fid, (folderCounts.get(fid) || 0) + 1);
+    }
+
+    const tagCounts = new Map();
+    for (const n of activeNotes) {
+      const list = Array.isArray(n?.tags) ? n.tags : [];
+      for (const tid of list) {
+        const id = String(tid || "").trim();
+        if (!id) continue;
+        tagCounts.set(id, (tagCounts.get(id) || 0) + 1);
+      }
+    }
+
+    const mkJumpItem = ({ title, meta, focusKey, label, noteId }) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "qsQuestItem headerAction qsNotesItem";
+      btn.setAttribute("role", "listitem");
+      btn.setAttribute("data-notes-jump", "1");
+      btn.setAttribute("aria-label", label || `Open notes for ${title}`);
+      if (focusKey) btn.setAttribute("data-focus", focusKey);
+      if (noteId) btn.setAttribute("data-note-id", String(noteId));
+
+      const main = document.createElement("span");
+      main.className = "qsQuestItemMain";
+
+      const t = document.createElement("span");
+      t.className = "qsQuestItemTitle";
+      t.textContent = title;
+
+      const m = document.createElement("span");
+      m.className = "qsQuestItemMeta";
+      m.textContent = meta || "";
+
+      const ch = document.createElement("span");
+      ch.className = "qsQuestItemChevron";
+      ch.setAttribute("aria-hidden", "true");
+      ch.innerHTML = '<i class="fa-solid fa-chevron-right" aria-hidden="true"></i>';
+
+      main.appendChild(t);
+      main.appendChild(m);
+      btn.appendChild(main);
+      btn.appendChild(ch);
+      return btn;
+    };
+
+    if (qsNotesFolderList) {
+      const shown = folders
+        .map((f) => {
+          const id = String(f?.id || "").trim();
+          const label = String(f?.label || id || "Folder").trim();
+          const count = folderCounts.get(id) || 0;
+          return { id, label, count };
+        })
+        .filter((x) => x.id && x.count > 0)
+        .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+        .slice(0, 4);
+
+      shown.forEach((f, idx) => {
+        qsNotesFolderList.appendChild(
+          mkJumpItem({
+            title: f.label,
+            meta: `${f.count} note${f.count === 1 ? "" : "s"}`,
+            focusKey: `drawer.notes.folder.${idx + 1}`,
+            label: `Open notes folder ${f.label}`,
+          }),
+        );
+      });
+      if (qsNotesFolderEmpty) {
+        const empty = shown.length === 0;
+        qsNotesFolderEmpty.hidden = !empty;
+        qsNotesFolderEmpty.setAttribute("aria-hidden", empty ? "false" : "true");
+      }
+    }
+
+    if (qsNotesTagList) {
+      const shown = tags
+        .map((t) => {
+          const id = String(t?.id || "").trim();
+          const label = String(t?.label || id || "Tag").trim();
+          const count = tagCounts.get(id) || 0;
+          return { id, label, count };
+        })
+        .filter((x) => x.id && x.count > 0)
+        .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+        .slice(0, 4);
+
+      shown.forEach((t, idx) => {
+        qsNotesTagList.appendChild(
+          mkJumpItem({
+            title: t.label,
+            meta: `${t.count} note${t.count === 1 ? "" : "s"}`,
+            focusKey: `drawer.notes.tag.${idx + 1}`,
+            label: `Open notes tag ${t.label}`,
+          }),
+        );
+      });
+      if (qsNotesTagEmpty) {
+        const empty = shown.length === 0;
+        qsNotesTagEmpty.hidden = !empty;
+        qsNotesTagEmpty.setAttribute("aria-hidden", empty ? "false" : "true");
+      }
+    }
+
+    if (qsNotesAllList) {
+      const list = activeNotes
+        .slice()
+        .sort((a, b) => {
+          const au = Number(a?.createdAt ?? 0) || 0;
+          const bu = Number(b?.createdAt ?? 0) || 0;
+          if (bu !== au) return bu - au;
+          const au2 = Number(a?.updatedAt ?? 0) || 0;
+          const bu2 = Number(b?.updatedAt ?? 0) || 0;
+          return bu2 - au2;
+        })
+        .slice(0, 6);
+
+      list.forEach((n, idx) => {
+        const title = String(n?.title || "Untitled").trim() || "Untitled";
+        const ts = Number(n?.createdAt ?? n?.updatedAt ?? 0) || 0;
+        const fid = typeof n?.folder === "string" ? n.folder : "";
+        const folderLabel = fid ? (folders.find((f) => String(f?.id) === fid)?.label || fid) : "";
+        const meta = `${ts ? `Created ${fmtRelative(ts)}` : "Created"}${folderLabel ? ` â€¢ ${folderLabel}` : ""}`;
+        qsNotesAllList.appendChild(
+          mkJumpItem({
+            title,
+            meta,
+            focusKey: `drawer.notes.note.${idx + 1}`,
+            label: `Open note ${title}`,
+            noteId: n?.id,
+          }),
+        );
+      });
+
+      if (qsNotesAllEmpty) {
+        const empty = list.length === 0;
+        qsNotesAllEmpty.hidden = !empty;
+        qsNotesAllEmpty.setAttribute("aria-hidden", empty ? "false" : "true");
+      }
+    }
+
+    if (qsNotesRecentList) {
+      const cutoff = Date.now() - 6 * 60 * 60 * 1000;
+      const rec = activeNotes
+        .slice()
+        .sort((a, b) => {
+          const au = Number(a?.updatedAt ?? a?.createdAt ?? 0) || 0;
+          const bu = Number(b?.updatedAt ?? b?.createdAt ?? 0) || 0;
+          return bu - au;
+        })
+        .filter((n) => {
+          const ts = Number(n?.updatedAt ?? n?.createdAt ?? 0) || 0;
+          return ts >= cutoff;
+        })
+        .slice(0, 5);
+
+      rec.forEach((n, idx) => {
+        const title = String(n?.title || "Untitled").trim() || "Untitled";
+        const ts = Number(n?.updatedAt ?? n?.createdAt ?? 0) || 0;
+        qsNotesRecentList.appendChild(
+          mkJumpItem({
+            title,
+            meta: ts ? `Updated ${fmtRelative(ts)}` : "Recently updated",
+            focusKey: `drawer.notes.recent.${idx + 1}`,
+            label: `Open note ${title}`,
+            noteId: n?.id,
+          }),
+        );
+      });
+
+      if (qsNotesRecentEmpty) {
+        const empty = rec.length === 0;
+        qsNotesRecentEmpty.hidden = !empty;
+        qsNotesRecentEmpty.setAttribute("aria-hidden", empty ? "false" : "true");
+      }
+    }
+  };
+
   const fmtNum = (n) => {
     try {
       return Number(n).toLocaleString();
@@ -1235,6 +1740,98 @@ try {
     { id: "u5", name: "Salsa", xp: 4390, elo: 1194, tag: "B29" },
   ];
 
+  let battleLbCache = null;
+  let battleLbCacheAt = 0;
+  let battleLbInflight = null;
+
+  const renderBattleLeaderboard = (entries) => {
+    if (!qsBattleLbList) return;
+    qsBattleLbList.innerHTML = "";
+
+    const list = Array.isArray(entries) ? entries : [];
+    if (list.length === 0) {
+      const row = document.createElement("div");
+      row.className = "qsBattleLbRow";
+      row.setAttribute("role", "listitem");
+      row.setAttribute("aria-label", "No leaderboard data");
+      row.textContent = "No leaderboard data yet.";
+      qsBattleLbList.appendChild(row);
+      return;
+    }
+
+    list.forEach((e, i) => {
+      const row = document.createElement("div");
+      row.className = "qsBattleLbRow";
+      row.setAttribute("role", "listitem");
+      row.setAttribute("aria-label", `Rank ${i + 1} ${e.name}`);
+
+      const r = document.createElement("div");
+      r.className = "qsBattleLbRank";
+      r.textContent = `#${i + 1}`;
+
+      const main = document.createElement("div");
+      main.className = "qsBattleLbMain";
+
+      const name = document.createElement("div");
+      name.className = "qsBattleLbName";
+      name.textContent = e.name;
+
+      const meta = document.createElement("div");
+      meta.className = "qsBattleLbMeta";
+      meta.textContent = `${fmtNum(e.xp)} XP â€¢ ${fmtNum(e.elo)} ELO`;
+
+      const tag = document.createElement("div");
+      tag.className = "qsBattleLbTag";
+      tag.textContent = e.tag || "â€”";
+
+      main.appendChild(name);
+      main.appendChild(meta);
+      row.appendChild(r);
+      row.appendChild(main);
+      row.appendChild(tag);
+      qsBattleLbList.appendChild(row);
+    });
+  };
+
+  const ensureBattleLeaderboard = async () => {
+    const now = Date.now();
+    if (battleLbCache && now - battleLbCacheAt < 60_000) return battleLbCache;
+    if (battleLbInflight) return battleLbInflight;
+
+    if (typeof fetch !== "function") {
+      battleLbCache = { entries: DUMMY_BATTLE_LB };
+      battleLbCacheAt = now;
+      return battleLbCache;
+    }
+
+    battleLbInflight = (async () => {
+      try {
+        const res = await fetch("/api/battle/leaderboard?sort=xp&limit=5", { credentials: "include" });
+        const json = await res.json();
+        const entries = Array.isArray(json?.entries) ? json.entries : [];
+        const normalized = entries.map((x) => ({
+          id: String(x?.id || ""),
+          name: String(x?.name || "Unknown"),
+          xp: Number(x?.xp ?? 0) || 0,
+          elo: Number(x?.elo ?? 0) || 0,
+          tag: String(x?.tag || "â€”"),
+        }));
+
+        battleLbCache = { entries: normalized.length ? normalized : DUMMY_BATTLE_LB };
+        battleLbCacheAt = Date.now();
+        return battleLbCache;
+      } catch {
+        battleLbCache = { entries: DUMMY_BATTLE_LB };
+        battleLbCacheAt = Date.now();
+        return battleLbCache;
+      } finally {
+        battleLbInflight = null;
+      }
+    })();
+
+    return battleLbInflight;
+  };
+
   const syncBattleUi = () => {
     const elo = 1350;
     const rank = "Silver II";
@@ -1248,7 +1845,7 @@ try {
 
     if (qsBattleLbList) {
       qsBattleLbList.innerHTML = "";
-      DUMMY_BATTLE_LB.forEach((e, i) => {
+      (battleLbCache && Array.isArray(battleLbCache.entries) ? battleLbCache.entries : DUMMY_BATTLE_LB).forEach((e, i) => {
         const row = document.createElement("div");
         row.className = "qsBattleLbRow";
         row.setAttribute("role", "listitem");
@@ -1279,6 +1876,12 @@ try {
         row.appendChild(main);
         row.appendChild(tag);
         qsBattleLbList.appendChild(row);
+      });
+
+      ensureBattleLeaderboard().then((data) => {
+        if (!isQsPanelOpen("battle")) return;
+        const entries = data && Array.isArray(data.entries) ? data.entries : DUMMY_BATTLE_LB;
+        renderBattleLeaderboard(entries);
       });
     }
 
@@ -1870,8 +2473,13 @@ try {
   if (qsNotifToggle) {
     qsNotifToggle.addEventListener("change", () => {
       const on = !!qsNotifToggle.checked;
-      safeLocalSet(LS_NOTIF, on ? "1" : "0");
+      safeLocalSet(scopedUserKey(LS_NOTIF_BASE), on ? "1" : "0");
       syncNotifUi();
+      try {
+        window.dispatchEvent(new Event(PREF_EVENT));
+      } catch {
+        // ignore
+      }
     });
   }
 
@@ -1964,6 +2572,24 @@ try {
   if (qsBattleOpenBtn) qsBattleOpenBtn.addEventListener("click", () => navShortcut("/battle"));
   if (qsNotesOpenBtn) qsNotesOpenBtn.addEventListener("click", () => navShortcut("/notes"));
   if (qsBattleModeBtn) qsBattleModeBtn.addEventListener("click", () => navShortcut("/battle"));
+  if (qsStudyStartBtn)
+    qsStudyStartBtn.addEventListener("click", () => {
+      try {
+        const items = Array.from(document.querySelectorAll(".navItem"));
+        const idx = items.findIndex((el) => el && el.dataset && el.dataset.page === "study");
+        if (idx >= 0 && window.navApi && typeof window.navApi.focus === "function") {
+          window.navApi.focus(idx);
+          return;
+        }
+      } catch {
+        // ignore
+      }
+
+      try {
+        sessionStorage.setItem("studium:pending_nav_focus", "study");
+      } catch {}
+      navShortcut("/study");
+    });
 
   if (qsQuestList) {
     qsQuestList.addEventListener("click", (e) => {
@@ -1976,11 +2602,62 @@ try {
     });
   }
 
+  if (qsScheduleList) {
+    qsScheduleList.addEventListener("click", (e) => {
+      const t = e.target;
+      const btn = t && t.closest ? t.closest("[data-schedule-day]") : null;
+      if (!btn) return;
+      const key = btn.getAttribute("data-schedule-day") || "";
+      try {
+        if (key) sessionStorage.setItem("studium:schedules_pending_day", key);
+        sessionStorage.removeItem("studium:schedules_pending_filter");
+      } catch {}
+      setPendingFocus("schedules.agenda");
+      navShortcut("/schedules");
+    });
+  }
+
+  if (qsScheduleCalendarList) {
+    qsScheduleCalendarList.addEventListener("click", (e) => {
+      const t = e.target;
+      const btn = t && t.closest ? t.closest("[data-schedule-filter]") : null;
+      if (!btn) return;
+      const filter = btn.getAttribute("data-schedule-filter") || "all";
+      try {
+        sessionStorage.setItem("studium:schedules_pending_day", fmtDayKey(new Date()));
+        sessionStorage.setItem("studium:schedules_pending_filter", filter);
+      } catch {}
+      setPendingFocus("schedules.agenda");
+      navShortcut("/schedules");
+    });
+  }
+
+  const attachNotesJump = (root) => {
+    if (!root) return;
+    root.addEventListener("click", (e) => {
+      const t = e.target;
+      const btn = t && t.closest ? t.closest("[data-notes-jump]") : null;
+      if (!btn) return;
+      const noteId = btn.getAttribute && btn.getAttribute("data-note-id");
+      if (noteId) {
+        navShortcut(`/notes/new?fullscreen=1&note=${encodeURIComponent(noteId)}`);
+        return;
+      }
+      navShortcut("/notes");
+    });
+  };
+  attachNotesJump(qsNotesFolderList);
+  attachNotesJump(qsNotesTagList);
+  attachNotesJump(qsNotesAllList);
+  attachNotesJump(qsNotesRecentList);
+
   if (qsBattleQuestList) {
     qsBattleQuestList.addEventListener("click", (e) => {
       const t = e.target;
       const btn = t && t.closest ? t.closest("[data-quest-id]") : null;
       if (!btn) return;
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      setPendingFocus("battle.questBased");
       navShortcut("/battle");
     });
   }
@@ -1988,11 +2665,16 @@ try {
   try {
     window.addEventListener("studium:planner_updated", () => {
       if (isQsPanelOpen("quest")) syncQuestUi();
+      if (isQsPanelOpen("schedule")) syncScheduleUi();
       if (isQsPanelOpen("battle")) syncBattleUi();
     });
     window.addEventListener("storage", () => {
       if (isQsPanelOpen("quest")) syncQuestUi();
+      if (isQsPanelOpen("schedule")) syncScheduleUi();
       if (isQsPanelOpen("battle")) syncBattleUi();
+    });
+    window.addEventListener(PREF_EVENT, () => {
+      syncNotifUi();
     });
   } catch {
     // ignore
@@ -2911,7 +3593,7 @@ try {
     routine: "routine.now",
     quest: "quest.slot1",
     schedules: "schedules.agenda",
-    notes: "notes.inbox",
+    notes: "notes.tab.all",
     study: "study.launcher",
     pomodoro: "pomodoro.timer",
     battle: "battle.lobby",
@@ -2920,10 +3602,6 @@ try {
   };
 
   const overrideByView = {
-    notes: {
-      "notes.inbox:right": "notes.preview",
-      "notes.preview:left": "notes.recent1",
-    },
     battle: {
       "battle.stats:down": "battle.questBased",
       "battle.questBased:up": "battle.stats",
@@ -3061,6 +3739,48 @@ try {
 
   const overlap1d = (a1, a2, b1, b2) => Math.max(0, Math.min(a2, b2) - Math.max(a1, b1));
 
+  const NOTES_COL_SEL =
+    '[aria-label="Folders column"],[aria-label="Tags column"],[aria-label="All notes column"],[aria-label="Preview column"],[aria-label="Notes sidebar"],[aria-label="Notes list"],[aria-label="Note preview"]';
+
+  const notesColOf = (el) => {
+    if (!el || typeof el.closest !== "function") return null;
+    return el.closest(NOTES_COL_SEL);
+  };
+
+  const notesColOrder = () => {
+    const outlet = document.getElementById("routeOutlet");
+    if (!outlet) return [];
+
+    const editor = [
+      outlet.querySelector('[aria-label="Notes sidebar"]'),
+      outlet.querySelector('[aria-label="Notes list"]'),
+      outlet.querySelector('[aria-label="Note preview"]'),
+    ].filter(Boolean);
+    if (editor.length >= 2) return editor;
+
+    return [
+      outlet.querySelector('[aria-label="Folders column"]'),
+      outlet.querySelector('[aria-label="Tags column"]'),
+      outlet.querySelector('[aria-label="All notes column"]'),
+      outlet.querySelector('[aria-label="Preview column"]'),
+    ].filter(Boolean);
+  };
+
+  const closestByY = (candidates, y) => {
+    let best = null;
+    let bestDist = Infinity;
+    for (const el of candidates) {
+      const r = el.getBoundingClientRect();
+      const cy = r.top + r.height / 2;
+      const d = Math.abs(cy - y);
+      if (d < bestDist) {
+        bestDist = d;
+        best = el;
+      }
+    }
+    return best;
+  };
+
   let gridRectCache = null;
   let gridCacheTimer = null;
   let lastXMemory = null;
@@ -3151,6 +3871,11 @@ try {
 
   const ensureVisibleSmooth = (el) => {
     if (!el) return;
+    try {
+      if (typeof el.scrollIntoView === "function") el.scrollIntoView({ block: "nearest", inline: "nearest" });
+    } catch {
+      // ignore
+    }
     const r = el.getBoundingClientRect();
     const pad = 120;
     const vh = window.innerHeight;
@@ -3177,6 +3902,49 @@ try {
     }
 
     const { primary, fallback } = gridCandidateSets();
+
+    // Notes: constrain up/down within the current column, and make left/right switch columns.
+    if (view === "notes") {
+      const curEl = cur || curRaw;
+      const curCol = notesColOf(curEl);
+      if (curCol && (dir === "left" || dir === "right")) {
+        const cols = notesColOrder();
+        const idx = cols.indexOf(curCol);
+        const nextCol = cols[idx + (dir === "right" ? 1 : -1)];
+        if (nextCol) {
+          const cy = centerOf(curEl.getBoundingClientRect()).y;
+          const pool = gridCandidatesAll().filter((el) => nextCol.contains(el));
+          const best = closestByY(pool, cy) || pool[0] || null;
+          if (best) {
+            const moved = focusEl(best);
+            if (moved) {
+              if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
+              applyRovingTabindex(best);
+              ensureVisibleSmooth(best);
+            }
+            return moved;
+          }
+        }
+      }
+
+      if (curCol && (dir === "up" || dir === "down")) {
+        const scopedPrimary = primary.filter((el) => curCol.contains(el));
+        const scopedFallback = fallback.filter((el) => curCol.contains(el));
+        const next = spatialNext(cur, dir, scopedPrimary.length ? scopedPrimary : primary) || (fallback !== primary ? spatialNext(cur, dir, scopedFallback.length ? scopedFallback : fallback) : null);
+        if (!next) {
+          if (dir === "up" || dir === "down") lastXMemory = null;
+          return false;
+        }
+        const moved = focusEl(next);
+        if (moved) {
+          if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
+          applyRovingTabindex(next);
+          ensureVisibleSmooth(next);
+        }
+        return moved;
+      }
+    }
+
     const next = spatialNext(cur, dir, primary) || (fallback !== primary ? spatialNext(cur, dir, fallback) : null);
     if (!next) {
        if (dir === 'up' || dir === 'down') lastXMemory = null;
@@ -3216,6 +3984,9 @@ try {
       const zone = getZone();
       const ae = document.activeElement;
       const typing = isTypingTarget(ae);
+
+      // Notes preview: allow up/down arrows to scroll the content instead of navigating focus.
+      if (!typing && (key === "ArrowUp" || key === "ArrowDown") && ae?.closest?.(".notesPreviewBody")) return;
 
       // Don't steal arrow keys from typing targets (let caret/value navigation work).
       // Escape is still handled for closing modals/drawers.
@@ -3390,6 +4161,7 @@ try {
         if (key === "ArrowDown") {
           const moved = moveInGrid("down");
           if (!moved) {
+            if (getView() === "notes") return;
             if (document.body.classList.contains("quest-detail")) return;
             if (document.body && document.body.dataset && document.body.dataset.subview === "battle-arena") return;
             if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
@@ -3400,7 +4172,10 @@ try {
 
         if (key === "ArrowUp") {
           const moved = moveInGrid("up");
-          if (!moved) focusHeaderFromGrid();
+          if (!moved) {
+            if (getView() === "notes") return;
+            focusHeaderFromGrid();
+          }
           return;
         }
         if (key === "ArrowLeft") return void moveInGrid("left");

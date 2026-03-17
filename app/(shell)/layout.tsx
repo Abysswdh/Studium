@@ -1,6 +1,7 @@
 import RouteBridge from "../../components/route-bridge";
 import ShellBackground from "../../components/shell-background";
 import NotificationIsland from "../../components/notifications/notification-island";
+import QSStreakPane from "../../components/quick-settings/qs-streak-pane";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth/current-user";
 import Script from "next/script";
@@ -414,8 +415,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
 
         <div className="qsProfileBody" aria-label="Profile content">
           <div className="qsProfilePane" data-pane="streak" aria-label="Streak tab">
-            <div className="qsProfilePlaceholderTitle">Streak</div>
-            <div className="qsProfilePlaceholderSub">Hook this to your streak data when ready.</div>
+            <QSStreakPane />
           </div>
           <div className="qsProfilePane" data-pane="ranking" hidden aria-hidden="true" aria-label="Ranking tab">
             <div className="qsProfilePlaceholderTitle">Ranking</div>
@@ -511,9 +511,20 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         </div>
 
         <div className="qsPanelBody" aria-label="Schedule content">
-          <div className="qsPanelCard" aria-label="Schedule card">
-            <div className="qsPanelCardTitle">Agenda + deadlines</div>
-            <div className="qsPanelCardSub">Plan your day and track deadlines that feed your routine.</div>
+          <div className="qsPanelCard" aria-label="Calendar list">
+            <div className="qsPanelCardTitle" id="qsScheduleSummaryTitle">
+              Calendar
+            </div>
+            <div className="qsPanelCardSub" id="qsScheduleSummarySub">
+              Tap a day to open your schedule.
+            </div>
+            <div className="qsQuestList qsScheduleCalendarList" id="qsScheduleCalendarList" role="list" aria-label="Calendars" />
+            <div className="qsQuestList qsScheduleList" id="qsScheduleList" role="list" aria-label="Upcoming days" />
+          </div>
+
+          <div className="qsPanelCard qsQuestEmpty qsScheduleEmpty" id="qsScheduleEmpty" hidden aria-hidden="true" aria-label="No events">
+            <div className="qsPanelCardTitle">No events yet</div>
+            <div className="qsPanelCardSub">Add events in Schedule to see them here.</div>
           </div>
         </div>
 
@@ -535,10 +546,30 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         </div>
 
         <div className="qsPanelBody" aria-label="Study room content">
-          <div className="qsPanelCard" aria-label="Study room card">
-            <div className="qsPanelCardTitle">Pick a mode</div>
-            <div className="qsPanelCardSub">Set goals, then start your study session.</div>
+          <div className="qsPanelCard" aria-label="Study stats">
+            <div className="qsPanelCardTitle">Today</div>
+            <div className="qsPanelCardSub" id="qsStudyMinutesSub">
+              Loading your study stats...
+            </div>
           </div>
+          <button
+            className="qsMenuBtn headerAction qsStudyStartBar"
+            id="qsStudyStartBtn"
+            type="button"
+            aria-label="Open study room"
+            data-focus="drawer.study.start"
+          >
+            <span className="qsMenuIcon" aria-hidden="true">
+              <i className="fa-solid fa-bolt" aria-hidden="true"></i>
+            </span>
+            <span className="qsMenuTextWrap">
+              <span className="qsMenuText">Let's start focus</span>
+              <span className="qsMenuSub">Jump into Study Room</span>
+            </span>
+            <span className="qsMenuChevron" aria-hidden="true">
+              <i className="fa-solid fa-chevron-right"></i>
+            </span>
+          </button>
         </div>
 
         <div className="qsPanelFooter" aria-label="Study room actions">
@@ -634,9 +665,44 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         </div>
 
         <div className="qsPanelBody" aria-label="Notes content">
-          <div className="qsPanelCard" aria-label="Notes card">
-            <div className="qsPanelCardTitle">Quick capture</div>
-            <div className="qsPanelCardSub">Open Notes to review, create, or hide notes.</div>
+          <div className="qsPanelCard" aria-label="Notes summary">
+            <div className="qsPanelCardTitle" id="qsNotesSummaryTitle">
+              Notes
+            </div>
+            <div className="qsPanelCardSub" id="qsNotesSummarySub">
+              Pick something to jump into Notes.
+            </div>
+          </div>
+
+          <div className="qsPanelCard" aria-label="Notes folders">
+            <div className="qsPanelCardTitle">Folders</div>
+            <div className="qsQuestList qsNotesList" id="qsNotesFolderList" role="list" aria-label="Notes folder list"></div>
+            <div className="qsPanelCardSub qsNotesEmpty" id="qsNotesFolderEmpty" hidden aria-hidden="true">
+              No folders yet.
+            </div>
+          </div>
+
+          <div className="qsPanelCard" aria-label="Notes tags">
+            <div className="qsPanelCardTitle">Tags</div>
+            <div className="qsQuestList qsNotesList" id="qsNotesTagList" role="list" aria-label="Notes tag list"></div>
+            <div className="qsPanelCardSub qsNotesEmpty" id="qsNotesTagEmpty" hidden aria-hidden="true">
+              No tags yet.
+            </div>
+          </div>
+
+          <div className="qsPanelCard" aria-label="Recent notes">
+            <div className="qsPanelCardTitle">Recent notes</div>
+            <div className="qsQuestList qsNotesList" id="qsNotesAllList" role="list" aria-label="Notes list"></div>
+            <div className="qsPanelCardSub qsNotesEmpty" id="qsNotesAllEmpty" hidden aria-hidden="true">
+              No notes yet.
+            </div>
+          </div>
+
+          <div className="qsPanelCard" aria-label="Recent notes">
+            <div className="qsQuestList qsNotesList" id="qsNotesRecentList" role="list" aria-label="Recent notes list"></div>
+            <div className="qsPanelCardSub qsNotesEmpty" id="qsNotesRecentEmpty" hidden aria-hidden="true">
+              No notes in the last 6 hours.
+            </div>
           </div>
         </div>
 

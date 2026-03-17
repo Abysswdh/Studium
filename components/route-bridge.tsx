@@ -131,6 +131,33 @@ export default function RouteBridge() {
       el.setAttribute("aria-selected", isActive ? "true" : "false");
     });
 
+    // Allow Quick Settings shortcuts to land the user on a specific navbar item.
+    try {
+      const pendingNav = sessionStorage.getItem("studium:pending_nav_focus") || "";
+      if (pendingNav) {
+        sessionStorage.removeItem("studium:pending_nav_focus");
+        requestAnimationFrame(() => {
+          try {
+            (window as any).setMode?.("nav");
+            const items = Array.from(document.querySelectorAll<HTMLElement>(".navItem"));
+            const target = items.find((el) => el?.dataset?.page === pendingNav) || null;
+            if (!target) return;
+            items.forEach((el) => el.classList.remove("focused"));
+            target.classList.add("focused");
+            try {
+              target.focus({ preventScroll: true } as any);
+            } catch {
+              target.focus?.();
+            }
+          } catch {
+            // ignore
+          }
+        });
+      }
+    } catch {
+      // ignore
+    }
+
     if (typeof (window as any).setWallpaperForView === "function") {
       (window as any).setWallpaperForView(view);
     }

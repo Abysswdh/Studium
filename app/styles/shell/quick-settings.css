@@ -179,6 +179,18 @@
   gap: 10px;
 }
 
+.qsScheduleList {
+  margin-top: 12px;
+}
+
+.qsScheduleCalendarList {
+  margin-top: 12px;
+}
+
+.qsNotesEmpty[hidden] {
+  display: none;
+}
+
 .qsQuestItem {
   appearance: none;
   width: 100%;
@@ -554,6 +566,11 @@
   align-content: start;
 }
 
+.qsProfilePane[hidden],
+.qsProfilePane[aria-hidden="true"] {
+  display: none !important;
+}
+
 .qsProfilePlaceholderTitle {
   font-family: var(--font-display);
   font-weight: 900;
@@ -566,6 +583,37 @@
   color: rgba(255, 255, 255, 0.64);
   font-size: 12px;
   line-height: 1.6;
+}
+
+.qsStreakPane {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.qsStreakHead {
+  display: grid;
+  gap: 3px;
+}
+
+.qsStreakTitle {
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 16px;
+}
+
+.qsStreakSub {
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.streakCal--qs {
+  --streak-cell: 12px;
+  --streak-gap: 4px;
+  padding: 6px 6px 0;
 }
 
 .qsProfileFooter {
@@ -671,6 +719,26 @@
   font-weight: 900;
   letter-spacing: 0.2px;
   color: rgba(255, 255, 255, 0.92);
+}
+
+.qsMenuTextWrap {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.qsMenuSub {
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qsStudyStartBar {
+  margin-top: 2px;
 }
 
 .qsMenuPill {
