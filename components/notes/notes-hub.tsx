@@ -805,7 +805,7 @@ export default function NotesHub() {
                 >
                   <span className={styles.tabLabel}>
                     <i className="fa-solid fa-trash" aria-hidden="true" />
-                    <span className={styles.tabTextTail}>Recently deleted</span>
+                    <span>Recently deleted</span>
                   </span>
                   <span className={styles.tabCount} aria-label={`${tabCounts.deleted} deleted note(s)`}>
                     {tabCounts.deleted}

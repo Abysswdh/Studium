@@ -389,7 +389,7 @@
   gap: 8px;
   flex-wrap: nowrap;
   padding-left: 2px;
-  padding-right: 16px;
+  padding-right: calc(22px + env(safe-area-inset-right, 0px));
   padding-bottom: 4px;
   width: 100%;
   max-width: 100%;
@@ -431,11 +431,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.tabTextTail {
-  direction: rtl;
-  text-align: left;
 }
 
 .tabCount {
@@ -627,8 +622,8 @@
     backdrop-filter: blur(10px);
   }
 
-.notesPanelHead :global(.notesSearchWrap) {
-  padding: 6px 10px;
+  .notesPanelHead :global(.notesSearchWrap) {
+  padding: 6px 9px;
   border-radius: 999px;
 }
 
@@ -638,6 +633,20 @@
 
 }
 
+@media (max-width: 520px) {
+  .tabBtn[aria-label="Recently deleted"] .tabLabel {
+    align-items: flex-start;
+  }
+
+  .tabBtn[aria-label="Recently deleted"] .tabLabel > span {
+    white-space: normal;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.12;
+  }
+}
 @media (max-width: 520px) {
   .title {
     font-size: 20px;
