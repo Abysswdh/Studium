@@ -386,16 +386,15 @@
 .tabs {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: nowrap;
   padding-left: calc(2px + env(safe-area-inset-left, 0px));
-  padding-right: calc(8px + env(safe-area-inset-right, 0px));
+  padding-right: calc(2px + env(safe-area-inset-right, 0px));
   padding-bottom: 4px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  overflow-x: hidden;
-  overflow-y: hidden;
+  overflow: visible;
 }
 
 .tabs::-webkit-scrollbar {
@@ -438,7 +437,7 @@
 .tabCount {
   flex: 0 0 auto;
   font-weight: 900;
-  font-size: 11px;
+  font-size: 10px;
   padding: 2px 7px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.10);
@@ -452,15 +451,15 @@
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.80);
   border-radius: 999px;
-  padding: 6px 8px;
+  padding: 6px 7px;
   font-weight: 900;
-  font-size: 10.5px;
+  font-size: 10px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   white-space: nowrap;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   min-width: 0;
   justify-content: space-between;
   transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
@@ -637,6 +636,7 @@
 
 @media (max-width: 520px) {
   .tabs {
+    overflow: hidden;
     padding-right: calc(2px + env(safe-area-inset-right, 0px));
     gap: 5px;
   }
