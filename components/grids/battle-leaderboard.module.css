@@ -177,6 +177,33 @@
   font-size: 12px;
   text-align: right;
   white-space: nowrap;
+  max-width: 44%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 740px) {
+  /* Tight widths: keep list rows readable. */
+  .row {
+    grid-template-columns: 38px 1fr auto;
+    padding: 10px 10px;
+  }
+
+  .rowMeta {
+    font-size: 11px;
+  }
+
+  .rowTag {
+    max-width: 36%;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 1240px) and (min-width: 1025px) {
+  /* In 3-column Battle grid, the leaderboard column can get too narrow for a 3-wide podium. */
+  .podiumGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 520px) {

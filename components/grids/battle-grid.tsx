@@ -105,6 +105,13 @@ export default function BattleGrid() {
       const ae = document.activeElement as HTMLElement | null;
       if (isTypingTarget(ae)) return;
 
+      if (e.key === "Escape" || e.key === "Backspace") {
+        e.preventDefault();
+        e.stopPropagation();
+        router.push("/dashboard");
+        return;
+      }
+
       // If focus is nowhere (body/html), seed focus so arrows immediately work.
       if (ae && (ae === document.body || ae === document.documentElement)) {
         if (e.key.startsWith("Arrow")) {

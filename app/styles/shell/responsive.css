@@ -135,6 +135,13 @@ body[data-view="match"] #routeOutlet {
   gap: var(--shell-gap);
 }
 
+/* Dashboard: avoid 50% width "dead space" when stacks wrap. */
+body[data-view="dashboard"] .dashBottomLeft,
+body[data-view="dashboard"] .dashBottomRight {
+  width: auto;
+  flex: 1 1 0;
+}
+
 .userName {
   font-size: clamp(15px, 2.1vw, 18px);
 }
@@ -397,8 +404,12 @@ body[data-view="match"] #routeOutlet {
     flex-direction: row;
   }
 
-  body[data-view="dashboard"] .gridContainerLeftBottom {
-    flex-direction: column;
+  body[data-view="dashboard"] .gridContainerRightLeftOne,
+  body[data-view="dashboard"] .gridContainerRightLeftTwo,
+  body[data-view="dashboard"] .gridContainerRightLeftThree,
+  body[data-view="dashboard"] .gridContainerRightLeftFour,
+  body[data-view="dashboard"] .dashQuestCard {
+    min-height: 140px;
   }
 
   body[data-view="dashboard"] .dashHero .cardInner {
@@ -623,5 +634,68 @@ body[data-view="match"] #routeOutlet {
   .drawerToggle {
     padding: 9px 10px;
     border-radius: 12px;
+  }
+}
+
+@media (max-height: 900px) and (min-width: 521px) {
+  /* Dashboard: allow natural height when the window is short (prevents clipped widgets/tiles). */
+  body[data-view="dashboard"] .gridContainer {
+    height: auto;
+    min-height: 0;
+  }
+
+  body[data-view="dashboard"] .gridContainerLeft,
+  body[data-view="dashboard"] .gridContainerRight,
+  body[data-view="dashboard"] .dashQuestWrap,
+  body[data-view="dashboard"] .dashWidgetsWrap,
+  body[data-view="dashboard"] .gridContainerRightLeft,
+  body[data-view="dashboard"] .gridContainerRightRight {
+    height: auto;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Dashboard: keep content-driven heights (avoid clipped widgets due to aspect-ratio rules). */
+  body[data-view="dashboard"] .gridContainerLeftTop {
+    aspect-ratio: auto;
+  }
+
+  body[data-view="dashboard"] .gridContainerRightLeftOne,
+  body[data-view="dashboard"] .gridContainerRightLeftTwo,
+  body[data-view="dashboard"] .gridContainerRightLeftThree,
+  body[data-view="dashboard"] .gridContainerRightLeftFour,
+  body[data-view="dashboard"] .gridContainerRightRight {
+    aspect-ratio: auto;
+    height: auto;
+  }
+
+  /* Dashboard: quests read better as a 2-col grid on touch widths. */
+  body[data-view="dashboard"] .gridContainerRightLeft {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+  }
+}
+
+@media (max-width: 740px) {
+  /* Dashboard: keep streak + shortcuts filling the row (no 50% width dead space). */
+  body[data-view="dashboard"] .gridContainerLeftBottom {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  body[data-view="dashboard"] .dashBottomLeft,
+  body[data-view="dashboard"] .dashBottomRight {
+    width: 100%;
+    flex: 1 1 320px;
+  }
+}
+
+@media (max-width: 520px) {
+  body[data-view="dashboard"] .dashBottomLeft,
+  body[data-view="dashboard"] .dashBottomRight {
+    flex-basis: 100%;
   }
 }

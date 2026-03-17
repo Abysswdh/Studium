@@ -4,6 +4,11 @@
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
 }
 
 .grid {
@@ -149,6 +154,7 @@
   position: relative;
   --ranked-mascot-w: clamp(170px, 22vw, 240px);
   --ranked-mascot-pad: calc(var(--ranked-mascot-w) + 18px);
+  --ranked-mascot-right: clamp(18px, 2.2vw, 44px);
 }
 
 .rankedCard .content {
@@ -157,7 +163,7 @@
 
 .rankedMascot {
   position: absolute;
-  right: 6px;
+  right: var(--ranked-mascot-right);
   bottom: -14px;
   width: min(var(--ranked-mascot-w), 48%);
   height: auto;
@@ -203,7 +209,7 @@
   grid-template-rows: repeat(2, minmax(84px, auto));
   gap: 10px;
   align-content: start;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .stat {
@@ -232,7 +238,7 @@
 .statValue {
   font-family: var(--font-display);
   font-weight: 900;
-  font-size: clamp(16px, 1.9vw, 22px);
+  font-size: clamp(15px, 1.9vw, 21px);
   color: rgba(255, 255, 255, 0.92);
   line-height: 1.08;
   white-space: nowrap;
@@ -242,7 +248,8 @@
 }
 
 #battle-stats {
-  min-height: 210px;
+  /* Avoid 1–2px clipping from min row heights + padding on some DPRs. */
+  min-height: 224px;
 }
 
 #battle-ranked {
@@ -309,6 +316,26 @@
   }
 }
 
+@media (max-width: 1024px) and (min-width: 701px) {
+  /* Two-column tablet widths can make the ranked mascot crowd the content. */
+  .rankedCard {
+    --ranked-mascot-w: clamp(140px, 24vw, 190px);
+    --ranked-mascot-pad: calc(var(--ranked-mascot-w) + 12px);
+    --ranked-mascot-right: 10px;
+  }
+
+  .rankedMascot {
+    bottom: -18px;
+    max-height: 90%;
+  }
+
+  .pill {
+    padding: 8px 10px;
+    border-radius: 13px;
+    font-size: 11px;
+  }
+}
+
 @media (max-width: 700px) {
   .grid {
     grid-template-columns: 1fr;
@@ -325,11 +352,12 @@
   .rankedMascot {
     width: min(var(--ranked-mascot-w), 62%);
     bottom: -22px;
-    right: 0px;
+    right: 8px;
   }
   .rankedCard {
     --ranked-mascot-w: clamp(170px, 46vw, 220px);
     --ranked-mascot-pad: calc(var(--ranked-mascot-w) + 14px);
+    --ranked-mascot-right: 10px;
   }
   .content {
     height: auto;
@@ -343,6 +371,15 @@
 
   #battle-leaderboard {
     min-height: 320px;
+  }
+
+  .stat {
+    padding: 12px 12px;
+    min-height: 76px;
+  }
+
+  .statValue {
+    font-size: clamp(14px, 4.8vw, 18px);
   }
 }
 

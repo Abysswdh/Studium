@@ -134,7 +134,7 @@ export default function DashboardCalendarWidget() {
       </div>
 
       <div className={styles.body}>
-        <div className={cal.calendar} aria-label="Month calendar" style={{ flex: 1 }}>
+        <div className={`${cal.calendar} ${styles.calendar}`} aria-label="Month calendar" style={{ flex: 1 }}>
           <div className={cal.calGrid} aria-hidden="true">
             {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
               <div key={d} className={cal.dow}>
