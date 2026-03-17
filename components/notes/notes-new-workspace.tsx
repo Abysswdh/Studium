@@ -1251,12 +1251,72 @@ export default function NotesNewWorkspace() {
     updateNote(activeNote.id, { pinned: !activeNote.pinned, sortOrder: now() });
   };
 
+  const persistNotePatchNow = (noteId: string, patch: Partial<Note>) => {
+    if (!noteId) return;
+
+    // Treat explicit actions (hide/unhide/etc.) as an immediate save, even when autosave is off,
+    // and include any in-flight editor/preview DOM changes to avoid data loss on navigation.
+    const t = now();
+    const note = store.notes.find((n) => n.id === noteId) || null;
+    const bodyPatch = (() => {
+      if (!note) return null;
+      // Avoid converting plain-text notes to HTML just because we toggled a flag (hide/favorite/etc.).
+      // Only capture DOM when we're in the rich editor, or the note is already HTML-backed.
+      if (!editing && note.bodyFormat !== "html") return null;
+      try {
+        const el = editing ? editorRef.current : previewRef.current;
+        if (!el) return null;
+        const html = sanitizeNoteHtml(el.innerHTML || "");
+        return { body: html, bodyFormat: "html" as const };
+      } catch {
+        return null;
+      }
+    })();
+
+    // Commit this note so it is included in persisted storage.
+    uncommittedIdsRef.current.delete(noteId);
+    if (saveTimer.current) {
+      try {
+        window.clearTimeout(saveTimer.current);
+      } catch {
+        // ignore
+      }
+      saveTimer.current = null;
+    }
+
+    const next: NotesStore = {
+      ...store,
+      notes: store.notes.map((n) => {
+        if (n.id !== noteId) return n;
+        return {
+          ...n,
+          ...bodyPatch,
+          ...patch,
+          updatedAt: patch.updatedAt ?? t,
+        };
+      }),
+    };
+
+    const exclude = uncommittedIdsRef.current;
+    const persisted =
+      exclude.size === 0
+        ? next
+        : {
+            ...next,
+            notes: next.notes.filter((n) => !exclude.has(n.id)),
+            lastDraftId: next.lastDraftId && exclude.has(next.lastDraftId) ? null : next.lastDraftId,
+          };
+
+    saveStore(persisted);
+    setStore(next);
+  };
+
   const requestHideNote = () => {
     if (!activeNote) return;
     if (activeNote.deletedAt) return;
     if (activeNote.hiddenAt) {
       // Unhide stays in current view for better UX.
-      updateNote(activeNote.id, { hiddenAt: null });
+      persistNotePatchNow(activeNote.id, { hiddenAt: null, archivedAt: null });
       return;
     }
     setModal("hideNote");
@@ -1265,8 +1325,10 @@ export default function NotesNewWorkspace() {
   const confirmHideNote = () => {
     if (!activeNote) return;
     if (activeNote.deletedAt) return;
-    updateNote(activeNote.id, { hiddenAt: now() });
+    const t = now();
+    persistNotePatchNow(activeNote.id, { hiddenAt: t, archivedAt: null, updatedAt: t });
     setModal(null);
+    router.push("/notes");
   };
 
   const moveToTrash = () => {
@@ -1528,7 +1590,7 @@ export default function NotesNewWorkspace() {
     setView("hidden");
   };
 
-  const sanitizeNoteHtml = (html: string) => {
+  function sanitizeNoteHtml(html: string) {
     try {
       const doc = new DOMParser().parseFromString(String(html || ""), "text/html");
       doc.querySelectorAll("script,style,iframe,object,embed,link,meta").forEach((n) => n.remove());
@@ -1545,7 +1607,7 @@ export default function NotesNewWorkspace() {
     } catch {
       return String(html || "");
     }
-  };
+  }
 
   const htmlForNote = (n: Note) => {
     if (n.bodyFormat === "html") return n.body || "";
@@ -2147,7 +2209,7 @@ export default function NotesNewWorkspace() {
   };
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col gap-[var(--shell-gap)]" aria-label="Notes workspace">
+    <div className="flex h-full min-h-0 w-full flex-col gap-[var(--shell-gap)] overflow-hidden" aria-label="Notes workspace">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"
@@ -2179,7 +2241,7 @@ export default function NotesNewWorkspace() {
 
       <div
         className={[
-          "grid min-h-0 w-full flex-1 grid-cols-1 gap-[var(--shell-gap)]",
+          "grid min-h-0 w-full flex-1 grid-cols-1 gap-[var(--shell-gap)] overflow-y-auto overscroll-contain",
           fullscreen ? "min-[901px]:grid-cols-1" : "min-[901px]:grid-cols-[240px_340px_1fr]",
         ].join(" ")}
       >
@@ -2447,7 +2509,7 @@ export default function NotesNewWorkspace() {
         {!fullscreen ? (
           <section className="panelItem min-h-0 overflow-hidden rounded-[18px]" aria-label="Notes list">
           <div className="flex h-full min-h-0 flex-col">
-          <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-4">
             <div className="min-w-0">
               <div className="text-[11px] font-extrabold tracking-[0.22em] text-white/55">NOTES</div>
               <div className="mt-1 truncate text-[18px] font-extrabold text-white/90">
@@ -2461,10 +2523,10 @@ export default function NotesNewWorkspace() {
                         ? folderLabelById[folderFilter] || folderFilter
                         : tagFilter
                           ? tagLabelById[tagFilter] || tagFilter
-                          : "All notes"}
+                           : "All notes"}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               {view === "deleted" ? (
                 <>
                   <button
@@ -2610,14 +2672,14 @@ export default function NotesNewWorkspace() {
 
         <article className="panelItem min-h-0 overflow-hidden rounded-[18px]" aria-label="Note preview">
           <div className="flex h-full min-h-0 flex-col">
-          <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-3 pt-4">
             <div className="min-w-0">
               <div className="text-[11px] font-extrabold tracking-[0.22em] text-white/55">PREVIEW</div>
               <div className="mt-1 truncate text-[18px] font-extrabold text-white/90">{activeNote?.title || "Select a note"}</div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               {view === "deleted" || !!activeNote?.deletedAt ? (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2">
                   <button
                     type="button"
                     className="notesPrimaryBtn gridCard"

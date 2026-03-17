@@ -547,6 +547,8 @@
 @media (max-width: 1180px) {
   .body {
     grid-template-columns: 1fr 1fr;
+    grid-auto-rows: max-content;
+    align-content: start;
     overflow-y: auto;
     padding-bottom: 6px;
     -webkit-overflow-scrolling: touch;
@@ -565,9 +567,16 @@
 
   .body {
     grid-template-columns: 1fr;
+    grid-auto-rows: max-content;
+    align-content: start;
     overflow-y: auto;
     padding-bottom: 10px;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .panel {
+    flex: 0 0 auto;
+    max-height: min(520px, 70vh);
   }
 }
 
