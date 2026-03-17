@@ -1221,16 +1221,9 @@ export default function NotesNewWorkspace() {
       deletedAt: null,
     };
 
-    if (!autoSaveEnabled) uncommittedIdsRef.current.add(id);
+    uncommittedIdsRef.current.add(id);
 
-    setStore((prev) => {
-      const next: NotesStore = { ...prev, notes: [draft, ...prev.notes], lastDraftId: id };
-      if (autoSaveEnabled) {
-        // Auto-save behaves like Save: persist immediately on creation.
-        saveStore(next);
-      }
-      return next;
-    });
+    setStore((prev) => ({ ...prev, notes: [draft, ...prev.notes], lastDraftId: id }));
     setActiveId(id);
     setView("all");
     setTagFilter(null);
@@ -1872,6 +1865,53 @@ export default function NotesNewWorkspace() {
       return;
     }
     const uncommitted = uncommittedIdsRef.current.has(note.id);
+    if (!autoSaveEnabled) {
+      const snapshot = (() => {
+        let body = note.body || "";
+        let bodyFormat: "plain" | "html" = note.bodyFormat;
+        try {
+          if (editing) {
+            const el = editorRef.current;
+            if (el) {
+              body = sanitizeNoteHtml(el.innerHTML || "");
+              bodyFormat = "html";
+            }
+          } else {
+            const el = previewRef.current;
+            if (el) {
+              body = sanitizeNoteHtml(el.innerHTML || "");
+              bodyFormat = "html";
+            }
+          }
+        } catch {
+          // ignore
+        }
+        return { ...note, body, bodyFormat };
+      })();
+      const persisted = loadStore();
+      const saved = persisted.notes.find((n) => n.id === snapshot.id) || null;
+      const same =
+        !!saved &&
+        String(saved.title || "") === String(snapshot.title || "") &&
+        String(saved.body || "") === String(snapshot.body || "") &&
+        saved.bodyFormat === snapshot.bodyFormat &&
+        String(saved.folder || "") === String(snapshot.folder || "") &&
+        !!saved.favorite === !!snapshot.favorite &&
+        !!saved.pinned === !!snapshot.pinned &&
+        Number(saved.hiddenAt || 0) === Number(snapshot.hiddenAt || 0) &&
+        Number(saved.reminderAt || 0) === Number(snapshot.reminderAt || 0) &&
+        Number(saved.deletedAt || 0) === Number(snapshot.deletedAt || 0) &&
+        JSON.stringify([...(saved.tags || [])].slice().sort()) === JSON.stringify([...(snapshot.tags || [])].slice().sort());
+
+      if (!same) {
+        setPendingLeaveHref(href);
+        setModal("leaveUnsaved");
+        return;
+      }
+
+      router.push(href);
+      return;
+    }
     if (uncommitted && autoSaveEnabled) {
       // Auto-save ON: never show the leave prompt.
       // Commit + persist immediately, just like pressing Save.
@@ -1938,10 +1978,8 @@ export default function NotesNewWorkspace() {
         // ignore
       }
       if (next) {
-        // Auto-save ON behaves like Save: commit any unsaved drafts.
-        uncommittedIdsRef.current.clear();
         if (saveTimer.current) window.clearTimeout(saveTimer.current);
-        persistCurrentStore({ includeUncommitted: true });
+        persistCurrentStore({ includeUncommitted: false });
       }
       return next;
     });
