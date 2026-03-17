@@ -29,9 +29,12 @@ export default function BattleGrid() {
       return true;
     };
 
-    const modalOpen = () => {
+    const overlayOpen = () => {
       try {
-        return !!(document.body && document.body.classList.contains("modal-open"));
+        return !!(
+          document.body &&
+          (document.body.classList.contains("modal-open") || document.body.classList.contains("drawer-open"))
+        );
       } catch {
         return false;
       }
@@ -100,14 +103,23 @@ export default function BattleGrid() {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       if (e.altKey || e.ctrlKey || e.metaKey) return;
-      if (modalOpen()) return;
+      if (overlayOpen()) return;
 
       const ae = document.activeElement as HTMLElement | null;
       if (isTypingTarget(ae)) return;
 
+      // Only handle keys when focus is inside the Battle page content (or nowhere).
+      const inContent = !ae || ae === document.body || ae === document.documentElement || !!ae.closest?.("#routeOutlet");
+      if (!inContent) return;
+
       if (e.key === "Escape" || e.key === "Backspace") {
         e.preventDefault();
         e.stopPropagation();
+        try {
+          (e as any).stopImmediatePropagation?.();
+        } catch {
+          // ignore
+        }
         router.push("/dashboard");
         return;
       }
@@ -117,6 +129,11 @@ export default function BattleGrid() {
         if (e.key.startsWith("Arrow")) {
           e.preventDefault();
           e.stopPropagation();
+          try {
+            (e as any).stopImmediatePropagation?.();
+          } catch {
+            // ignore
+          }
           focusId("battle-ranked");
         }
         return;
@@ -127,6 +144,11 @@ export default function BattleGrid() {
       if (e.key === "Home") {
         e.preventDefault();
         e.stopPropagation();
+        try {
+          (e as any).stopImmediatePropagation?.();
+        } catch {
+          // ignore
+        }
         focusId("battle-ranked");
         return;
       }
@@ -134,6 +156,11 @@ export default function BattleGrid() {
       if (e.key === "End") {
         e.preventDefault();
         e.stopPropagation();
+        try {
+          (e as any).stopImmediatePropagation?.();
+        } catch {
+          // ignore
+        }
         focusId("battle-leaderboard");
         return;
       }
@@ -148,11 +175,18 @@ export default function BattleGrid() {
       if (!next) return;
       e.preventDefault();
       e.stopPropagation();
+      try {
+        (e as any).stopImmediatePropagation?.();
+      } catch {
+        // ignore
+      }
       focusId(next);
     };
 
-    document.addEventListener("keydown", onKey, true);
-    return () => document.removeEventListener("keydown", onKey, true);
+    // Use window capture to run before the global shell key handler (public/studium-client.js),
+    // otherwise it can consume arrow keys for non-battle grids.
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, []);
 
   return (
