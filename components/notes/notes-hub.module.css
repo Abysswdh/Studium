@@ -460,7 +460,7 @@
   align-items: center;
   gap: 10px;
   white-space: nowrap;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   min-width: 0;
   justify-content: space-between;
   transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
