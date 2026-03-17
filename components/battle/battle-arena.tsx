@@ -290,11 +290,12 @@ export default function BattleArena() {
     if (pauseOpen) return setPauseOpen(false);
   }, [exitConfirmOpen, surrenderConfirmOpen, pauseOpen]);
 
-  // Keyboard: Escape / Backspace for pause + exit flow.
+  // Keyboard: Escape / Backspace / P / M / S / X for pause + actions.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       if (e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.repeat) return;
 
       const target = e.target as HTMLElement | null;
       const tag = String(target?.tagName || "").toLowerCase();
@@ -302,16 +303,27 @@ export default function BattleArena() {
       if (typing) return;
 
       const k = String(e.key || "").toLowerCase();
-      if (k !== "escape" && k !== "backspace") return;
+      const supported = k === "escape" || k === "backspace" || k === "p" || k === "m" || k === "s" || k === "x";
+      if (!supported) return;
 
       e.preventDefault();
       e.stopPropagation();
 
-      if (modalOpen) return closeTopModal();
+      if (modalOpen) {
+        if (k === "escape" || k === "backspace") return closeTopModal();
+        return;
+      }
 
       if (arena.phase === "playing") {
-        if (k === "escape") return setPauseOpen((v) => !v);
-        return setExitConfirmOpen(true);
+        if (k === "escape" || k === "p") return setPauseOpen((v) => !v);
+        if (k === "x" || k === "backspace") return setExitConfirmOpen(true);
+        if (k === "s") return setSurrenderConfirmOpen(true);
+        if (k === "m") {
+          const btn = document.getElementById("arenaMusicBtn") as HTMLButtonElement | null;
+          btn?.click();
+          return;
+        }
+        return;
       }
 
       if (arena.phase === "finished") return void (window.location.href = "/battle");
