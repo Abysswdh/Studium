@@ -576,18 +576,23 @@
 
   .panel {
     flex: 0 0 auto;
-    max-height: min(520px, 70vh);
-  }
-}
-
-@media (max-width: 520px) {
-  .title {
-    font-size: 20px;
+    max-height: 85vh;
+    max-height: 85dvh;
   }
 
   .notesPanelHead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
     gap: 10px;
     padding-bottom: 10px;
+    padding-top: 2px;
+    background: linear-gradient(180deg, rgba(10, 12, 18, 0.92), rgba(10, 12, 18, 0.62));
+    backdrop-filter: blur(10px);
+  }
+
+  .notesPanelHead :global(.notesSearchWrap) {
+    padding: 8px 10px;
   }
 
   .tabs {
@@ -607,12 +612,10 @@
   .tabBtn {
     flex: 0 0 auto;
   }
+}
 
-  .tabLabel span {
-    display: none;
-  }
-
-  :global(.notesSearchWrap) {
-    padding: 8px 10px;
+@media (max-width: 520px) {
+  .title {
+    font-size: 20px;
   }
 }
