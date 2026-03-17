@@ -728,7 +728,7 @@ export default function NotesHub() {
           <div className={styles.colHead} aria-label="All notes header">
             <div className={styles.colHeadTop}>
               <div className={styles.colTitle}>
-                <div className={styles.cardTitle}>All Notes</div>
+                <div className={styles.cardTitle}>Notes</div>
               </div>
               <button
                 type="button"
