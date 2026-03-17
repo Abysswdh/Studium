@@ -5,6 +5,46 @@ html {
   scrollbar-gutter: stable;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  :root.vt-schedules::view-transition-old(root) {
+    animation: questVtOut 220ms ease both;
+  }
+  :root.vt-schedules::view-transition-new(root) {
+    animation: questVtIn 220ms ease both;
+  }
+  :root.vt-schedules::view-transition-old(root),
+  :root.vt-schedules::view-transition-new(root) {
+    mix-blend-mode: normal;
+  }
+}
+
+/* Match Quest page view-transition motion. */
+@keyframes questVtIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0px);
+    filter: blur(0px);
+  }
+}
+
+@keyframes questVtOut {
+  from {
+    opacity: 1;
+    transform: translateY(0px);
+    filter: blur(0px);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+    filter: blur(2px);
+  }
+}
+
 :root {
   --shell-gap: clamp(10px, 1.8vw, 16px);
   --shell-pad-y: clamp(12px, 2.6vw, 24px);
@@ -21,12 +61,15 @@ html {
   padding: var(--shell-pad-y) calc(var(--shell-pad-x) + var(--safe-inline));
   padding-top: calc(var(--shell-pad-y) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(var(--shell-pad-y) + env(safe-area-inset-bottom, 0px));
+  /* iOS Safari: nested scrolling can break when an ancestor is transformed. */
+  transform: none;
 }
 
 #routeOutlet {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .header {
