@@ -358,6 +358,169 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         </div>
       </aside>
 
+      <section className="qsPanel qsProfilePanel" id="qsProfilePanel" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Profile panel">
+        <div className="qsProfileTop">
+          <div className="qsProfileTitle">Profile</div>
+          <div className="qsProfileTopRight">
+            <label className="qsProfileMiniToggle" aria-label="Toggle status">
+              <input id="qsProfileStatusToggle" className="qsProfileMiniToggleInput" type="checkbox" defaultChecked />
+              <span className="qsProfileMiniSwitch" aria-hidden="true" />
+            </label>
+            <button className="qsProfileClose headerAction" id="qsProfileCloseBtn" type="button" aria-label="Close profile panel">
+              <i className="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div className="qsProfileHero" aria-label="Profile summary">
+          <div className="qsProfileAvatar" aria-hidden="true">
+            <img className="qsProfileAvatarImg" src={user.avatarUrl} alt="" />
+          </div>
+          <div className="qsProfileMeta">
+            <div className="qsProfileName">{user.displayName}</div>
+            <div className="qsProfileSub">
+              {user.xp.toLocaleString()} XP | LVL {user.level}
+            </div>
+          </div>
+        </div>
+
+        <div className="qsProfileTabs" role="tablist" aria-label="Profile tabs">
+          <button className="qsProfileTab headerAction" id="qsProfileTabStreak" type="button" role="tab" aria-selected="true" data-tab="streak">
+            Streak
+          </button>
+          <button className="qsProfileTab headerAction" id="qsProfileTabRanking" type="button" role="tab" aria-selected="false" data-tab="ranking">
+            Ranking
+          </button>
+          <button className="qsProfileTab headerAction" id="qsProfileTabFriends" type="button" role="tab" aria-selected="false" data-tab="friends">
+            Friends
+          </button>
+        </div>
+
+        <div className="qsProfileBody" aria-label="Profile content">
+          <div className="qsProfilePane" data-pane="streak" aria-label="Streak tab">
+            <div className="qsProfilePlaceholderTitle">Streak</div>
+            <div className="qsProfilePlaceholderSub">Hook this to your streak data when ready.</div>
+          </div>
+          <div className="qsProfilePane" data-pane="ranking" hidden aria-hidden="true" aria-label="Ranking tab">
+            <div className="qsProfilePlaceholderTitle">Ranking</div>
+            <div className="qsProfilePlaceholderSub">Show leaderboard + current rank.</div>
+          </div>
+          <div className="qsProfilePane" data-pane="friends" hidden aria-hidden="true" aria-label="Friends tab">
+            <div className="qsProfilePlaceholderTitle">Friends</div>
+            <div className="qsProfilePlaceholderSub">Invite / manage friends here.</div>
+          </div>
+        </div>
+
+        <div className="qsProfileFooter" aria-label="Profile actions">
+          <button className="qsProfileFooterBtn qsProfileFooterBtn--primary headerAction" id="qsProfileEditBtn" type="button" aria-label="Edit profile">
+            Edit Profile
+          </button>
+          <button className="qsProfileFooterBtn headerAction" id="qsProfileMoreBtn" type="button" aria-label="More options">
+            More options
+          </button>
+        </div>
+      </section>
+
+      <section className="qsPanel" id="qsNotifPanel" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Notification panel">
+        <div className="qsPanelTop">
+          <div className="qsPanelTitle">Notification</div>
+          <div className="qsPanelTopRight">
+            <label className="qsMiniToggle" aria-label="Toggle notifications">
+              <input id="qsNotifToggle" className="qsMiniToggleInput" type="checkbox" defaultChecked />
+              <span className="qsMiniSwitch" aria-hidden="true" />
+            </label>
+            <button className="qsPanelClose headerAction" id="qsNotifCloseBtn" type="button" aria-label="Close notification panel">
+              <i className="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div className="qsPanelBody" aria-label="Notification content">
+          <div className="qsPanelCard" aria-label="Notification settings card">
+            <div className="qsPanelCardTitle">System notifications</div>
+            <div className="qsPanelCardSub">Turn notifications on/off for quick settings.</div>
+          </div>
+        </div>
+
+        <div className="qsPanelFooter" aria-label="Notification actions">
+          <button className="qsPanelFooterBtn qsPanelFooterBtn--primary headerAction" id="qsNotifSettingsBtn" type="button" aria-label="Open notification settings">
+            Open Settings
+          </button>
+        </div>
+      </section>
+
+      <section className="qsPanel" id="qsQuestPanel" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Quest panel">
+        <div className="qsPanelTop">
+          <div className="qsPanelTitle">Quest</div>
+          <div className="qsPanelTopRight">
+            <button className="qsPanelClose headerAction" id="qsQuestCloseBtn" type="button" aria-label="Close quest panel">
+              <i className="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div className="qsPanelBody" aria-label="Quest content">
+          <div className="qsPanelCard" aria-label="Quest card">
+            <div className="qsPanelCardTitle">Today&apos;s quests</div>
+            <div className="qsPanelCardSub">Jump back into your quests and keep the streak going.</div>
+          </div>
+        </div>
+
+        <div className="qsPanelFooter" aria-label="Quest actions">
+          <button className="qsPanelFooterBtn qsPanelFooterBtn--primary headerAction" id="qsQuestOpenBtn" type="button" aria-label="Open quest page">
+            Open Quest
+          </button>
+        </div>
+      </section>
+
+      <section className="qsPanel" id="qsBattlePanel" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Battle panel">
+        <div className="qsPanelTop">
+          <div className="qsPanelTitle">Battle</div>
+          <div className="qsPanelTopRight">
+            <button className="qsPanelClose headerAction" id="qsBattleCloseBtn" type="button" aria-label="Close battle panel">
+              <i className="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div className="qsPanelBody" aria-label="Battle content">
+          <div className="qsPanelCard" aria-label="Battle card">
+            <div className="qsPanelCardTitle">1v1 battle</div>
+            <div className="qsPanelCardSub">Start a quick match and climb the leaderboard.</div>
+          </div>
+        </div>
+
+        <div className="qsPanelFooter" aria-label="Battle actions">
+          <button className="qsPanelFooterBtn qsPanelFooterBtn--primary headerAction" id="qsBattleOpenBtn" type="button" aria-label="Open battle page">
+            Open Battle
+          </button>
+        </div>
+      </section>
+
+      <section className="qsPanel" id="qsNotesPanel" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Notes panel">
+        <div className="qsPanelTop">
+          <div className="qsPanelTitle">Notes</div>
+          <div className="qsPanelTopRight">
+            <button className="qsPanelClose headerAction" id="qsNotesCloseBtn" type="button" aria-label="Close notes panel">
+              <i className="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div className="qsPanelBody" aria-label="Notes content">
+          <div className="qsPanelCard" aria-label="Notes card">
+            <div className="qsPanelCardTitle">Quick capture</div>
+            <div className="qsPanelCardSub">Open Notes to review, create, or hide notes.</div>
+          </div>
+        </div>
+
+        <div className="qsPanelFooter" aria-label="Notes actions">
+          <button className="qsPanelFooterBtn qsPanelFooterBtn--primary headerAction" id="qsNotesOpenBtn" type="button" aria-label="Open notes page">
+            Open Notes
+          </button>
+        </div>
+      </section>
+
       <div className="bg">
         <ShellBackground />
         <div className="bg__veil" aria-hidden="true"></div>

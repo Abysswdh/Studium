@@ -768,11 +768,29 @@ try {
   const drawer = document.getElementById("profileDrawer");
   const closeBtn = document.getElementById("profileCloseBtn");
   const qsProfileBtn = document.getElementById("qsProfileBtn");
+  const qsProfilePanel = document.getElementById("qsProfilePanel");
+  const qsProfileCloseBtn = document.getElementById("qsProfileCloseBtn");
+  const qsProfileEditBtn = document.getElementById("qsProfileEditBtn");
+  const qsProfileMoreBtn = document.getElementById("qsProfileMoreBtn");
+  const qsProfileStatusToggle = document.getElementById("qsProfileStatusToggle");
   const qsNotifBtn = document.getElementById("qsNotifBtn");
+  const qsNotifPanel = document.getElementById("qsNotifPanel");
+  const qsNotifCloseBtn = document.getElementById("qsNotifCloseBtn");
+  const qsNotifSettingsBtn = document.getElementById("qsNotifSettingsBtn");
+  const qsNotifToggle = document.getElementById("qsNotifToggle");
   const qsNotifPill = document.getElementById("qsNotifPill");
   const qsQuestBtn = document.getElementById("qsQuestBtn");
+  const qsQuestPanel = document.getElementById("qsQuestPanel");
+  const qsQuestCloseBtn = document.getElementById("qsQuestCloseBtn");
+  const qsQuestOpenBtn = document.getElementById("qsQuestOpenBtn");
   const qsBattleBtn = document.getElementById("qsBattleBtn");
+  const qsBattlePanel = document.getElementById("qsBattlePanel");
+  const qsBattleCloseBtn = document.getElementById("qsBattleCloseBtn");
+  const qsBattleOpenBtn = document.getElementById("qsBattleOpenBtn");
   const qsNotesBtn = document.getElementById("qsNotesBtn");
+  const qsNotesPanel = document.getElementById("qsNotesPanel");
+  const qsNotesCloseBtn = document.getElementById("qsNotesCloseBtn");
+  const qsNotesOpenBtn = document.getElementById("qsNotesOpenBtn");
   const qsHomeBtn = document.getElementById("qsHomeBtn");
   const qsSettingsBtn = document.getElementById("qsSettingsBtn");
   const qsAdvanced = document.getElementById("qsAdvanced");
@@ -906,6 +924,132 @@ try {
   const LS_MUSIC_VOL = "studium:qs_music_volume";
   const LS_MUSIC_IDX = "studium:qs_music_index";
   const LS_QS_ADV = "studium:qs_advanced_open";
+  const LS_QS_PROFILE_STATUS = "studium:qs_profile_status_on";
+
+  const QS_MOBILE_MAX = 900;
+  const isMobileQs = () => typeof window !== "undefined" && window.innerWidth <= QS_MOBILE_MAX;
+
+  const qsPanels = {
+    profile: { panel: qsProfilePanel, btn: qsProfileBtn },
+    notif: { panel: qsNotifPanel, btn: qsNotifBtn },
+    quest: { panel: qsQuestPanel, btn: qsQuestBtn },
+    battle: { panel: qsBattlePanel, btn: qsBattleBtn },
+    notes: { panel: qsNotesPanel, btn: qsNotesBtn },
+  };
+
+  let activeQsPanel = null;
+  const panelCloseTimers = new Map();
+
+  const isQsPanelOpen = (name) => {
+    const panel = qsPanels[name]?.panel;
+    if (!panel) return false;
+    if (panel.hidden) return false;
+    if (!document.body.classList.contains("qs-panel-open")) return false;
+    if (activeQsPanel && activeQsPanel === name) return true;
+    return document.body.classList.contains(`qs-${name}-open`);
+  };
+
+  const isAnyQsPanelOpen = () => !!activeQsPanel && isQsPanelOpen(activeQsPanel);
+
+  const syncProfileStatusToggle = () => {
+    if (!qsProfileStatusToggle) return;
+    const on = safeLocalGet(LS_QS_PROFILE_STATUS) !== "0";
+    qsProfileStatusToggle.checked = on;
+  };
+
+  const clearPanelCloseTimer = (name) => {
+    const t = panelCloseTimers.get(name);
+    if (t) clearTimeout(t);
+    panelCloseTimers.delete(name);
+  };
+
+  const openQsPanel = (name, { focusFirst = true } = {}) => {
+    const panel = qsPanels[name]?.panel;
+    if (!panel) return;
+
+    if (activeQsPanel && activeQsPanel !== name) closeQsPanel(activeQsPanel, { focusBtn: false });
+    clearPanelCloseTimer(name);
+
+    activeQsPanel = name;
+    panel.hidden = false;
+    panel.setAttribute("aria-hidden", "false");
+
+    if (name === "profile") syncProfileStatusToggle();
+    if (name === "notif") syncNotifUi();
+
+    if (isMobileQs()) {
+      try {
+        closeDrawer({ focusProfile: false, immediate: true });
+      } catch {
+        // ignore
+      }
+      if (overlay) overlay.hidden = true;
+    } else if (overlay) overlay.hidden = false;
+
+    requestAnimationFrame(() => {
+      document.body.classList.add("qs-panel-open", `qs-${name}-open`);
+      panel.classList.add("qsPanel--open");
+      if (!focusFirst) return;
+      const first = panel.querySelector("[data-tab], button, input, select, textarea, [tabindex='0']");
+      if (!first) return;
+      try {
+        first.focus({ preventScroll: true });
+      } catch {
+        first.focus();
+      }
+    });
+  };
+
+  const closeQsPanel = (name, { focusBtn = true } = {}) => {
+    const panel = qsPanels[name]?.panel;
+    if (!panel) return;
+    const isActive = activeQsPanel === name;
+    if (isActive) activeQsPanel = null;
+
+    document.body.classList.remove(`qs-${name}-open`);
+    document.body.classList.remove("qs-panel-open");
+
+    panel.classList.remove("qsPanel--open");
+    panel.setAttribute("aria-hidden", "true");
+
+    clearPanelCloseTimer(name);
+    const t = setTimeout(() => {
+      if (!document.body.classList.contains(`qs-${name}-open`)) panel.hidden = true;
+    }, 340);
+    panelCloseTimers.set(name, t);
+
+    if (overlay) {
+      setTimeout(() => {
+        if (!document.body.classList.contains("drawer-open") && !document.body.classList.contains("qs-panel-open")) overlay.hidden = true;
+      }, 340);
+    }
+
+    const btn = qsPanels[name]?.btn;
+    if (focusBtn && btn) {
+      requestAnimationFrame(() => {
+        try {
+          btn.focus({ preventScroll: true });
+        } catch {
+          btn.focus();
+        }
+      });
+    }
+  };
+
+  const closeActiveQsPanel = ({ focusBtn = true } = {}) => {
+    if (!activeQsPanel) return;
+    closeQsPanel(activeQsPanel, { focusBtn });
+  };
+
+  const openProfilePanel = (opts) => {
+    document.body.classList.add("qs-profile-open");
+    openQsPanel("profile", opts);
+  };
+
+  const closeProfilePanel = (opts = {}) => {
+    closeQsPanel("profile", { focusBtn: opts.focusProfileBtn !== false });
+    document.body.classList.remove("qs-profile-open");
+  };
 
   const setAdvancedOpen = (open, { persist = false, focusFirst = false } = {}) => {
     if (!qsAdvanced || !qsSettingsBtn) return;
@@ -928,9 +1072,9 @@ try {
   };
 
   const syncNotifUi = () => {
-    if (!qsNotifBtn) return;
     const on = safeLocalGet(LS_NOTIF) !== "0";
-    qsNotifBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    if (qsNotifBtn) qsNotifBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    if (qsNotifToggle) qsNotifToggle.checked = on;
     if (qsNotifPill) {
       qsNotifPill.textContent = on ? "On" : "Off";
       qsNotifPill.classList.toggle("qsMenuPill--off", !on);
@@ -1270,6 +1414,11 @@ try {
   let closeTimer = null;
   const openDrawer = () => {
     if (!drawer || !overlay) return;
+    try {
+      closeActiveQsPanel({ focusBtn: false });
+    } catch {
+      // ignore
+    }
     enterHeaderMode();
     if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
     hideViewInfo();
@@ -1337,14 +1486,20 @@ try {
     }, 20);
   };
 
-  const closeDrawer = ({ focusProfile = true } = {}) => {
+  const closeDrawer = ({ focusProfile = true, immediate = false } = {}) => {
     if (!drawer || !overlay) return;
     document.body.classList.remove("drawer-open");
     drawer.setAttribute("aria-hidden", "true");
 
     if (closeTimer) clearTimeout(closeTimer);
-    closeTimer = setTimeout(() => {
+    if (immediate) {
       overlay.hidden = true;
+      drawer.hidden = true;
+      return;
+    }
+
+    closeTimer = setTimeout(() => {
+      if (!document.body.classList.contains("drawer-open") && !document.body.classList.contains("qs-panel-open")) overlay.hidden = true;
       drawer.hidden = true;
     }, 340);
 
@@ -1384,16 +1539,66 @@ try {
   if (qsNotifBtn) {
     qsNotifBtn.addEventListener("click", () => {
       if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
-      setPendingFocus("match.account.notifications");
-      navShortcut("/match");
+      if (isQsPanelOpen("notif")) closeQsPanel("notif", { focusBtn: true });
+      else openQsPanel("notif", { focusFirst: true });
     });
   }
 
   if (qsProfileBtn) {
     qsProfileBtn.addEventListener("click", () => {
       if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
-      setPendingFocus("match.account.profile");
-      navShortcut("/match");
+      if (isQsPanelOpen("profile")) closeProfilePanel({ focusProfileBtn: true });
+      else openProfilePanel({ focusFirst: true });
+    });
+  }
+
+  if (qsProfileCloseBtn) {
+    qsProfileCloseBtn.addEventListener("click", () => {
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      closeProfilePanel({ focusProfileBtn: true });
+    });
+  }
+
+  if (qsNotifCloseBtn) {
+    qsNotifCloseBtn.addEventListener("click", () => {
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      closeQsPanel("notif", { focusBtn: true });
+    });
+  }
+
+  if (qsQuestCloseBtn) {
+    qsQuestCloseBtn.addEventListener("click", () => {
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      closeQsPanel("quest", { focusBtn: true });
+    });
+  }
+
+  if (qsBattleCloseBtn) {
+    qsBattleCloseBtn.addEventListener("click", () => {
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      closeQsPanel("battle", { focusBtn: true });
+    });
+  }
+
+  if (qsNotesCloseBtn) {
+    qsNotesCloseBtn.addEventListener("click", () => {
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      closeQsPanel("notes", { focusBtn: true });
+    });
+  }
+
+  if (qsProfileStatusToggle) {
+    qsProfileStatusToggle.addEventListener("change", () => {
+      const on = !!qsProfileStatusToggle.checked;
+      safeLocalSet(LS_QS_PROFILE_STATUS, on ? "1" : "0");
+    });
+  }
+
+  if (qsNotifToggle) {
+    qsNotifToggle.addEventListener("change", () => {
+      const on = !!qsNotifToggle.checked;
+      safeLocalSet(LS_NOTIF, on ? "1" : "0");
+      syncNotifUi();
     });
   }
 
@@ -1406,7 +1611,8 @@ try {
       // ignore
     }
     if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
-    closeDrawer({ focusProfile: false });
+    closeActiveQsPanel({ focusBtn: false });
+    closeDrawer({ focusProfile: false, immediate: isMobileQs() });
     setTimeout(() => {
       try {
         const seg = String(href || "").split("?")[0].split("#")[0].replace(/^\//, "");
@@ -1421,12 +1627,80 @@ try {
     }, 120);
   };
 
-  if (qsQuestBtn) qsQuestBtn.addEventListener("click", () => navShortcut("/quest"));
-  if (qsBattleBtn) qsBattleBtn.addEventListener("click", () => navShortcut("/battle"));
-  if (qsNotesBtn) qsNotesBtn.addEventListener("click", () => navShortcut("/notes"));
+  if (qsQuestBtn)
+    qsQuestBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      if (isQsPanelOpen("quest")) closeQsPanel("quest", { focusBtn: true });
+      else openQsPanel("quest", { focusFirst: true });
+    });
+  if (qsBattleBtn)
+    qsBattleBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      if (isQsPanelOpen("battle")) closeQsPanel("battle", { focusBtn: true });
+      else openQsPanel("battle", { focusFirst: true });
+    });
+  if (qsNotesBtn)
+    qsNotesBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      if (isQsPanelOpen("notes")) closeQsPanel("notes", { focusBtn: true });
+      else openQsPanel("notes", { focusFirst: true });
+    });
   if (qsHomeBtn) qsHomeBtn.addEventListener("click", () => navShortcut("/dashboard"));
 
   if (qsSettingsBtn) qsSettingsBtn.addEventListener("click", () => navShortcut("/match"));
+
+  if (qsProfileEditBtn) {
+    qsProfileEditBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      setPendingFocus("match.account.profile");
+      navShortcut("/match");
+    });
+  }
+
+  if (qsProfileMoreBtn) {
+    qsProfileMoreBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      setPendingFocus("match.account.profile");
+      navShortcut("/match");
+    });
+  }
+
+  if (qsNotifSettingsBtn) {
+    qsNotifSettingsBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      setPendingFocus("match.account.notifications");
+      navShortcut("/match");
+    });
+  }
+
+  if (qsQuestOpenBtn) qsQuestOpenBtn.addEventListener("click", () => navShortcut("/quest"));
+  if (qsBattleOpenBtn) qsBattleOpenBtn.addEventListener("click", () => navShortcut("/battle"));
+  if (qsNotesOpenBtn) qsNotesOpenBtn.addEventListener("click", () => navShortcut("/notes"));
+
+  const setProfileTab = (tab) => {
+    if (!qsProfilePanel) return;
+    const btns = Array.from(qsProfilePanel.querySelectorAll("[data-tab]"));
+    btns.forEach((b) => b.setAttribute("aria-selected", b.getAttribute("data-tab") === tab ? "true" : "false"));
+
+    const panes = Array.from(qsProfilePanel.querySelectorAll("[data-pane]"));
+    panes.forEach((p) => {
+      const on = p.getAttribute("data-pane") === tab;
+      p.hidden = !on;
+      p.setAttribute("aria-hidden", on ? "false" : "true");
+    });
+  };
+
+  if (qsProfilePanel) {
+    qsProfilePanel.addEventListener("click", (e) => {
+      const t = e.target;
+      const btn = t && t.closest ? t.closest("[data-tab]") : null;
+      if (!btn) return;
+      const tab = btn.getAttribute("data-tab") || "";
+      if (!tab) return;
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      setProfileTab(tab);
+    });
+  }
 
   if (toggleMusicBtn) {
     toggleMusicBtn.addEventListener("click", () => {
@@ -1623,12 +1897,14 @@ try {
   if (overlay)
     overlay.addEventListener("click", () => {
       if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
-      closeDrawer({ focusProfile: true });
+      if (isAnyQsPanelOpen()) closeActiveQsPanel({ focusBtn: true });
+      else closeDrawer({ focusProfile: true });
     });
   if (closeBtn)
     closeBtn.addEventListener("click", () => {
       if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
-      closeDrawer({ focusProfile: true });
+      if (isAnyQsPanelOpen()) closeActiveQsPanel({ focusBtn: true });
+      else closeDrawer({ focusProfile: true });
     });
 
   // Apply persisted audio mute immediately (so SFX/music match before opening the drawer).
@@ -1640,8 +1916,12 @@ try {
   };
 
   const drawerFocusables = () => {
-    if (!drawer) return [];
-    const els = Array.from(drawer.querySelectorAll("button,input,select,textarea,[tabindex='0']"));
+    const roots = [];
+    if (drawer) roots.push(drawer);
+    const activePanel = activeQsPanel ? qsPanels[activeQsPanel]?.panel : null;
+    if (activePanel && !activePanel.hidden) roots.push(activePanel);
+
+    const els = roots.flatMap((root) => Array.from(root.querySelectorAll("button,input,select,textarea,[tabindex='0']")));
     return els.filter((el) => {
       if (el.hasAttribute("disabled")) return false;
       if (el.getAttribute("aria-hidden") === "true") return false;
@@ -1668,9 +1948,28 @@ try {
 
   window.profileDrawerApi = {
     open: openDrawer,
-    close: closeDrawer,
+    close: () => {
+      if (isAnyQsPanelOpen()) {
+        closeActiveQsPanel({ focusBtn: false });
+        return;
+      }
+      closeDrawer({ focusProfile: true });
+    },
     isOpen: () => document.body.classList.contains("drawer-open"),
     focusables: drawerFocusables,
+  };
+
+  window.qsPanelApi = {
+    isOpen: () => document.body.classList.contains("qs-panel-open"),
+    active: () => activeQsPanel,
+    open: (name, opts) => openQsPanel(String(name || ""), opts),
+    close: (opts) => closeActiveQsPanel(opts),
+  };
+
+  window.qsProfilePanelApi = {
+    isOpen: () => isQsPanelOpen("profile"),
+    open: openProfilePanel,
+    close: closeProfilePanel,
   };
 
   window.studiumMusicApi = {
@@ -1732,6 +2031,7 @@ try {
   const canStart = () => {
     if (document.body.classList.contains("booting")) return false;
     if (document.body.classList.contains("drawer-open")) return false;
+    if (document.body.classList.contains("qs-panel-open")) return false;
     if (typeof getZone === "function" && getZone() === "modal") return false;
     if (isTypingTarget(document.activeElement)) return false;
     return true;
@@ -2376,10 +2676,12 @@ try {
 
   const getZone = () => {
     if (document.body.classList.contains("drawer-open")) return "drawer";
+    if (document.body.classList.contains("qs-panel-open")) return "drawer";
     if (document.body.classList.contains("modal-open")) return "modal";
     const ae = document.activeElement;
     if (ae?.closest?.(".studiumModal")) return "modal";
     if (ae?.closest?.("#profileDrawer")) return "drawer";
+    if (ae?.closest?.(".qsPanel")) return "drawer";
     if (ae?.id === "userMenuBtn" || ae?.id === "viewLabel") return "header";
     if (ae?.closest?.("#routeOutlet") && (ae?.getAttribute?.("data-focus") || ae?.classList?.contains("gridCard") || ae?.closest?.(".gridCard")))
       return "grid";
@@ -2667,6 +2969,14 @@ try {
 
         if (key === "Escape") {
           if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+          if (window.qsPanelApi?.isOpen?.()) {
+            window.qsPanelApi.close?.({ focusBtn: true });
+            return;
+          }
+          if (window.qsProfilePanelApi?.isOpen?.()) {
+            window.qsProfilePanelApi.close?.({ focusProfileBtn: true });
+            return;
+          }
           window.profileDrawerApi?.close?.();
           focusById("userMenuBtn");
           return;
