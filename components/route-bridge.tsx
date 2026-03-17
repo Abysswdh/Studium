@@ -33,7 +33,26 @@ export default function RouteBridge() {
   useEffect(() => {
     (window as any).studiumRoutePush = (view: string) => {
       const nextView = VIEW_META[view] ? view : "dashboard";
-      router.push(`/${nextView}`);
+      const href = `/${nextView}`;
+      const anyDoc = document as any;
+      const currentView = document.body?.dataset?.view || "";
+      const wantsScheduleTransition = nextView === "schedules" || currentView === "schedules";
+
+      if (wantsScheduleTransition && typeof anyDoc?.startViewTransition === "function") {
+        document.documentElement.classList.add("vt-schedules");
+        const vt = anyDoc.startViewTransition(() => {
+          router.push(href);
+        });
+        const cleanup = () => document.documentElement.classList.remove("vt-schedules");
+        try {
+          vt.finished.then(cleanup, cleanup);
+        } catch {
+          cleanup();
+        }
+        return;
+      }
+
+      router.push(href);
     };
 
     const view = viewFromPath(pathname);

@@ -55,12 +55,15 @@ function readQuestDetail() {
 }
 
 export default function ShellBackground() {
-  const [glassTint, setGlassTint] = useState(() => readGlassTint());
-  const [glassAlphaStrong, setGlassAlphaStrong] = useState(() => readGlassAlphaStrong());
-  const [view, setView] = useState(() => readView());
-  const [questDetail, setQuestDetail] = useState(() => readQuestDetail());
+  // Important: keep the initial render deterministic to avoid hydration mismatches.
+  const [glassTint, setGlassTint] = useState("255 255 255");
+  const [glassAlphaStrong, setGlassAlphaStrong] = useState(0.36);
+  const [view, setView] = useState("dashboard");
+  const [questDetail, setQuestDetail] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const update = () => {
       setGlassTint(readGlassTint());
       setGlassAlphaStrong(readGlassAlphaStrong());
@@ -81,6 +84,8 @@ export default function ShellBackground() {
 
   const backgroundStrength = Math.min(0.32, Math.max(0.16, glassAlphaStrong * 0.9));
   const threadsColor = tintToThreadsColor(glassTint);
+
+  if (!mounted) return null;
 
   return (
     <>

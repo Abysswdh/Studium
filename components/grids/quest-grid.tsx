@@ -51,6 +51,345 @@ function questProgress(q: Quest) {
   return Math.round((done / total) * 100);
 }
 
+function toLocalInputValue(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const mi = pad(d.getMinutes());
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+}
+
+function clampInt(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function parseLocalDateTime(value: string) {
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec((value || "").trim());
+  if (!m) return { date: "", hour: "09", minute: "00" };
+  const hour = clampInt(Number(m[2]), 0, 23);
+  const minute = clampInt(Number(m[3]), 0, 59);
+  return { date: m[1] as string, hour: String(hour).padStart(2, "0"), minute: String(minute).padStart(2, "0") };
+}
+
+function formatDateLabel(isoDate: string) {
+  const d = new Date(`${isoDate}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return "Pick date";
+  return d.toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" });
+}
+
+type FancyOption = { value: string; label: string; hint?: string };
+
+function FancySelect({
+  value,
+  options,
+  onChange,
+  ariaLabel,
+  focusKey,
+}: {
+  value: string;
+  options: FancyOption[];
+  onChange: (v: string) => void;
+  ariaLabel: string;
+  focusKey?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const selected = options.find((o) => o.value === value) ?? options[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node | null;
+      if (t && wrapRef.current?.contains(t)) return;
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("pointerdown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const selectIdx = (idx: number) => {
+    const next = options[Math.max(0, Math.min(options.length - 1, idx))];
+    if (!next) return;
+    onChange(next.value);
+  };
+
+  return (
+    <div ref={wrapRef} className={styles.fancySelect} data-open={open ? "1" : "0"}>
+      <button
+        type="button"
+        className={styles.fancyBtn}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen((v) => !v);
+            return;
+          }
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            const idx = Math.max(0, options.findIndex((o) => o.value === value));
+            selectIdx(idx + 1);
+            return;
+          }
+          if (e.key === "ArrowUp") {
+            e.preventDefault();
+            const idx = Math.max(0, options.findIndex((o) => o.value === value));
+            selectIdx(idx - 1);
+            return;
+          }
+        }}
+        data-focus={focusKey}
+      >
+        <span className={styles.fancyValue}>{selected?.label ?? "Select"}</span>
+        <i className={["fa-solid fa-chevron-down", styles.fancyChevron].join(" ")} aria-hidden="true"></i>
+      </button>
+
+      {open ? (
+        <div className={styles.fancyMenu} role="listbox" aria-label={ariaLabel}>
+          {options.map((o) => {
+            const isSel = o.value === value;
+            return (
+              <button
+                key={o.value}
+                type="button"
+                className={styles.fancyOpt}
+                role="option"
+                aria-selected={isSel}
+                data-selected={isSel ? "1" : "0"}
+                onClick={() => {
+                  onChange(o.value);
+                  setOpen(false);
+                }}
+              >
+                <span className={styles.fancyOptMain}>
+                  <span className={styles.fancyOptLabel}>{o.label}</span>
+                  {o.hint ? <span className={styles.fancyOptHint}>{o.hint}</span> : null}
+                </span>
+                {isSel ? <i className={["fa-solid fa-check", styles.fancyCheck].join(" ")} aria-hidden="true"></i> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function monthStart(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
+}
+
+function addDays(d: Date, n: number) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+
+function isoDateKey(d: Date) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function DatePicker({
+  value,
+  onChange,
+  ariaLabel,
+  disabled,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  ariaLabel: string;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [month, setMonth] = useState(() => monthStart(value ? new Date(`${value}T00:00:00`) : new Date()));
+  const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const syncPos = useCallback(() => {
+    const rect = btnRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const desiredW = Math.max(320, rect.width);
+    const maxLeft = Math.max(16, window.innerWidth - desiredW - 16);
+    const left = Math.max(16, Math.min(rect.left, maxLeft));
+    const top = rect.bottom + 10;
+    setPos({ left, top, width: desiredW });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    syncPos();
+  }, [open, syncPos]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node | null;
+      if (t && (wrapRef.current?.contains(t) || menuRef.current?.contains(t))) return;
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onReflow = () => syncPos();
+    window.addEventListener("pointerdown", onDown);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onReflow);
+    window.addEventListener("scroll", onReflow, true);
+    return () => {
+      window.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onReflow);
+      window.removeEventListener("scroll", onReflow, true);
+    };
+  }, [open, syncPos]);
+
+  useEffect(() => {
+    if (!open) return;
+    const base = value ? new Date(`${value}T00:00:00`) : new Date();
+    if (Number.isNaN(base.getTime())) return;
+    setMonth(monthStart(base));
+  }, [open, value]);
+
+  const selected = value;
+  const first = monthStart(month);
+  const startDow = (first.getDay() + 6) % 7; // Monday=0
+  const gridStart = addDays(first, -startDow);
+  const days = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
+
+  return (
+    <div ref={wrapRef} className={styles.datePicker} data-open={open ? "1" : "0"}>
+      <button
+        ref={btnRef}
+        type="button"
+        className={styles.dateBtn}
+        aria-label={ariaLabel}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => {
+          if (disabled) return;
+          setOpen((v) => !v);
+        }}
+        disabled={disabled}
+      >
+        <span className={styles.dateValue}>{value ? formatDateLabel(value) : "Pick date"}</span>
+        <i className={["fa-solid fa-calendar-days", styles.dateIcon].join(" ")} aria-hidden="true"></i>
+      </button>
+
+      {open && pos
+        ? createPortal(
+            <div
+              ref={menuRef}
+              className={styles.dateMenu}
+              role="dialog"
+              aria-label="Choose date"
+              style={{ left: pos.left, top: pos.top, width: pos.width }}
+            >
+              <div className={styles.dateQuick} aria-label="Quick dates">
+                <button
+                  type="button"
+                  className={styles.quickBtn}
+                  onClick={() => {
+                    onChange(isoDateKey(new Date()));
+                    setOpen(false);
+                  }}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  className={styles.quickBtn}
+                  onClick={() => {
+                    onChange(isoDateKey(addDays(new Date(), 1)));
+                    setOpen(false);
+                  }}
+                >
+                  Tomorrow
+                </button>
+                <button
+                  type="button"
+                  className={styles.quickBtn}
+                  onClick={() => {
+                    onChange(isoDateKey(addDays(new Date(), 7)));
+                    setOpen(false);
+                  }}
+                >
+                  +7 days
+                </button>
+              </div>
+
+              <div className={styles.calHead} aria-label="Month selector">
+                <button
+                  type="button"
+                  className={styles.iconBtnMini}
+                  onClick={() => setMonth((m) => monthStart(addDays(m, -1)))}
+                  aria-label="Previous month"
+                >
+                  <i className="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                </button>
+                <div className={styles.calTitle}>{first.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</div>
+                <button type="button" className={styles.iconBtnMini} onClick={() => setMonth((m) => monthStart(addDays(m, 32)))} aria-label="Next month">
+                  <i className="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+              </div>
+
+              <div className={styles.calDow} aria-hidden="true">
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+                  <div key={d} className={styles.calDowCell}>
+                    {d}
+                  </div>
+                ))}
+              </div>
+
+              <div className={styles.calGrid} aria-label="Calendar grid">
+                {days.map((d) => {
+                  const key = isoDateKey(d);
+                  const inMonth = d.getMonth() === first.getMonth();
+                  const isSel = selected && key === selected;
+                  const isToday = key === isoDateKey(new Date());
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      className={styles.calDay}
+                      data-muted={!inMonth ? "1" : "0"}
+                      data-selected={isSel ? "1" : "0"}
+                      data-today={isToday ? "1" : "0"}
+                      onClick={() => {
+                        onChange(key);
+                        setOpen(false);
+                      }}
+                      aria-label={`Select ${d.toDateString()}`}
+                    >
+                      {d.getDate()}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
+    </div>
+  );
+}
+
 function scrollNearest(el: HTMLElement | null) {
   if (!el) return;
   try {
@@ -64,6 +403,16 @@ type QuestView = "hub" | "detail";
 type DetailMode = "board" | "table" | "list";
 type DetailFilter = "all" | "remaining" | "done" | "dueSoon" | "overdue";
 
+type ConfirmState = {
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  tone?: "danger" | "neutral";
+  details?: string[];
+  hint?: string;
+  onConfirm: () => void;
+};
+
 export default function QuestGrid() {
   const [quests, setQuests] = useState<Quest[]>([]);
   const [events, setEvents] = useState<PlannerEvent[]>([]);
@@ -76,13 +425,14 @@ export default function QuestGrid() {
   const [title, setTitle] = useState("");
   const [context, setContext] = useState("");
   const [dueAt, setDueAt] = useState("");
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+  const [duePreset, setDuePreset] = useState<"none" | "custom">("none");
   const titleRef = useRef<HTMLInputElement | null>(null);
   const didViewAutofocus = useRef(false);
 
   const [detailMode, setDetailMode] = useState<DetailMode>("board");
   const [detailFilter, setDetailFilter] = useState<DetailFilter>("all");
   const [detailQuery, setDetailQuery] = useState("");
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null);
 
   const [toasts, setToasts] = useState<Array<{ id: string; title: string; body?: string }>>([]);
   const [drag, setDrag] = useState<{
@@ -96,6 +446,7 @@ export default function QuestGrid() {
   } | null>(null);
   const [dropCol, setDropCol] = useState<"todo" | "done" | null>(null);
   const suppressClickRef = useRef<{ id: string; until: number } | null>(null);
+  const deepLinkHandledRef = useRef(false);
 
   useEffect(() => {
     const sync = () => {
@@ -114,7 +465,17 @@ export default function QuestGrid() {
   }, []);
 
   useEffect(() => {
-    setPortalRoot(document.getElementById("routeOutlet") || document.body);
+    if (deepLinkHandledRef.current) return;
+    deepLinkHandledRef.current = true;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const questId = params.get("quest");
+      const detail = params.get("detail");
+      if (questId) setSelectedId(questId);
+      if (questId && detail === "1") setView("detail");
+    } catch {
+      // ignore
+    }
   }, []);
 
   const selected = useMemo(() => quests.find((q) => q.id === selectedId) ?? null, [quests, selectedId]);
@@ -201,6 +562,15 @@ export default function QuestGrid() {
   }, [generatorOpen]);
 
   useEffect(() => {
+    if (!confirm) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setConfirm(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [confirm]);
+
+  useEffect(() => {
     if (!generatorOpen) return;
     document.body.classList.add("modal-open");
     const api = { close: () => setGeneratorOpen(false) };
@@ -214,6 +584,12 @@ export default function QuestGrid() {
     };
   }, [generatorOpen]);
 
+  useEffect(() => {
+    if (!generatorOpen) return;
+    setDuePreset(dueAt ? "custom" : "none");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generatorOpen]);
+
   const submit = () => {
     const { quest, events } = createQuest({ type, priority, title, context, dueAt: dueAt || undefined });
     addQuest(quest, events);
@@ -221,9 +597,41 @@ export default function QuestGrid() {
     setTitle("");
     setContext("");
     setDueAt("");
+    setDuePreset("none");
     setPriority("medium");
     setGeneratorOpen(false);
   };
+
+  const hourOptions = useMemo<FancyOption[]>(
+    () =>
+      Array.from({ length: 24 }, (_, i) => {
+        const v = String(i).padStart(2, "0");
+        return { value: v, label: v, hint: i < 12 ? "AM" : "PM" };
+      }),
+    []
+  );
+
+  const minuteOptions = useMemo<FancyOption[]>(
+    () =>
+      Array.from({ length: 60 }, (_, i) => {
+        const v = String(i).padStart(2, "0");
+        return { value: v, label: v };
+      }),
+    []
+  );
+
+  const detailFilterOptions = useMemo<FancyOption[]>(
+    () => [
+      { value: "all", label: "All", hint: "Everything" },
+      { value: "remaining", label: "Remaining", hint: "Not done yet" },
+      { value: "done", label: "Done", hint: "Completed only" },
+      { value: "dueSoon", label: "Due soon", hint: "Next 3 days" },
+      { value: "overdue", label: "Overdue", hint: "Past due date" },
+    ],
+    []
+  );
+
+  const dueParts = useMemo(() => parseLocalDateTime(dueAt), [dueAt]);
 
   const openDetail = () => {
     if (!selected) return;
@@ -406,7 +814,10 @@ export default function QuestGrid() {
           <div className={styles.hubBody}>
             <section className={styles.left} aria-label="Mission list">
               <div className={styles.sectionHead}>
-                <div className={styles.sectionTitle}>Missions</div>
+                <div className={styles.sectionTitle}>
+                  <i className="fa-solid fa-list-check" aria-hidden="true"></i>
+                  Missions
+                </div>
                 <div className={styles.sectionMeta}>{quests.length} total</div>
               </div>
               <div className={styles.missionList}>
@@ -473,7 +884,10 @@ export default function QuestGrid() {
                 <div className={styles.focusCard} data-type={selected.type} data-priority={selectedMeta.p}>
                   <div className={styles.focusTop}>
                     <div>
-                      <div className={styles.focusKicker}>Selected mission</div>
+                      <div className={styles.focusKicker}>
+                        <i className="fa-solid fa-crosshairs" aria-hidden="true"></i>
+                        Selected mission
+                      </div>
                       <div className={styles.focusTitle}>{selected.title}</div>
                       <div className={styles.focusSub}>
                         {typeLabel(selected.type)} | Rank {selectedMeta.rank} | {priorityLabel(selectedMeta.p)} priority
@@ -541,23 +955,108 @@ export default function QuestGrid() {
         </div>
       ) : (
         <div className={styles.detail} aria-label="Mission details page">
-          <div className={styles.ambient} aria-hidden="true" />
-          <button
-            className={styles.fabBack}
-            type="button"
-            onClick={() => {
-              const anyDoc = document as any;
-              if (typeof anyDoc?.startViewTransition === "function") anyDoc.startViewTransition(() => setView("hub"));
-              else setView("hub");
-            }}
-            aria-label="Back to quest hub"
-            data-focus="quest.back"
-          >
-            <i className="fa-solid fa-arrow-left" aria-hidden="true"></i>
-          </button>
-
           {selected && selectedMeta ? (
             <div className={styles.detailLayout} aria-label="Quest detail workspace">
+              <header className={styles.detailHeader} aria-label="Quest detail toolbar">
+                <div className={styles.headerLeft}>
+                  <div className={styles.detailTitleRow}>
+                    <button
+                      className={styles.fabBack}
+                      type="button"
+                      onClick={() => {
+                        const anyDoc = document as any;
+                        if (typeof anyDoc?.startViewTransition === "function") anyDoc.startViewTransition(() => setView("hub"));
+                        else setView("hub");
+                      }}
+                      aria-label="Back to quest hub"
+                      data-focus="quest.back"
+                    >
+                      <i className="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                      <span className={styles.backText}>Back</span>
+                    </button>
+
+                    <div className={styles.kanbanTitle}>{selected.title}</div>
+                  </div>
+                  <div className={styles.kanbanMeta}>
+                    <span className={styles.pill} data-rank={selectedMeta.rank}>
+                      Rank {selectedMeta.rank}
+                    </span>
+                    <span className={styles.pill} data-priority={selectedMeta.p}>
+                      {priorityLabel(selectedMeta.p)}
+                    </span>
+                    <span className={styles.pill}>Due {formatShort(selected.dueAt)}</span>
+                    <span className={styles.pill}>
+                      XP {selectedMeta.earned}/{selectedMeta.potential}
+                    </span>
+                    {completed ? (
+                      <span className={styles.pill} data-done="1">
+                        Completed
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className={styles.headerRight}>
+                  <div className={styles.segmented} role="tablist" aria-label="Detail view mode">
+                    <button
+                      type="button"
+                      className={styles.segBtn}
+                      data-active={detailMode === "board" ? "1" : "0"}
+                      onClick={() => setDetailMode("board")}
+                      aria-label="Board view"
+                      data-focus="quest.view.board"
+                    >
+                      <i className="fa-solid fa-columns" aria-hidden="true"></i>
+                      Board
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.segBtn}
+                      data-active={detailMode === "table" ? "1" : "0"}
+                      onClick={() => setDetailMode("table")}
+                      aria-label="Table view"
+                      data-focus="quest.view.table"
+                    >
+                      <i className="fa-solid fa-table" aria-hidden="true"></i>
+                      Table
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.segBtn}
+                      data-active={detailMode === "list" ? "1" : "0"}
+                      onClick={() => setDetailMode("list")}
+                      aria-label="List view"
+                      data-focus="quest.view.list"
+                    >
+                      <i className="fa-solid fa-list-check" aria-hidden="true"></i>
+                      List
+                    </button>
+                  </div>
+
+                  <div className={styles.detailFilter} aria-label="Filter control">
+                    <FancySelect
+                      value={detailFilter}
+                      options={detailFilterOptions}
+                      onChange={(v) => setDetailFilter(v as DetailFilter)}
+                      ariaLabel="Filter objectives"
+                      focusKey="quest.filter"
+                    />
+                  </div>
+
+                  <div className={styles.search}>
+                    <i className="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    <input
+                      className={styles.searchInput}
+                      value={detailQuery}
+                      onChange={(e) => setDetailQuery(e.target.value)}
+                      placeholder="Search objectives…"
+                      aria-label="Search objectives"
+                      data-focus="quest.search"
+                    />
+                  </div>
+                </div>
+              </header>
+
               <main className={styles.detailMain} aria-label="Quest detail content">
                 {detailMode === "board" ? (
                   <div className={styles.board} aria-label="Kanban board">
@@ -726,94 +1225,6 @@ export default function QuestGrid() {
               </main>
 
               <aside className={styles.detailSide} aria-label="Mission info">
-                <div className={[styles.sideCard, styles.controlCard].join(" ")} aria-label="Mission controls">
-                  <div className={styles.kanbanTitle}>{selected.title}</div>
-                  <div className={styles.kanbanMeta}>
-                    <span className={styles.pill} data-rank={selectedMeta.rank}>
-                      Rank {selectedMeta.rank}
-                    </span>
-                    <span className={styles.pill} data-priority={selectedMeta.p}>
-                      {priorityLabel(selectedMeta.p)}
-                    </span>
-                    <span className={styles.pill}>Due {formatShort(selected.dueAt)}</span>
-                    <span className={styles.pill}>
-                      XP {selectedMeta.earned}/{selectedMeta.potential}
-                    </span>
-                    {completed ? (
-                      <span className={styles.pill} data-done="1">
-                        Completed
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <div className={styles.controlGrid} aria-label="View and filters">
-                    <div className={styles.segmented} role="tablist" aria-label="Detail view mode">
-                      <button
-                        type="button"
-                        className={styles.segBtn}
-                        data-active={detailMode === "board" ? "1" : "0"}
-                        onClick={() => setDetailMode("board")}
-                        aria-label="Board view"
-                        data-focus="quest.view.board"
-                      >
-                        <i className="fa-solid fa-columns" aria-hidden="true"></i>
-                        Board
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.segBtn}
-                        data-active={detailMode === "table" ? "1" : "0"}
-                        onClick={() => setDetailMode("table")}
-                        aria-label="Table view"
-                        data-focus="quest.view.table"
-                      >
-                        <i className="fa-solid fa-table" aria-hidden="true"></i>
-                        Table
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.segBtn}
-                        data-active={detailMode === "list" ? "1" : "0"}
-                        onClick={() => setDetailMode("list")}
-                        aria-label="List view"
-                        data-focus="quest.view.list"
-                      >
-                        <i className="fa-solid fa-list-check" aria-hidden="true"></i>
-                        List
-                      </button>
-                    </div>
-
-                    <div className={styles.selectWrap} aria-label="Filter control">
-                      <select
-                        className={styles.filterSelect}
-                        value={detailFilter}
-                        onChange={(e) => setDetailFilter(e.target.value as DetailFilter)}
-                        aria-label="Filter tasks"
-                        data-focus="quest.filter"
-                      >
-                        <option value="all">All</option>
-                        <option value="remaining">Remaining</option>
-                        <option value="done">Done</option>
-                        <option value="dueSoon">Due soon</option>
-                        <option value="overdue">Overdue</option>
-                      </select>
-                      <i className={["fa-solid fa-chevron-down", styles.selectIcon].join(" ")} aria-hidden="true"></i>
-                    </div>
-
-                    <div className={styles.search}>
-                      <i className="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                      <input
-                        className={styles.searchInput}
-                        value={detailQuery}
-                        onChange={(e) => setDetailQuery(e.target.value)}
-                        placeholder="Search objectives…"
-                        aria-label="Search objectives"
-                        data-focus="quest.search"
-                      />
-                    </div>
-                  </div>
-                </div>
-
                 {selected.context ? <div className={styles.noteCard}>{selected.context}</div> : null}
                 <div className={styles.progressCard} aria-hidden="true">
                   <div className={styles.progressTop}>
@@ -841,7 +1252,21 @@ export default function QuestGrid() {
                 <button
                   className={styles.dangerBtn}
                   type="button"
-                  onClick={() => deleteQuest(selected.id)}
+                  onClick={() =>
+                    setConfirm({
+                      title: "Delete mission?",
+                      message: `This removes “${selected.title}” and all its schedule milestones.`,
+                      confirmLabel: "Delete",
+                      tone: "danger",
+                      details: [
+                        "Objective progress will be removed.",
+                        `Schedule will remove ${questEvents.length} milestone(s) tied to this mission.`,
+                        "This action can’t be undone.",
+                      ],
+                      hint: "Tip: If you delete by accident, you can generate a new mission anytime.",
+                      onConfirm: () => deleteQuest(selected.id),
+                    })
+                  }
                   aria-label="Delete mission"
                   data-focus="quest.delete"
                 >
@@ -886,7 +1311,7 @@ export default function QuestGrid() {
       {generatorOpen
         ? createPortal(
             <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="Generate quest" onClick={() => setGeneratorOpen(false)}>
-              <div className={`${styles.modal} studiumModal`} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.modalHead}>
                   <div>
                     <div className={styles.modalTitle}>Generate quest</div>
@@ -901,25 +1326,98 @@ export default function QuestGrid() {
                   <div className={styles.formRow}>
                     <div className={styles.field}>
                       <div className={styles.label}>Type</div>
-                      <select className={styles.control} value={type} onChange={(e) => setType(e.target.value as QuestType)} aria-label="Quest type">
-                        <option value="assignment">Assignment</option>
-                        <option value="exam">Exam</option>
-                        <option value="routine">Daily routine</option>
-                      </select>
+                      <FancySelect
+                        value={type}
+                        ariaLabel="Quest type"
+                        focusKey="quest.type"
+                        options={[
+                          { value: "assignment", label: "Assignment", hint: "Steps + milestones" },
+                          { value: "exam", label: "Exam", hint: "High stakes" },
+                          { value: "routine", label: "Daily routine", hint: "Repeatable" },
+                        ]}
+                        onChange={(v) => setType(v as QuestType)}
+                      />
                     </div>
                     <div className={styles.field}>
                       <div className={styles.label}>Priority</div>
-                      <select className={styles.control} value={priority} onChange={(e) => setPriority(e.target.value as QuestPriority)} aria-label="Quest priority">
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                      </select>
+                      <FancySelect
+                        value={priority}
+                        ariaLabel="Quest priority"
+                        focusKey="quest.priority"
+                        options={[
+                          { value: "low", label: "Low", hint: "Chill pace" },
+                          { value: "medium", label: "Medium", hint: "Balanced" },
+                          { value: "high", label: "High", hint: "Focus now" },
+                        ]}
+                        onChange={(v) => setPriority(v as QuestPriority)}
+                      />
                     </div>
                   </div>
 
                   <div className={styles.field}>
-                    <div className={styles.label}>Due</div>
-                    <input className={styles.control} type="datetime-local" value={dueAt} onChange={(e) => setDueAt(e.target.value)} aria-label="Due date" />
+                    <div className={styles.label}>Deadline</div>
+                    <div className={styles.deadlineRow} aria-label="Deadline selector">
+                      <FancySelect
+                        value={duePreset}
+                        ariaLabel="Deadline preset"
+                        focusKey="quest.deadline"
+                        options={[
+                          { value: "none", label: "No deadline", hint: "Flexible" },
+                          { value: "custom", label: "Pick date", hint: "Set a target" },
+                        ]}
+                        onChange={(v) => {
+                          const next = v as typeof duePreset;
+                          setDuePreset(next);
+                          if (next === "none") setDueAt("");
+                          else if (next === "custom" && !dueAt) setDueAt(toLocalInputValue(new Date()));
+                        }}
+                      />
+                      {duePreset === "custom" ? (
+                        <div className={styles.deadlineControls} aria-label="Custom deadline controls">
+                          <DatePicker
+                            value={dueParts.date}
+                            onChange={(d) => {
+                              setDueAt(`${d}T${dueParts.hour}:${dueParts.minute}`);
+                              setDuePreset("custom");
+                            }}
+                            ariaLabel="Deadline date"
+                          />
+                          <div className={styles.timePicker} aria-label="Deadline time">
+                            <div className={styles.timePart}>
+                              <FancySelect
+                                value={dueParts.hour}
+                                options={hourOptions}
+                                onChange={(h) => {
+                                  const d = dueParts.date || isoDateKey(new Date());
+                                  setDueAt(`${d}T${h}:${dueParts.minute}`);
+                                  setDuePreset("custom");
+                                }}
+                                ariaLabel="Deadline hour"
+                              />
+                            </div>
+                            <div className={styles.timeSep} aria-hidden="true">
+                              :
+                            </div>
+                            <div className={styles.timePart}>
+                              <FancySelect
+                                value={dueParts.minute}
+                                options={minuteOptions}
+                                onChange={(m) => {
+                                  const d = dueParts.date || isoDateKey(new Date());
+                                  setDueAt(`${d}T${dueParts.hour}:${m}`);
+                                  setDuePreset("custom");
+                                }}
+                                ariaLabel="Deadline minute"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={styles.deadlineDisabled} aria-label="No deadline selected">
+                          No deadline
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className={styles.field}>
@@ -956,7 +1454,62 @@ export default function QuestGrid() {
                 </div>
               </div>
             </div>,
-            portalRoot ?? document.body
+            document.body
+          )
+        : null}
+
+      {confirm
+        ? createPortal(
+            <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label={confirm.title} onClick={() => setConfirm(null)}>
+              <div className={styles.confirmModal} data-tone={confirm.tone || "neutral"} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.modalHead}>
+                  <div>
+                    <div className={styles.modalTitle}>{confirm.title}</div>
+                    <div className={styles.modalSub}>{confirm.message}</div>
+                  </div>
+                  <button className={styles.iconBtn} type="button" onClick={() => setConfirm(null)} aria-label="Close confirmation">
+                    <i className="fa-solid fa-xmark" aria-hidden="true"></i>
+                  </button>
+                </div>
+
+                <div className={styles.confirmBody}>
+                  <div className={styles.confirmKicker}>
+                    <i className={confirm.tone === "danger" ? "fa-solid fa-triangle-exclamation" : "fa-solid fa-circle-info"} aria-hidden="true"></i>
+                    Please confirm
+                  </div>
+                  {confirm.details?.length ? (
+                    <div className={styles.confirmDetails} aria-label="Confirmation details">
+                      {confirm.details.map((line) => (
+                        <div key={line} className={styles.confirmLine}>
+                          <i className="fa-solid fa-check" aria-hidden="true"></i>
+                          <span>{line}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {confirm.hint ? <div className={styles.confirmHint}>{confirm.hint}</div> : null}
+                </div>
+
+                <div className={styles.modalActions}>
+                  <button
+                    className={styles.dangerBtn}
+                    type="button"
+                    onClick={() => {
+                      const fn = confirm.onConfirm;
+                      setConfirm(null);
+                      fn();
+                    }}
+                    aria-label={confirm.confirmLabel || "Confirm"}
+                  >
+                    {confirm.confirmLabel || "Confirm"}
+                  </button>
+                  <button className={styles.ghostBtn} type="button" onClick={() => setConfirm(null)} aria-label="Cancel confirmation">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body
           )
         : null}
     </div>
