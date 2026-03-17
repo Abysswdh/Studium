@@ -641,12 +641,37 @@
 
 @media (max-width: 520px) {
   .tabs {
-    gap: 6px;
+    gap: 5px;
   }
 
   .tabBtn {
     padding: 6px 7px;
     font-size: 10px;
+  }
+
+  .tabLabel {
+    gap: 5px;
+  }
+
+  .tabLabel i {
+    font-size: 11px;
+  }
+
+  .tabCount {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .tabBtn[aria-label="All notes"] {
+    flex: 0.75 1 0;
+  }
+
+  .tabBtn[aria-label="Favorite notes"] {
+    flex: 1.18 1 0;
+  }
+
+  .tabBtn[aria-label="Recently deleted"] {
+    flex: 1.45 1 0;
   }
 
   .tabBtn[aria-label="Recently deleted"] .tabLabel {
