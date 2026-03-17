@@ -1687,6 +1687,13 @@ try {
       const on = p.getAttribute("data-pane") === tab;
       p.hidden = !on;
       p.setAttribute("aria-hidden", on ? "false" : "true");
+      if (on) {
+        try {
+          p.scrollTop = 0;
+        } catch {
+          // ignore
+        }
+      }
     });
   };
 
