@@ -60,7 +60,7 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(220px, 0.9fr) minmax(220px, 0.95fr) minmax(320px, 1.25fr) minmax(360px, 1.5fr);
+  grid-template-columns: minmax(180px, 0.75fr) minmax(180px, 0.78fr) minmax(380px, 1.7fr) minmax(340px, 1.25fr);
   gap: 14px;
 }
 
@@ -319,8 +319,18 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.col[aria-label="Folders column"] .outsideBtn,
+.col[aria-label="Tags column"] .outsideBtn {
+  padding: 9px 10px;
+  gap: 8px;
 }
 
 .outsideBtn:hover {
@@ -360,7 +370,8 @@
 .cardHead {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -375,8 +386,18 @@
 .tabs {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+
+.tabs::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .activeItem {
@@ -422,14 +443,15 @@
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.80);
   border-radius: 999px;
-  padding: 8px 10px;
+  padding: 7px 9px;
   font-weight: 900;
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   white-space: nowrap;
+  flex: 0 0 auto;
   transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
 }
 
