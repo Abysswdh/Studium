@@ -389,17 +389,13 @@
   gap: 8px;
   flex-wrap: nowrap;
   padding-left: calc(2px + env(safe-area-inset-left, 0px));
-  padding-right: calc(2px + env(safe-area-inset-right, 0px));
+  padding-right: calc(8px + env(safe-area-inset-right, 0px));
   padding-bottom: 4px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   overflow-x: hidden;
   overflow-y: hidden;
-}
-
-.tabBtn:last-child {
-  margin-right: 2px;
 }
 
 .tabs::-webkit-scrollbar {
@@ -641,6 +637,7 @@
 
 @media (max-width: 520px) {
   .tabs {
+    padding-right: calc(2px + env(safe-area-inset-right, 0px));
     gap: 5px;
   }
 
