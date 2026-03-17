@@ -1,21 +1,22 @@
 .page {
-  height: 100%;
-  min-height: 0;
+  height: auto;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   position: relative;
 }
 
 .grid {
-  flex: 1;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: auto;
   display: grid;
   grid-template-columns: 1.05fr 1.15fr 1.1fr;
-  grid-template-rows: 1fr 0.78fr;
+  grid-template-rows: auto auto;
   gap: var(--shell-gap);
   width: 100%;
   position: relative;
   z-index: 1;
+  align-content: start;
 }
 
 .block {
@@ -146,21 +147,25 @@
 
 .rankedCard {
   position: relative;
+  --ranked-mascot-w: clamp(170px, 22vw, 240px);
+  --ranked-mascot-pad: calc(var(--ranked-mascot-w) + 18px);
 }
 
 .rankedCard .content {
-  padding-right: clamp(156px, 18vw, 230px);
+  padding-right: min(var(--ranked-mascot-pad), 56%);
 }
 
 .rankedMascot {
   position: absolute;
   right: 6px;
   bottom: -14px;
-  width: min(240px, 48%);
+  width: min(var(--ranked-mascot-w), 48%);
   height: auto;
   max-height: 94%;
   pointer-events: none;
   user-select: none;
+  display: block;
+  object-fit: contain;
   opacity: 0.96;
   filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.25));
 }
@@ -193,12 +198,12 @@
 }
 
 .statsGrid {
-  flex: 1;
-  min-height: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(84px, auto));
   gap: 10px;
+  align-content: start;
+  overflow: hidden;
 }
 
 .stat {
@@ -209,7 +214,10 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-height: 84px;
+  overflow: hidden;
 }
 
 .statLabel {
@@ -218,14 +226,31 @@
   text-transform: uppercase;
   font-weight: 900;
   color: rgba(255, 255, 255, 0.58);
+  line-height: 1.05;
 }
 
 .statValue {
-  margin-top: 6px;
   font-family: var(--font-display);
   font-weight: 900;
-  font-size: clamp(18px, 2.2vw, 24px);
+  font-size: clamp(16px, 1.9vw, 22px);
   color: rgba(255, 255, 255, 0.92);
+  line-height: 1.08;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+#battle-stats {
+  min-height: 210px;
+}
+
+#battle-ranked {
+  min-height: 170px;
+}
+
+#battle-leaderboard {
+  min-height: 360px;
 }
 
 .questList {
@@ -298,12 +323,13 @@
     grid-row: auto;
   }
   .rankedMascot {
-    width: min(210px, 62%);
+    width: min(var(--ranked-mascot-w), 62%);
     bottom: -22px;
     right: 0px;
   }
-  .rankedCard .content {
-    padding-right: clamp(148px, 38vw, 220px);
+  .rankedCard {
+    --ranked-mascot-w: clamp(170px, 46vw, 220px);
+    --ranked-mascot-pad: calc(var(--ranked-mascot-w) + 14px);
   }
   .content {
     height: auto;
@@ -314,17 +340,43 @@
   .midStack {
     grid-template-columns: 1fr;
   }
+
+  #battle-leaderboard {
+    min-height: 320px;
+  }
 }
 
 @media (max-width: 900px) {
-  .page {
-    height: auto;
-    min-height: 100%;
+  /* base layout already scrolls; keep the breakpoint for future overrides */
+}
+
+@media (max-height: 760px) and (min-width: 701px) {
+  .rankedCard {
+    --ranked-mascot-w: clamp(150px, 18vw, 200px);
+    --ranked-mascot-pad: calc(var(--ranked-mascot-w) + 14px);
   }
 
-  .grid {
-    flex: 0 0 auto;
-    min-height: auto;
-    align-content: start;
+  .rankedMascot {
+    max-height: 86%;
+    bottom: -10px;
+  }
+
+  .stat {
+    padding: 12px 12px;
+  }
+
+  .statValue {
+    font-size: clamp(15px, 1.7vw, 20px);
+  }
+}
+
+@media (max-height: 620px) and (min-width: 701px) {
+  .rankedCard {
+    --ranked-mascot-w: 0px;
+    --ranked-mascot-pad: 16px;
+  }
+
+  .rankedMascot {
+    display: none;
   }
 }

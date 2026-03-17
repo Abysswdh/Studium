@@ -8,7 +8,7 @@ export default async function Page() {
   if (!user) redirect("/sign-in");
   return (
     <>
-      <ViewMarker view="match" label="Options" desc="Settings, preferences, and app options." />
+      <ViewMarker view="match" />
       <MatchGrid user={{ id: user.id, displayName: user.displayName, avatarUrl: user.avatarUrl }} />
     </>
   );

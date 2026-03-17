@@ -4,10 +4,12 @@ import { useState } from "react";
 import BattleSetupModal from "../battle/battle-setup-modal";
 import BattleLeaderboard from "./battle-leaderboard";
 import styles from "./battle-grid.module.css";
+import { appData } from "@/lib/app-data";
 
 export default function BattleGrid() {
   const [setupMode, setSetupMode] = useState<"ranked" | "casual" | "practice" | "room_make" | "room_join" | null>(null);
-  const elo = 1350;
+  const { elo, rank, winratePct, battleXpDelta } = appData.profile.battle;
+  const recs = appData.battle.questRecommendations;
 
   return (
     <div className={styles.page} aria-label="Battle grid">
@@ -23,15 +25,15 @@ export default function BattleGrid() {
                 </div>
                 <div className={styles.stat}>
                   <div className={styles.statLabel}>Rank</div>
-                  <div className={styles.statValue}>Silver II</div>
+                  <div className={styles.statValue}>{rank}</div>
                 </div>
                 <div className={styles.stat}>
                   <div className={styles.statLabel}>Winrate</div>
-                  <div className={styles.statValue}>62%</div>
+                  <div className={styles.statValue}>{winratePct}%</div>
                 </div>
                 <div className={styles.stat}>
                   <div className={styles.statLabel}>Battle XP</div>
-                  <div className={styles.statValue}>+240</div>
+                  <div className={styles.statValue}>{battleXpDelta > 0 ? `+${battleXpDelta}` : String(battleXpDelta)}</div>
                 </div>
               </div>
 
@@ -44,14 +46,12 @@ export default function BattleGrid() {
           <div className={`gridCard ${styles.card}`} id="battle-quests" data-focus="battle.questBased" tabIndex={0} role="button" aria-label="Recommended battles from your quests">
             <div className={styles.content} aria-hidden="true">
               <div className={styles.questList}>
-                <div className={styles.questItem}>
-                  <div className={styles.questTitle}>Mid Exam - Calculus</div>
-                  <div className={styles.questMeta}>Recommended: Ranked • +120 XP</div>
-                </div>
-                <div className={styles.questItem}>
-                  <div className={styles.questTitle}>AOI Case Study - Data Structure</div>
-                  <div className={styles.questMeta}>Recommended: Practice • 10m</div>
-                </div>
+                {recs.map((q) => (
+                  <div key={q.title} className={styles.questItem}>
+                    <div className={styles.questTitle}>{q.title}</div>
+                    <div className={styles.questMeta}>{q.meta}</div>
+                  </div>
+                ))}
               </div>
               <div className={styles.contentBottom}>
                 <div className={styles.meta}>Win battles to earn XP + boost quest progress.</div>

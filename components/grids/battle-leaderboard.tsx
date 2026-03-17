@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import styles from "./battle-leaderboard.module.css";
+import { appData } from "@/lib/app-data";
 
 type Campus = {
   university: string;
@@ -17,25 +18,6 @@ type Entry = {
   elo: number;
   campus: Campus;
 };
-
-const BINUS_B29: Campus = {
-  university: "Bina Nusantara University Malang",
-  major: "Computer Science",
-  cohort: "B29",
-};
-
-const DUMMY: Entry[] = [
-  { id: "u1", name: "Abyss", xp: 6240, elo: 1420, campus: BINUS_B29 },
-  { id: "u2", name: "Putra", xp: 5180, elo: 1350, campus: BINUS_B29 },
-  { id: "u3", name: "Nara", xp: 4820, elo: 1288, campus: BINUS_B29 },
-  { id: "u4", name: "Raka", xp: 4550, elo: 1210, campus: BINUS_B29 },
-  { id: "u5", name: "Salsa", xp: 4390, elo: 1194, campus: BINUS_B29 },
-  { id: "u6", name: "Evan", xp: 4010, elo: 1162, campus: BINUS_B29 },
-  { id: "u7", name: "Tara", xp: 3860, elo: 1120, campus: BINUS_B29 },
-  { id: "u8", name: "Dio", xp: 3690, elo: 1096, campus: BINUS_B29 },
-  { id: "u9", name: "Mika", xp: 3520, elo: 1065, campus: BINUS_B29 },
-  { id: "u10", name: "Lyn", xp: 3375, elo: 1040, campus: BINUS_B29 },
-];
 
 function fmt(n: number) {
   return n.toLocaleString();
@@ -58,13 +40,14 @@ export default function BattleLeaderboard() {
   const [scope, setScope] = useState<"global" | "campus">("global");
   const [sortBy, setSortBy] = useState<"xp" | "elo">("xp");
 
-  const selectedCampus = BINUS_B29;
+  const selectedCampus: Campus = appData.battle.leaderboard.selectedCampus;
+  const entries: Entry[] = appData.battle.leaderboard.entries;
 
   const rows = useMemo(() => {
-    const filtered = scope === "campus" ? DUMMY.filter((e) => campusKey(e.campus) === campusKey(selectedCampus)) : DUMMY.slice();
+    const filtered = scope === "campus" ? entries.filter((e) => campusKey(e.campus) === campusKey(selectedCampus)) : entries.slice();
     filtered.sort((a, b) => (sortBy === "xp" ? b.xp - a.xp : b.elo - a.elo));
     return filtered;
-  }, [scope, sortBy]);
+  }, [entries, scope, selectedCampus, sortBy]);
 
   const podium = rows.slice(0, 3);
   const rest = rows.slice(3, 12);

@@ -1,5 +1,7 @@
 "use client";
 
+import { plannerStageTemplates } from "@/lib/app-data";
+
 export type QuestType = "exam" | "assignment" | "routine";
 export type QuestPriority = "low" | "medium" | "high";
 
@@ -236,38 +238,9 @@ function makeStage(title: string, dueAt?: string): QuestStage {
 }
 
 function buildStages(type: QuestType) {
-  if (type === "assignment") {
-    return [
-      { title: "Break down requirements" },
-      { title: "Draft outline" },
-      { title: "Finish 25%" },
-      { title: "Finish 50%" },
-      { title: "Finish 75%" },
-      { title: "Finish 100%" },
-      { title: "Review & polish" },
-      { title: "Submit" },
-    ];
-  }
-
-  if (type === "exam") {
-    return [
-      { title: "Collect materials & syllabus" },
-      { title: "Identify topics & weak areas" },
-      { title: "Study 25% topics" },
-      { title: "Study 50% topics" },
-      { title: "Study 75% topics" },
-      { title: "Practice questions" },
-      { title: "Mock test / past papers" },
-      { title: "Final review" },
-    ];
-  }
-
-  return [
-    { title: "Plan your routine" },
-    { title: "Start (small win)" },
-    { title: "Keep streak" },
-    { title: "Review & adjust" },
-  ];
+  const titles = plannerStageTemplates(type);
+  if (titles.length) return titles.map((title) => ({ title }));
+  return [{ title: "Start session" }, { title: "Deep work" }, { title: "Quick recap" }];
 }
 
 export function createQuest(input: { type: QuestType; title: string; context: string; dueAt?: string; priority?: QuestPriority }) {

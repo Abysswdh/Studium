@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { appData } from "@/lib/app-data";
 
 type ShellUser = { id: number; displayName: string; avatarUrl: string };
 type Props = { user: ShellUser };
@@ -25,25 +26,13 @@ type ModalId =
   | "dangerClearSettings"
   | "dangerFactoryReset";
 
-const NAV_ITEMS: Array<{ id: ViewId; label: string; icon: string }> = [
-  { id: "dashboard", label: "Dashboard", icon: "fa-gauge" },
-  { id: "notes", label: "Notes", icon: "fa-note-sticky" },
-  { id: "quest", label: "Quest", icon: "fa-map" },
-  { id: "schedules", label: "Schedule", icon: "fa-calendar-days" },
-  { id: "study", label: "Study Room", icon: "fa-book-open" },
-  { id: "battle", label: "Battle", icon: "fa-fire" },
-  { id: "match", label: "Options", icon: "fa-gear" },
-];
+const NAV_ITEMS: Array<{ id: ViewId; label: string; icon: string }> = appData.navigation.items.map((it) => ({
+  id: it.id as ViewId,
+  label: it.label,
+  icon: it.icon,
+}));
 
-const TINT_PRESETS: Array<{ label: string; rgb: string }> = [
-  { label: "Blue", rgb: "90 155 255" },
-  { label: "Aqua", rgb: "95 230 255" },
-  { label: "Purple", rgb: "195 140 255" },
-  { label: "Green", rgb: "90 220 150" },
-  { label: "Orange", rgb: "255 170 90" },
-  { label: "Red", rgb: "255 110 110" },
-  { label: "White", rgb: "255 255 255" },
-];
+const TINT_PRESETS: Array<{ label: string; rgb: string }> = appData.ui.tintPresets.map((p) => ({ label: p.label, rgb: p.rgb }));
 
 const LS_NAV_ORDER = "studium:nav_order";
 const LS_DENSITY = "studium:ui_density";
@@ -202,16 +191,16 @@ export default function MatchGrid({ user }: Props) {
   const LS_NOTIF = scopedAccountKey(LS_NOTIF_BASE, user.id);
   const LS_PROFILE = scopedAccountKey(LS_PROFILE_BASE, user.id);
   const [modal, setModal] = useState<ModalId | null>(null);
-  const [navOrder, setNavOrder] = useState<ViewId[]>(NAV_ITEMS.map((x) => x.id));
+  const [navOrder, setNavOrder] = useState<ViewId[]>((appData.navigation.defaultOrder as ViewId[]) ?? NAV_ITEMS.map((x) => x.id));
   const [tintView, setTintView] = useState<ViewId>("dashboard");
-  const [density, setDensity] = useState<"comfort" | "compact">("comfort");
-  const [notificationsOn, setNotificationsOn] = useState(true);
+  const [density, setDensity] = useState<"comfort" | "compact">(appData.ui.densityDefault);
+  const [notificationsOn, setNotificationsOn] = useState(!!appData.ui.notificationsDefaultEnabled);
   const [profileName, setProfileName] = useState(user.displayName);
-  const [profileEmail, setProfileEmail] = useState("");
+  const [profileEmail, setProfileEmail] = useState(appData.profile.email || "");
   const [profileAvatar, setProfileAvatar] = useState(user.avatarUrl);
 
   const [draftName, setDraftName] = useState(user.displayName);
-  const [draftEmail, setDraftEmail] = useState("");
+  const [draftEmail, setDraftEmail] = useState(appData.profile.email || "");
   const [draftAvatar, setDraftAvatar] = useState(user.avatarUrl);
   const [draftPass, setDraftPass] = useState("");
   const [draftPass2, setDraftPass2] = useState("");

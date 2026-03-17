@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { appData, hydrateSeedNotes } from "@/lib/app-data";
 
 import styles from "./notes-hub.module.css";
 
@@ -45,17 +46,8 @@ const TAG_DOT_LABEL: Record<string, string> = {
   "notesDot--gold": "Gold",
 };
 
-const DEFAULT_TAGS: TagDef[] = [
-  { id: "school", label: "School related", dotClass: "notesDot--mint" },
-  { id: "church", label: "Church sermons", dotClass: "notesDot--aqua" },
-  { id: "movies", label: "Movies & games", dotClass: "notesDot--violet" },
-  { id: "family", label: "Family trip", dotClass: "notesDot--gold" },
-];
-
-const DEFAULT_FOLDERS: FolderDef[] = [
-  { id: "2026", label: "2026" },
-  { id: "2025", label: "2025" },
-];
+const DEFAULT_TAGS: TagDef[] = appData.notes.defaults.tags as unknown as TagDef[];
+const DEFAULT_FOLDERS: FolderDef[] = appData.notes.defaults.folders as unknown as FolderDef[];
 
 function now() {
   return Date.now();
@@ -224,7 +216,7 @@ function loadStore(): NotesStore {
   const parsed = safeJsonParse<any>(raw);
   const tagCatalog: TagDef[] = Array.isArray(parsed?.tagCatalog) && parsed.tagCatalog.length ? parsed.tagCatalog : DEFAULT_TAGS;
   const folderCatalog: FolderDef[] = Array.isArray(parsed?.folderCatalog) && parsed.folderCatalog.length ? parsed.folderCatalog : DEFAULT_FOLDERS;
-  const notes: Note[] = Array.isArray(parsed?.notes)
+  let notes: Note[] = Array.isArray(parsed?.notes)
     ? parsed.notes.map((n: any) => ({
         id: String(n.id || ""),
         title: String(n.title || "Untitled"),
@@ -243,6 +235,7 @@ function loadStore(): NotesStore {
       }))
     : [];
 
+  if (!notes.length) notes = hydrateSeedNotes(now()) as unknown as Note[];
   return { notes, tagCatalog, folderCatalog };
 }
 

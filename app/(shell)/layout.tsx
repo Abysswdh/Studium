@@ -4,6 +4,7 @@ import NotificationIsland from "../../components/notifications/notification-isla
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth/current-user";
 import Script from "next/script";
+import { appData } from "@/lib/app-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,17 +63,17 @@ export default async function ShellLayout({ children }: { children: React.ReactN
 
           <div className="rightClockMenu" aria-label="Clock">
             <button className="viewLabel headerAction" id="viewLabel" data-focus="header.pageInfo" type="button" aria-label="Page info">
-              Dashboard
+              {appData.views.dashboard.label}
             </button>
             <span className="clock" id="clock">
               --:--
             </span>
             <div className="viewInfo" id="viewInfo" hidden>
               <div className="viewInfo__title" id="viewInfoTitle">
-                Dashboard
+                {appData.views.dashboard.label}
               </div>
               <div className="viewInfo__desc" id="viewInfoDesc">
-                Your daily snapshot: routine, quests, streaks, and widgets.
+                {appData.views.dashboard.desc}
               </div>
             </div>
           </div>
@@ -82,34 +83,12 @@ export default async function ShellLayout({ children }: { children: React.ReactN
 
         <div className="navbar" aria-label="Main navigation">
           <div className="carousel" id="carousel" role="tablist" aria-label="Menu switcher">
-            <button className="navItem" type="button" data-page="dashboard" data-focus="nav.dashboard" role="tab" aria-selected="false">
-              <i className="fa-solid fa-gauge" aria-hidden="true"></i>
-              <span>Dashboard</span>
-            </button>
-            <button className="navItem" type="button" data-page="notes" data-focus="nav.notes" role="tab" aria-selected="false">
-              <i className="fa-solid fa-note-sticky" aria-hidden="true"></i>
-              <span>Notes</span>
-            </button>
-            <button className="navItem" type="button" data-page="quest" data-focus="nav.quest" role="tab" aria-selected="false">
-              <i className="fa-solid fa-map" aria-hidden="true"></i>
-              <span>Quest</span>
-            </button>
-            <button className="navItem" type="button" data-page="schedules" data-focus="nav.schedules" role="tab" aria-selected="false">
-              <i className="fa-solid fa-calendar-days" aria-hidden="true"></i>
-              <span>Schedule</span>
-            </button>
-            <button className="navItem" type="button" data-page="study" data-focus="nav.study" role="tab" aria-selected="false">
-              <i className="fa-solid fa-book-open" aria-hidden="true"></i>
-              <span>Study Room</span>
-            </button>
-            <button className="navItem" type="button" data-page="battle" data-focus="nav.battle" role="tab" aria-selected="false">
-              <i className="fa-solid fa-fire" aria-hidden="true"></i>
-              <span>Battle</span>
-            </button>
-            <button className="navItem" type="button" data-page="match" data-focus="nav.match" role="tab" aria-selected="false">
-              <i className="fa-solid fa-gear" aria-hidden="true"></i>
-              <span>Options</span>
-            </button>
+            {appData.navigation.items.map((it) => (
+              <button key={it.id} className="navItem" type="button" data-page={it.page} data-focus={it.focusKey} role="tab" aria-selected="false">
+                <i className={`fa-solid ${it.icon}`} aria-hidden="true"></i>
+                <span>{it.label}</span>
+              </button>
+            ))}
           </div>
 
           <div className="arenaDock" id="arenaDock" hidden aria-label="Arena controls">

@@ -1,7 +1,9 @@
 import CardChrome from "./grid-parts/card-chrome";
 import Link from "next/link";
+import { appData } from "@/lib/app-data";
 
 export default function NotesGrid() {
+  const cards = appData.notes.grid.cards;
   return (
     <div className="gridContainer gridContainer--notes" aria-label="Notes grid">
       <div className="gridContainerLeft">
@@ -13,7 +15,7 @@ export default function NotesGrid() {
           role="button"
           aria-label="Notes inbox"
         >
-          <CardChrome kicker="Notes" title="Inbox" meta="Capture first, organize later" />
+          <CardChrome kicker={cards.leftTop.kicker} title={cards.leftTop.title} meta={cards.leftTop.meta} />
         </div>
         <div className="gridContainerLeftBottom">
           <div
@@ -24,16 +26,16 @@ export default function NotesGrid() {
             role="button"
             aria-label="Tags and folders"
           >
-            <CardChrome kicker="Organize" title="Tags & folders" meta="Pinned | Subjects | Exams" />
+            <CardChrome kicker={cards.tags.kicker} title={cards.tags.title} meta={cards.tags.meta} />
           </div>
           <Link
-            href="/notes/new"
+            href={cards.new.href}
             className="gridContainerLeftBottomRight gridCard"
             id="grid-quick"
             data-focus="notes.new"
             aria-label="Quick capture"
           >
-            <CardChrome kicker="Quick capture" title="New note" meta="Enter | Type | Save" />
+            <CardChrome kicker={cards.new.kicker} title={cards.new.title} meta={cards.new.meta} />
           </Link>
         </div>
       </div>
@@ -48,7 +50,7 @@ export default function NotesGrid() {
             role="button"
             aria-label="Recent note 1"
           >
-            <CardChrome kicker="Recent" title="Limits - cheat sheet" meta="2m ago | Calculus" />
+            <CardChrome kicker={cards.recent[0]?.kicker ?? "Recent"} title={cards.recent[0]?.title ?? "—"} meta={cards.recent[0]?.meta ?? ""} />
           </div>
           <div
             className="gridContainerRightLeftTwo gridCard"
@@ -58,7 +60,7 @@ export default function NotesGrid() {
             role="button"
             aria-label="Recent note 2"
           >
-            <CardChrome kicker="Pinned" title="Midterm roadmap" meta="Checklist | 6 items" />
+            <CardChrome kicker={cards.recent[1]?.kicker ?? "Pinned"} title={cards.recent[1]?.title ?? "—"} meta={cards.recent[1]?.meta ?? ""} />
           </div>
           <div
             className="gridContainerRightLeftThree gridCard"
@@ -68,7 +70,7 @@ export default function NotesGrid() {
             role="button"
             aria-label="Recent note 3"
           >
-            <CardChrome kicker="Link" title="Attach to task" meta="1 due today | 3 open" />
+            <CardChrome kicker={cards.recent[2]?.kicker ?? "Link"} title={cards.recent[2]?.title ?? "—"} meta={cards.recent[2]?.meta ?? ""} />
           </div>
           <div
             className="gridContainerRightLeftFour gridCard"
@@ -78,7 +80,7 @@ export default function NotesGrid() {
             role="button"
             aria-label="Recent note 4"
           >
-            <CardChrome kicker="Review" title="Convert to flashcards" meta="12 cards | 1 deck" />
+            <CardChrome kicker={cards.recent[3]?.kicker ?? "Review"} title={cards.recent[3]?.title ?? "—"} meta={cards.recent[3]?.meta ?? ""} />
           </div>
         </div>
 
@@ -90,7 +92,7 @@ export default function NotesGrid() {
           role="button"
           aria-label="Editor and preview"
         >
-          <CardChrome kicker="Editor" title="Preview" meta="Select a note to open" />
+          <CardChrome kicker={cards.preview.kicker} title={cards.preview.title} meta={cards.preview.meta} />
         </div>
       </div>
     </div>

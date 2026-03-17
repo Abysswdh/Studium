@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { appData, hydrateSeedNotes } from "@/lib/app-data";
 
 type NotesView = "all" | "favorites" | "hidden" | "deleted";
 
@@ -43,17 +44,8 @@ type NoteAsset = {
   blob: Blob;
 };
 
-const DEFAULT_TAGS: TagDef[] = [
-  { id: "school", label: "School related", dotClass: "notesDot--mint" },
-  { id: "church", label: "Church sermons", dotClass: "notesDot--aqua" },
-  { id: "movies", label: "Movies & games", dotClass: "notesDot--violet" },
-  { id: "family", label: "Family trip", dotClass: "notesDot--gold" },
-];
-
-const DEFAULT_FOLDERS: FolderDef[] = [
-  { id: "2026", label: "2026" },
-  { id: "2025", label: "2025" },
-];
+const DEFAULT_TAGS: TagDef[] = appData.notes.defaults.tags as unknown as TagDef[];
+const DEFAULT_FOLDERS: FolderDef[] = appData.notes.defaults.folders as unknown as FolderDef[];
 
 const TAG_DOT_PALETTE = ["notesDot--mint", "notesDot--aqua", "notesDot--violet", "notesDot--gold"];
 
@@ -265,61 +257,7 @@ function loadStore(): NotesStore {
   }
 
   const t = now();
-  const seed: Note[] = [
-    {
-      id: "limits",
-      title: "Limits - cheat sheet",
-      body:
-        "Quick rules:\n- lim (x->0) sin x / x = 1\n- lim (x->0) (1 - cos x) / x^2 = 1/2\n\nTips:\n- rationalize when you see roots\n- use series for tough ones\n",
-      bodyFormat: "plain",
-      tags: ["school"],
-      folder: "2026",
-      favorite: false,
-      pinned: false,
-      sortOrder: t - 1000 * 60 * 2,
-      hiddenAt: null,
-      reminderAt: null,
-      createdAt: t - 1000 * 60 * 12,
-      updatedAt: t - 1000 * 60 * 2,
-      archivedAt: null,
-      deletedAt: null,
-    },
-    {
-      id: "midterm",
-      title: "Midterm roadmap",
-      body: "Checklist:\n- Past papers (2)\n- Weak topics list\n- Daily 45m review block\n",
-      bodyFormat: "plain",
-      tags: ["school"],
-      folder: "2026",
-      favorite: true,
-      pinned: true,
-      sortOrder: t - 1000 * 60 * 45,
-      hiddenAt: null,
-      reminderAt: null,
-      createdAt: t - 1000 * 60 * 60 * 10,
-      updatedAt: t - 1000 * 60 * 45,
-      archivedAt: null,
-      deletedAt: null,
-    },
-    {
-      id: "family",
-      title: "Trip plan - packing list",
-      body: "Packing:\n- Charger\n- Jacket\n- Snacks\n",
-      bodyFormat: "plain",
-      tags: ["family"],
-      folder: "2026",
-      favorite: false,
-      pinned: false,
-      sortOrder: t - 1000 * 60 * 60 * 24,
-      hiddenAt: null,
-      reminderAt: null,
-      createdAt: t - 1000 * 60 * 60 * 24 * 2,
-      updatedAt: t - 1000 * 60 * 60 * 24,
-      archivedAt: null,
-      deletedAt: null,
-    },
-  ];
-
+  const seed = hydrateSeedNotes(t) as unknown as Note[];
   return { notes: seed, lastDraftId: null, tagCatalog: DEFAULT_TAGS, folderCatalog: DEFAULT_FOLDERS };
 }
 

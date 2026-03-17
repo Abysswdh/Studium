@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import styles from "./battle-arena.module.css";
 
@@ -284,11 +284,44 @@ export default function BattleArena() {
     };
   }, [arena.phase]);
 
-  const closeTopModal = () => {
+  const closeTopModal = useCallback(() => {
     if (exitConfirmOpen) return setExitConfirmOpen(false);
     if (surrenderConfirmOpen) return setSurrenderConfirmOpen(false);
     if (pauseOpen) return setPauseOpen(false);
-  };
+  }, [exitConfirmOpen, surrenderConfirmOpen, pauseOpen]);
+
+  // Keyboard: Escape / Backspace for pause + exit flow.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+
+      const target = e.target as HTMLElement | null;
+      const tag = String(target?.tagName || "").toLowerCase();
+      const typing = tag === "input" || tag === "textarea" || tag === "select" || (target as any)?.isContentEditable;
+      if (typing) return;
+
+      const k = String(e.key || "").toLowerCase();
+      if (k !== "escape" && k !== "backspace") return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (modalOpen) return closeTopModal();
+
+      if (arena.phase === "playing") {
+        if (k === "escape") return setPauseOpen((v) => !v);
+        return setExitConfirmOpen(true);
+      }
+
+      if (arena.phase === "finished") return void (window.location.href = "/battle");
+
+      return setExitConfirmOpen(true);
+    };
+
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
+  }, [arena.phase, modalOpen, closeTopModal]);
 
   useEffect(() => {
     if (!modalOpen) {

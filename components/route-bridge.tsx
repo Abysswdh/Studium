@@ -3,19 +3,9 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { bootstrapPlannerFromServer } from "./grids/planner-storage";
+import { appData } from "@/lib/app-data";
 
-const VIEW_META: Record<string, { label: string; desc: string }> = {
-  dashboard: { label: "Dashboard", desc: "Your daily snapshot: routine, quests, streaks, and widgets." },
-  routine: { label: "Routine", desc: "Now / Next / Later - turn deadlines into concrete steps." },
-  quest: { label: "Quest", desc: "Pick quests, set difficulty, earn XP & streaks." },
-  schedules: { label: "Schedule", desc: "Agenda + deadlines that feed your routine." },
-  notes: { label: "Notes", desc: "Capture quick notes tied to your quests and sessions." },
-  study: { label: "Study Room", desc: "Start a session: focus, review, and capture." },
-  pomodoro: { label: "Pomodoro", desc: "Timer + co-op focus sessions linked to tasks." },
-  battle: { label: "Battle", desc: "1v1 quizzes from a question bank. Win, rank up, repeat." },
-  guild: { label: "Guild", desc: "Group study rooms, co-focus, chat, accountability." },
-  match: { label: "Options", desc: "Settings, preferences, and app options." },
-};
+const VIEW_META = appData.views;
 
 const PLANNER_VIEWS = new Set(["dashboard", "routine", "quest", "schedules"]);
 
@@ -33,7 +23,7 @@ export default function RouteBridge() {
   useEffect(() => {
     (window as any).studiumRoutePush = (view: string) => {
       const nextView = VIEW_META[view] ? view : "dashboard";
-      const href = `/${nextView}`;
+      const href = appData.navigation.items.find((x) => x.id === nextView)?.href || `/${nextView}`;
       const anyDoc = document as any;
       const currentView = document.body?.dataset?.view || "";
       const wantsScheduleTransition = nextView === "schedules" || currentView === "schedules";
