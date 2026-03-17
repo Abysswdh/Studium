@@ -129,6 +129,23 @@ body[data-view="match"] { --glass-tint: 255 255 255; }
   pointer-events: none;
 }
 
+.bg__waves {
+  position: absolute;
+  inset: 0;
+  opacity: 1;
+  filter: saturate(0.98) brightness(0.98);
+  pointer-events: none;
+}
+
+/* Strict mode: full-screen overlay manages layout, so hide the shell chrome. */
+body[data-subview="study-room-strict"] .header,
+body[data-subview="study-room-strict"] .navbar,
+body[data-subview="study-room-strict"] .footerHUD,
+body[data-subview="study-room-strict"] .drawer,
+body[data-subview="study-room-strict"] .drawerOverlay {
+  display: none !important;
+}
+
 body.quest-detail .bg__threads {
   background: radial-gradient(
     1200px circle at 30% 20%,
