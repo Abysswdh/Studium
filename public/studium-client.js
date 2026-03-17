@@ -3609,6 +3609,7 @@ try {
       "battle.stats:right": "battle.lobby",
       "battle.questBased:right": "battle.casual",
 
+      "battle.lobby:up": "battle.stats",
       "battle.lobby:left": "battle.stats",
       "battle.lobby:down": "battle.casual",
       "battle.lobby:right": "battle.leaderboard",
@@ -3619,14 +3620,9 @@ try {
       "battle.casual:right": "battle.leaderboard",
 
       "battle.practice:up": "battle.casual",
-      "battle.practice:down": "battle.room.make",
+      "battle.practice:down": "battle.leaderboard",
+      "battle.practice:left": "battle.questBased",
       "battle.practice:right": "battle.leaderboard",
-
-      "battle.room.make:up": "battle.practice",
-      "battle.room.join:up": "battle.practice",
-      "battle.room.make:right": "battle.room.join",
-      "battle.room.join:left": "battle.room.make",
-      "battle.room.join:right": "battle.leaderboard",
 
       "battle.leaderboard:left": "battle.lobby",
       "battle.leaderboard:down": "battle.lb.scope.global",
@@ -3889,6 +3885,30 @@ try {
     const curHasKey = !!curRaw?.getAttribute?.("data-focus") || !!curRaw?.classList?.contains?.("gridCard");
     const cur = curHasKey ? curRaw : curRaw?.closest?.(".gridCard") || curRaw;
     const fromKey = cur?.getAttribute?.('data-focus') || curRaw?.getAttribute?.('data-focus') || '';
+
+    // Battle leaderboard: allow exiting to the main battle grid even though we scope
+    // navigation to elements inside the leaderboard card when it contains focus.
+    if (view === "battle" && typeof fromKey === "string" && fromKey.startsWith("battle.lb.")) {
+      if (dir === "left") {
+        const moved = focusByKey("battle.lobby");
+        if (moved) {
+          if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
+          applyRovingTabindex(document.activeElement);
+          ensureVisibleSmooth(document.activeElement);
+        }
+        return moved;
+      }
+      if (dir === "up") {
+        const moved = focusByKey("battle.leaderboard");
+        if (moved) {
+          if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
+          applyRovingTabindex(document.activeElement);
+          ensureVisibleSmooth(document.activeElement);
+        }
+        return moved;
+      }
+    }
+
     const override = overrideByView?.[view]?.[fromKey + ':' + dir];
     
     if (override) {
@@ -4140,6 +4160,21 @@ try {
             tag === "select" ||
             (tag === "input" && (type === "time" || type === "date" || type === "datetime-local" || type === "number" || type === "month" || type === "week"));
           if (valueControl && (key === "ArrowUp" || key === "ArrowDown")) return;
+        }
+
+        // Activate focused grid item (Enter/Space). Our grid-mode handler
+        // prevents defaults for navigation keys, which would otherwise block
+        // native button/link activation.
+        if ((key === "Enter" || key === " ") && !isTypingTarget(ae)) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const clickTarget =
+            ae?.closest?.('button, a[href], [role="button"], [role="link"], input[type="checkbox"], input[type="radio"]') || ae;
+          try {
+            clickTarget?.click?.();
+          } catch {}
+          return;
         }
 
         e.preventDefault();

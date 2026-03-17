@@ -36,7 +36,7 @@ function scrollIntoViewNearest(el: HTMLElement | null) {
   }
 }
 
-export default function BattleLeaderboard() {
+export default function BattleLeaderboard({ kicker = "Leaderboard" }: { kicker?: string | null } = {}) {
   const [scope, setScope] = useState<"global" | "campus">("global");
   const [sortBy, setSortBy] = useState<"xp" | "elo">("xp");
 
@@ -57,7 +57,7 @@ export default function BattleLeaderboard() {
   return (
     <div className={styles.root}>
       <div className={styles.topRow}>
-        <div className="cardKicker">Leaderboard</div>
+        {kicker ? <div className="cardKicker">{kicker}</div> : null}
 
         <div className={styles.actions}>
           <div className={styles.segment} aria-label="Leaderboard scope">

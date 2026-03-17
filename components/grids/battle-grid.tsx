@@ -62,7 +62,7 @@ export default function BattleGrid() {
       return "desktop" as const;
     };
 
-    const ordered = ["battle-stats", "battle-ranked", "battle-quests", "battle-casual", "battle-practice", "battle-makeRoom", "battle-joinRoom", "battle-leaderboard"] as const;
+    const ordered = ["battle-stats", "battle-ranked", "battle-quests", "battle-casual", "battle-practice", "battle-leaderboard"] as const;
     const isNavId = (id: string) => (ordered as readonly string[]).includes(id);
 
     const mapDesktop: Record<string, Partial<Record<string, string>>> = {
@@ -70,10 +70,8 @@ export default function BattleGrid() {
       "battle-quests": { ArrowUp: "battle-stats", ArrowRight: "battle-casual" },
       "battle-ranked": { ArrowLeft: "battle-stats", ArrowDown: "battle-casual", ArrowRight: "battle-leaderboard" },
       "battle-casual": { ArrowUp: "battle-ranked", ArrowDown: "battle-practice", ArrowLeft: "battle-quests", ArrowRight: "battle-leaderboard" },
-      "battle-practice": { ArrowUp: "battle-casual", ArrowDown: "battle-makeRoom", ArrowLeft: "battle-quests", ArrowRight: "battle-leaderboard" },
-      "battle-makeRoom": { ArrowUp: "battle-practice", ArrowLeft: "battle-quests", ArrowRight: "battle-joinRoom" },
-      "battle-joinRoom": { ArrowUp: "battle-practice", ArrowLeft: "battle-makeRoom", ArrowRight: "battle-leaderboard" },
-      "battle-leaderboard": { ArrowLeft: "battle-ranked", ArrowUp: "battle-ranked", ArrowDown: "battle-joinRoom" },
+      "battle-practice": { ArrowUp: "battle-casual", ArrowLeft: "battle-quests", ArrowRight: "battle-leaderboard" },
+      "battle-leaderboard": { ArrowLeft: "battle-ranked", ArrowUp: "battle-ranked", ArrowDown: "battle-practice" },
     };
 
     const mapTablet: Record<string, Partial<Record<string, string>>> = {
@@ -81,10 +79,8 @@ export default function BattleGrid() {
       "battle-ranked": { ArrowLeft: "battle-stats", ArrowDown: "battle-casual" },
       "battle-quests": { ArrowUp: "battle-stats", ArrowRight: "battle-casual", ArrowDown: "battle-leaderboard" },
       "battle-casual": { ArrowUp: "battle-ranked", ArrowLeft: "battle-quests", ArrowDown: "battle-practice" },
-      "battle-practice": { ArrowUp: "battle-casual", ArrowLeft: "battle-quests", ArrowDown: "battle-makeRoom" },
-      "battle-makeRoom": { ArrowUp: "battle-practice", ArrowLeft: "battle-quests", ArrowRight: "battle-joinRoom", ArrowDown: "battle-leaderboard" },
-      "battle-joinRoom": { ArrowUp: "battle-practice", ArrowLeft: "battle-makeRoom", ArrowDown: "battle-leaderboard" },
-      "battle-leaderboard": { ArrowUp: "battle-joinRoom", ArrowLeft: "battle-quests" },
+      "battle-practice": { ArrowUp: "battle-casual", ArrowLeft: "battle-quests", ArrowDown: "battle-leaderboard" },
+      "battle-leaderboard": { ArrowUp: "battle-practice", ArrowLeft: "battle-quests" },
     };
 
     const nextFrom = (curId: string, key: string) => {
@@ -140,6 +136,11 @@ export default function BattleGrid() {
       }
 
       if (!ae || !root.contains(ae)) return;
+
+      // When focus is inside leaderboard controls, let the global grid router
+      // handle navigation among those controls.
+      const lb = document.getElementById("battle-leaderboard");
+      if (lb && lb.contains(ae) && ae !== lb) return;
 
       if (e.key === "Home") {
         e.preventDefault();
@@ -302,7 +303,7 @@ export default function BattleGrid() {
 
         <div className={styles.midStack}>
           <button
-            className={`gridCard ${styles.card} ${styles.midStackTop}`}
+            className={`gridCard ${styles.card}`}
             id="battle-casual"
             data-focus="battle.casual"
             type="button"
@@ -317,7 +318,7 @@ export default function BattleGrid() {
           </button>
 
           <button
-            className={`gridCard ${styles.card} ${styles.midStackTop}`}
+            className={`gridCard ${styles.card}`}
             id="battle-practice"
             data-focus="battle.practice"
             type="button"
@@ -330,43 +331,13 @@ export default function BattleGrid() {
               <div className={styles.meta}>Pick topic • Difficulty • Drills</div>
             </div>
           </button>
-
-          <button
-            className={`gridCard ${styles.card}`}
-            id="battle-makeRoom"
-            data-focus="battle.room.make"
-            type="button"
-            aria-label="Make a room"
-            onClick={() => setSetupMode("room_make")}
-          >
-            <div className={styles.content} aria-hidden="true">
-              <div className={styles.kicker}>Room</div>
-              <div className={styles.title}>Make a room</div>
-              <div className={styles.meta}>Play with friends (coming soon)</div>
-            </div>
-          </button>
-
-          <button
-            className={`gridCard ${styles.card}`}
-            id="battle-joinRoom"
-            data-focus="battle.room.join"
-            type="button"
-            aria-label="Join a room"
-            onClick={() => setSetupMode("room_join")}
-          >
-            <div className={styles.content} aria-hidden="true">
-              <div className={styles.kicker}>Room</div>
-              <div className={styles.title}>Join a room</div>
-              <div className={styles.meta}>Enter code (coming soon)</div>
-            </div>
-          </button>
         </div>
 
         <div className={`${styles.block} ${styles.right}`}>
           <div className={styles.label}>Leaderboard</div>
-          <div className={`gridCard ${styles.card}`} id="battle-leaderboard" data-focus="battle.leaderboard" tabIndex={0} role="region" aria-label="Leaderboard">
+          <div className={`gridCard ${styles.card} ${styles.leaderboardCard}`} id="battle-leaderboard" data-focus="battle.leaderboard" tabIndex={0} role="region" aria-label="Leaderboard">
             <div className={styles.content}>
-              <BattleLeaderboard />
+              <BattleLeaderboard kicker={null} />
             </div>
           </div>
         </div>

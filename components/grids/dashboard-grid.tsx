@@ -3,7 +3,6 @@ import DashboardQuestStack from "./dashboard-quest-stack";
 import Link from "next/link";
 import DashboardStreakCard from "./dashboard-streak-card";
 import DashboardWidgetsSlider from "./dashboard-widgets-slider";
-
 export default function DashboardGrid() {
   return (
     <div className="gridContainer" aria-label="Dashboard grid">

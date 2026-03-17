@@ -138,6 +138,42 @@ body.quest-detail .bg__threads {
   filter: saturate(0.98) brightness(1);
 }
 
+/* Match: use the same "Quest open" threads vibe. */
+body[data-view="match"] .bg__threads {
+  isolation: isolate;
+}
+
+body[data-view="match"] .bg__threads::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      520px circle at 35vw 22vh,
+      rgb(var(--glass-tint) / 0.55),
+      transparent 62%
+    ),
+    radial-gradient(
+      900px circle at calc(35vw + 220px) calc(22vh + 160px),
+      rgb(var(--glass-tint) / 0.22),
+      transparent 64%
+    ),
+    radial-gradient(
+      1200px circle at 30% 20%,
+      rgb(var(--glass-tint) / 0.22),
+      rgb(0 0 0 / 0.20) 72%
+    );
+  filter: blur(24px) saturate(0.98) brightness(0.98);
+  opacity: 0.9;
+}
+
+body[data-view="match"] .bg__threads > * {
+  position: relative;
+  z-index: 1;
+}
+
 .bg__video {
   position: absolute;
   inset: 0;

@@ -83,7 +83,10 @@ export default function DashboardWidgetsSlider() {
         aria-label="Widgets panel"
       >
         <div className={styles.viewport}>
-          <div className={styles.track} style={{ transform: `translateX(-${idx * 100}%)` }}>
+          <div
+            className={styles.track}
+            style={{ transform: `translateX(-${(idx * 100) / Math.max(1, slides.length)}%)` }}
+          >
             {slides.map((s) => (
               <div key={s.key} className={styles.slide} aria-label={s.label}>
                 {s.node}
