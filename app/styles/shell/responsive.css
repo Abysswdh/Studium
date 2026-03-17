@@ -16,6 +16,17 @@ html {
   :root.vt-schedules::view-transition-new(root) {
     mix-blend-mode: normal;
   }
+
+  :root.vt-study::view-transition-old(root) {
+    animation: questVtOut 220ms ease both;
+  }
+  :root.vt-study::view-transition-new(root) {
+    animation: questVtIn 220ms ease both;
+  }
+  :root.vt-study::view-transition-old(root),
+  :root.vt-study::view-transition-new(root) {
+    mix-blend-mode: normal;
+  }
 }
 
 /* Match Quest page view-transition motion. */

@@ -40,6 +40,7 @@ export default function RouteBridge() {
       const anyDoc = document as any;
       const currentView = document.body?.dataset?.view || "";
       const wantsScheduleTransition = safeView === "schedules" || currentView === "schedules";
+      const wantsStudyTransition = safeView === "study" || currentView === "study";
 
       if (wantsScheduleTransition && typeof anyDoc?.startViewTransition === "function") {
         document.documentElement.classList.add("vt-schedules");
@@ -47,6 +48,20 @@ export default function RouteBridge() {
           router.push(href);
         });
         const cleanup = () => document.documentElement.classList.remove("vt-schedules");
+        try {
+          vt.finished.then(cleanup, cleanup);
+        } catch {
+          cleanup();
+        }
+        return;
+      }
+
+      if (wantsStudyTransition && typeof anyDoc?.startViewTransition === "function") {
+        document.documentElement.classList.add("vt-study");
+        const vt = anyDoc.startViewTransition(() => {
+          router.push(href);
+        });
+        const cleanup = () => document.documentElement.classList.remove("vt-study");
         try {
           vt.finished.then(cleanup, cleanup);
         } catch {
@@ -66,8 +81,20 @@ export default function RouteBridge() {
     document.body.dataset.view = view;
     if (pathname.startsWith("/battle/arena")) document.body.dataset.subview = "battle-arena";
     else if (pathname.startsWith("/notes/new")) document.body.dataset.subview = "notes-editor";
+    else if (pathname.startsWith("/study-room/strict")) document.body.dataset.subview = "study-room-strict";
     else if (pathname.startsWith("/study-room")) document.body.dataset.subview = "study-room";
     else document.body.removeAttribute("data-subview");
+
+    // Ensure Study Room does not accidentally inherit legacy strict-mode body classes.
+    try {
+      const inStudy = pathname.startsWith("/study") || pathname.startsWith("/study-room");
+      const isStrict = pathname.startsWith("/study-room/strict");
+      if (inStudy && !isStrict) {
+        document.body.classList.remove("focus-strict", "study-strict");
+      }
+    } catch {
+      // ignore
+    }
 
     try {
       const dock = document.getElementById("arenaDock");

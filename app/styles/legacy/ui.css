@@ -1174,10 +1174,16 @@ body.qs-hold-active .hudHoldRingPath {
   color: rgba(255, 255, 255, 0.9);
 }
 
-/* Study + Notes: hide touch control hints. */
-body[data-view="study"] .hudGroup--touch,
+/* Notes: hide touch control hints. */
 body[data-view="notes"] .hudGroup--touch {
   display: none !important;
+}
+
+/* Study: show the swipe hint on mobile, hide on desktop. */
+@media (min-width: 901px) {
+  body[data-view="study"] .hudGroup--touch {
+    display: none !important;
+  }
 }
 
 /* Study: show vertical-only control hints (no left/right). */
@@ -3709,4 +3715,3 @@ body[data-subview="study-room"].focus-strict .shell {
     max-width: 92vw;
   }
 }
-
