@@ -2,9 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { clearSessionCookie, createSession, deleteSession, readSessionTokenAsync, setSessionCookie } from "../../lib/auth/session";
-import { authenticate, completeOnboarding, createUser, getUserByEmail, skipOnboarding } from "../../lib/auth/user";
+import { authenticate, completeOnboarding, createUser, getUserByEmail, getUserById, skipOnboarding } from "../../lib/auth/user";
 import { hashPassword } from "../../lib/auth/password";
 import { getCurrentUser } from "../../lib/auth/current-user";
+import { clearUserCookie, setUserCookie } from "../../lib/auth/user-cookie";
 
 function cleanEmail(v: unknown) {
   return String(v ?? "").trim().toLowerCase();
@@ -29,6 +30,7 @@ export async function registerAction(formData: FormData) {
   const user = createUser({ email, displayName, passwordHash: hashPassword(password) });
   const token = createSession(user.id);
   await setSessionCookie(token);
+  await setUserCookie(user);
   redirect("/onboarding");
 }
 
@@ -43,13 +45,21 @@ export async function signInAction(formData: FormData) {
 
   const token = createSession(user.id);
   await setSessionCookie(token);
-  redirect("/onboarding");
+  await setUserCookie(user);
+  redirect(user.onboardingCompletedAt ? "/dashboard" : "/onboarding");
 }
 
 export async function signOutAction() {
   const token = await readSessionTokenAsync();
-  if (token) deleteSession(token);
+  if (token) {
+    try {
+      deleteSession(token);
+    } catch {
+      // ignore
+    }
+  }
   await clearSessionCookie();
+  await clearUserCookie();
   redirect("/");
 }
 
@@ -93,11 +103,23 @@ export async function completeOnboardingAction(formData: FormData) {
     prefersGuild,
   });
 
+  try {
+    const updated = getUserById(userId);
+    if (updated) await setUserCookie(updated);
+  } catch {
+    // ignore
+  }
   redirect("/dashboard");
 }
 
 export async function skipOnboardingAction(_formData?: FormData) {
   const userId = await requireUserId();
   skipOnboarding(userId);
+  try {
+    const updated = getUserById(userId);
+    if (updated) await setUserCookie(updated);
+  } catch {
+    // ignore
+  }
   redirect("/dashboard");
 }

@@ -4,7 +4,7 @@ import ViewMarker from "../../../components/view-marker";
 export default function Page() {
   return (
     <>
-      <ViewMarker view="dashboard" label="Dashboard" desc="Your daily snapshot: routine, quests, streaks, and widgets." />
+      <ViewMarker view="dashboard" />
       <DashboardGrid />
     </>
   );

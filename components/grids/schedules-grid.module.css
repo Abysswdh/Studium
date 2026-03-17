@@ -362,9 +362,9 @@
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: linear-gradient(180deg, rgb(var(--glass-tint) / 0.10), rgba(255, 255, 255, 0.04));
-  padding: 10px 10px;
+  padding: var(--cal-day-pad, 10px);
   cursor: pointer;
-  min-height: 52px;
+  min-height: var(--cal-day-minh, 52px);
   display: flex;
   flex-direction: column;
   justify-content: space-between;

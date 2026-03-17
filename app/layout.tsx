@@ -11,6 +11,10 @@ import BootingCleaner from "../components/booting-cleaner";
 export const metadata = {
   title: "Studium",
   description: "Study like a game, finish like a pro.",
+  icons: {
+    icon: "/blockyPng/profilePicture.png",
+    apple: "/blockyPng/profilePicture.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -19,6 +23,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" type="image/png" href="/blockyPng/profilePicture.png" />
+        <link rel="apple-touch-icon" href="/blockyPng/profilePicture.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

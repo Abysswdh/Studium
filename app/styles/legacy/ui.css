@@ -5,10 +5,6 @@
   .gridContainerLeftBottomRight,
   .dashQuickTile,
   .gridContainerRightRight,
-  .gridContainerRightLeftOne,
-  .gridContainerRightLeftTwo,
-  .gridContainerRightLeftThree,
-  .gridContainerRightLeftFour,
   .pageShell,
   .panelItem,
   .viewLabel,
@@ -232,8 +228,8 @@ body.booting .shell {
 }
 
 .gridContainerLeft {
-  /* use flex-basis so gaps don't push total width past 100% */
-  flex: 0 0 40%;
+  /* Use grow ratios so gaps don't push total width past 100%. */
+  flex: 2 1 0;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -257,7 +253,7 @@ body.booting .shell {
   flex-direction: row;
   justify-content: space-between;
   width: 100%;
-  flex: 1;
+  flex: 0.72;
   gap: 16px;
 }
 
@@ -271,9 +267,11 @@ body.booting .shell {
   -webkit-backdrop-filter: blur(2.9px);
   border: 1px solid rgba(255, 255, 255, 0.21);
 
-  width: 50%;
+  /* Use flex-basis so the gap doesn't push total width past 100% (prevents right-edge clipping). */
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
   height: 100%;
-  flex: 1;
 }
 
 /* Dashboard left: mascot hero + quick actions grid */
@@ -298,9 +296,91 @@ body.booting .shell {
   filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.25));
 }
 
-.dashQuickGrid {
-  width: 50%;
+.dashSectionHead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 6px;
+}
+
+.dashSectionTitle {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.dashSectionSub {
+  font-weight: 800;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.46);
+}
+
+.dashQuestWrap {
+  width: auto;
   height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dashQuestWrap .gridContainerRightLeft {
+  width: 100%;
+  height: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.dashWidgetsWrap {
+  width: auto;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.dashGeneralWrap {
+  width: 100%;
+  flex: 1.28;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dashBottomLeft,
+.dashBottomRight {
+  /* Use flex-basis so the gap doesn't push total width past 100% (prevents right-edge clipping). */
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dashStreakTile {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(2.9px);
+  -webkit-backdrop-filter: blur(2.9px);
+  border: 1px solid rgba(255, 255, 255, 0.21);
+}
+
+.dashQuickGrid {
+  width: 100%;
+  height: auto;
   flex: 1;
   min-width: 0;
   display: grid;
@@ -349,11 +429,184 @@ body.booting .shell {
   height: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .dashStreakCard .cardInner {
   height: auto;
-  flex: 1;
+  flex: 0 0 auto;
+}
+
+.streakMonth {
+  --streak-cell: 18px;
+  --streak-gap: 8px;
+
+  padding: 14px 16px 0;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.streakMonthGrid {
+  display: grid;
+  grid-template-columns: repeat(7, var(--streak-cell));
+  grid-template-rows: repeat(4, var(--streak-cell));
+  gap: var(--streak-gap);
+  justify-content: start;
+}
+
+/* Month "streak shower" look (avoid GitHub heatmap vibe). */
+.streakMonthGrid .streakCalCell {
+  border-radius: calc(var(--streak-cell) * 0.38);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 12px 26px rgba(0, 0, 0, 0.14);
+}
+
+.streakMonthGrid .streakCalCell--pad {
+  opacity: 0.18;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+.streakMonthGrid .streakCalCell--0 {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+.streakMonthGrid .streakCalCell--1 {
+  background: rgba(122, 176, 255, 0.26);
+  border-color: rgba(122, 176, 255, 0.34);
+}
+
+.streakMonthGrid .streakCalCell--2 {
+  background: rgba(122, 176, 255, 0.44);
+  border-color: rgba(122, 176, 255, 0.52);
+}
+
+.streakMonthGrid .streakCalCell--3 {
+  background: rgba(96, 168, 255, 0.70);
+  border-color: rgba(96, 168, 255, 0.78);
+}
+
+.streakMonthGrid .streakCalCell--4 {
+  background: rgba(96, 168, 255, 0.92);
+  border-color: rgba(96, 168, 255, 0.96);
+}
+
+.streakCal {
+  --streak-cell: 11px;
+  --streak-gap: 4px;
+
+  padding: 12px 14px 0;
+  display: grid;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.streakCalMain {
+  display: flex;
+  gap: 10px;
+  min-height: 0;
+}
+
+.streakCalDows {
+  width: 28px;
+  display: grid;
+  grid-template-rows: repeat(7, var(--streak-cell));
+  gap: var(--streak-gap);
+  padding-top: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.streakCalScroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: grid;
+  gap: 6px;
+  padding-bottom: 2px;
+}
+
+.streakCalMonths {
+  display: grid;
+  column-gap: var(--streak-gap);
+  height: 14px;
+  align-items: end;
+}
+
+.streakCalMonth {
+  font-size: 11px;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.62);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.streakCalGrid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--streak-cell);
+  row-gap: var(--streak-gap);
+  column-gap: var(--streak-gap);
+}
+
+.streakCalCell {
+  width: var(--streak-cell);
+  height: var(--streak-cell);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.streakCalCell--pad {
+  opacity: 0.35;
+}
+
+.streakCalCell--1 {
+  background: rgba(122, 176, 255, 0.22);
+  border-color: rgba(122, 176, 255, 0.30);
+}
+
+.streakCalCell--2 {
+  background: rgba(122, 176, 255, 0.38);
+  border-color: rgba(122, 176, 255, 0.45);
+}
+
+.streakCalCell--3 {
+  background: rgba(96, 168, 255, 0.62);
+  border-color: rgba(96, 168, 255, 0.70);
+}
+
+.streakCalCell--4 {
+  background: rgba(96, 168, 255, 0.86);
+  border-color: rgba(96, 168, 255, 0.92);
+}
+
+.streakCalLegend {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.62);
+  padding-bottom: 10px;
+}
+
+.streakCalLegendSwatches {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .dashHeatmap {
@@ -385,8 +638,8 @@ body.booting .shell {
 }
 
 .gridContainerRight {
-  /* use flex-basis so gaps don't push total width past 100% */
-  flex: 0 0 60%;
+  /* Use grow ratios so gaps don't push total width past 100%. */
+  flex: 3 1 0;
   height: 100%;
   display: flex;
   flex-direction: row;
@@ -394,7 +647,10 @@ body.booting .shell {
 }
 
 .gridContainerRightLeft {
-  width: 50%;
+  /* Use flex-basis so the gap doesn't push total width past 100% (prevents right-edge clipping). */
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -402,7 +658,10 @@ body.booting .shell {
 }
 
 .gridContainerRightRight {
-  width: 50%;
+  /* Use flex-basis so the gap doesn't push total width past 100% (prevents right-edge clipping). */
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
   height: 100%;
 
   background: rgba(255, 255, 255, 0.14);
@@ -418,9 +677,27 @@ body.booting .shell {
 .gridContainerRightLeftThree,
 .gridContainerRightLeftFour {
   width: 100%;
-  height: 25%;
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
+.dashQuestLabel {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 11px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.66);
+  padding-left: 6px;
+}
+
+.dashQuestCard {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   background: rgba(255, 255, 255, 0.14);
   border-radius: 16px;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
@@ -449,6 +726,119 @@ body.booting .shell {
   padding: 6px 0 2px;
   position: relative;
   transition: min-height 320ms ease;
+}
+
+/* Arena: replace bottom navbar with a battle dock. */
+body[data-subview="battle-arena"] .carousel {
+  display: none !important;
+}
+body[data-subview="battle-arena"] .arenaDock {
+  display: flex !important;
+}
+body[data-subview="battle-arena"] .navbar {
+  justify-content: center;
+  padding: 6px 0 8px;
+}
+
+.arenaDock {
+  display: none;
+  width: min(100%, var(--carousel-width));
+  padding: 10px 12px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.18);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.30);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.arenaDockLeft {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.arenaDockTitle {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.60);
+  text-transform: uppercase;
+}
+
+.arenaDockMeta {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: min(46vw, 520px);
+}
+
+.arenaDockKeys {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.arenaDockActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.arenaKey {
+  width: 30px;
+  height: 30px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.arenaDockHint {
+  font-weight: 900;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-left: 2px;
+  white-space: nowrap;
+}
+
+.arenaDockBtn {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.90);
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.arenaDockBtn:hover {
+  filter: brightness(1.06);
+}
+
+.arenaDockBtnDanger {
+  background: linear-gradient(135deg, rgba(255, 86, 86, 0.78), rgba(255, 140, 120, 0.52));
+  border-color: rgba(255, 160, 140, 0.36);
 }
 
 .navbar::before {
@@ -580,7 +970,8 @@ body.nav-mode .navItem.focused {
 
 .gridCard:focus { outline: none; }
 
-.gridCard:focus::after {
+.gridCard:focus::after,
+.gridCard:focus-within::after {
   content: "";
   position: absolute;
   inset: -6px;
@@ -592,9 +983,18 @@ body.nav-mode .navItem.focused {
 
 /* Study + Notes: keep focus ring inside cards to avoid horizontal scrollbars. */
 body[data-view="study"] .gridCard:focus::after,
-body[data-view="notes"] .gridCard:focus::after {
+body[data-view="study"] .gridCard:focus-within::after,
+body[data-view="notes"] .gridCard:focus::after,
+body[data-view="notes"] .gridCard:focus-within::after {
   inset: 0;
   border-radius: 16px;
+}
+
+/* Battle grid cards often use `overflow: hidden`, so an outer (-6px) ring gets clipped. */
+body[data-view="battle"] .gridCard:focus::after,
+body[data-view="battle"] .gridCard:focus-within::after {
+  inset: 0;
+  border-radius: inherit;
 }
 
 /* Grid content chrome */
@@ -635,15 +1035,15 @@ body[data-view="notes"] .gridCard:focus::after {
 
 /* Per-page grid layout tweaks (desktop only) */
 @media (min-width: 901px) {
-  body[data-view="notes"] .gridContainerLeft { flex: 0 0 32%; }
-  body[data-view="notes"] .gridContainerRight { flex: 0 0 68%; }
-  body[data-view="notes"] .gridContainerRightRight { width: 56%; }
-  body[data-view="notes"] .gridContainerRightLeft { width: 44%; }
+  body[data-view="notes"] .gridContainerLeft { flex: 32 1 0; }
+  body[data-view="notes"] .gridContainerRight { flex: 68 1 0; }
+  body[data-view="notes"] .gridContainerRightRight { flex: 56 1 0; width: auto; }
+  body[data-view="notes"] .gridContainerRightLeft { flex: 44 1 0; width: auto; }
 
-  body[data-view="guild"] .gridContainerLeft { flex: 0 0 36%; }
-  body[data-view="guild"] .gridContainerRight { flex: 0 0 64%; }
-  body[data-view="guild"] .gridContainerRightRight { width: 58%; }
-  body[data-view="guild"] .gridContainerRightLeft { width: 42%; }
+  body[data-view="guild"] .gridContainerLeft { flex: 36 1 0; }
+  body[data-view="guild"] .gridContainerRight { flex: 64 1 0; }
+  body[data-view="guild"] .gridContainerRightRight { flex: 58 1 0; width: auto; }
+  body[data-view="guild"] .gridContainerRightLeft { flex: 42 1 0; width: auto; }
 }
 
 /* Page focus (non-dashboard pages) */
@@ -765,6 +1165,49 @@ body[data-view="notes"] .gridCard:focus::after {
   color: var(--text-strong);
 }
 
+.hudKey--hold {
+  position: relative;
+  overflow: visible;
+}
+
+.hudKeyText {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.hudHoldRing {
+  position: absolute;
+  inset: -2px;
+  width: calc(100% + 4px);
+  height: calc(100% + 4px);
+  pointer-events: none;
+}
+
+.hudHoldRingPath {
+  stroke: rgba(168, 85, 247, 0.72);
+  stroke-width: 3;
+  stroke-linecap: round;
+  fill: none;
+  opacity: 0;
+  stroke-dasharray: 100 0;
+}
+
+body.qs-hold-active .hudHoldRingPath {
+  opacity: 1;
+  animation: hudHoldCountdown var(--qs-hold-duration, 650ms) linear forwards;
+}
+
+@keyframes hudHoldCountdown {
+  from {
+    stroke-dasharray: 100 0;
+  }
+  to {
+    stroke-dasharray: 0 100;
+  }
+}
+
 .hudKey i {
   font-size: 15px;
   line-height: 1;
@@ -791,16 +1234,21 @@ body[data-view="notes"] .gridCard:focus::after {
   color: rgba(255, 255, 255, 0.9);
 }
 
-/* Study + Notes: show vertical-only control hints (no left/right). */
-body[data-view="study"] .hudGroup--touch,
+/* Notes: hide touch control hints. */
 body[data-view="notes"] .hudGroup--touch {
   display: none !important;
 }
 
+/* Study: show the swipe hint on mobile, hide on desktop. */
+@media (min-width: 901px) {
+  body[data-view="study"] .hudGroup--touch {
+    display: none !important;
+  }
+}
+
+/* Study: show vertical-only control hints (no left/right). */
 body[data-view="study"] .hudBar > .hudGroup:nth-child(2) .hudKey:first-child,
-body[data-view="study"] .hudBar > .hudGroup:nth-child(2) .hudKey:last-child,
-body[data-view="notes"] .hudBar > .hudGroup:nth-child(2) .hudKey:first-child,
-body[data-view="notes"] .hudBar > .hudGroup:nth-child(2) .hudKey:last-child {
+body[data-view="study"] .hudBar > .hudGroup:nth-child(2) .hudKey:last-child {
   display: none !important;
 }
 
@@ -843,6 +1291,35 @@ body[data-view="notes"] .hudBar > .hudGroup:nth-child(2) .hudKey:last-child {
   border: 2px solid rgba(255, 255, 255, 0.86);
   pointer-events: none;
   animation: focusPulse 1.15s ease-in-out infinite;
+}
+
+/* Arena dock: keep everything white + prevent .headerAction from nuking button styles. */
+.arenaDock {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.arenaDockHint {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.arenaDock .arenaDockBtn.headerAction {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.arenaDock .arenaDockBtnDanger.headerAction {
+  background: linear-gradient(135deg, rgba(255, 86, 86, 0.78), rgba(255, 140, 120, 0.52));
+  border-color: rgba(255, 160, 140, 0.36);
 }
 
 /* Study Room - Focus mode (light surface, like the mock) */
@@ -899,6 +1376,283 @@ body[data-view="notes"] .hudBar > .hudGroup:nth-child(2) .hudKey:last-child {
   font-weight: 800;
   font-size: 12px;
   color: rgba(30, 41, 59, 0.58);
+}
+
+/* Study Room - chat layout (prototype UI) */
+.studyFocusRoom--chat {
+  padding: 18px 18px 22px;
+}
+
+.studyRoomLayout {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 16px;
+  align-items: start;
+}
+
+.studyRoomMain {
+  min-width: 0;
+}
+
+.studyRoomSide {
+  min-width: 0;
+  position: sticky;
+  top: 14px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.studyFocusRoom__topRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.studyRoomMiniPill {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(15, 23, 42, 0.06);
+  color: rgba(15, 23, 42, 0.72);
+  font-weight: 900;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.studyRoomCard {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  color: rgba(15, 23, 42, 0.92);
+}
+
+.studyRoomCard__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.studyRoomCard__title {
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  color: rgba(15, 23, 42, 0.88);
+}
+
+.studyRoomCard__title i {
+  margin-right: 8px;
+  color: rgba(37, 99, 235, 0.86);
+}
+
+.studyRoomCard__meta {
+  font-weight: 900;
+  font-size: 11px;
+  color: rgba(30, 41, 59, 0.55);
+}
+
+.studyRoomMembers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.studyRoomMember {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.70);
+}
+
+.studyRoomMember__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.70);
+}
+
+.studyRoomMember__dot--blue { background: rgba(37, 99, 235, 0.92); }
+.studyRoomMember__dot--violet { background: rgba(139, 92, 246, 0.92); }
+.studyRoomMember__dot--emerald { background: rgba(16, 185, 129, 0.92); }
+
+.studyRoomMember__name {
+  font-weight: 900;
+  color: rgba(15, 23, 42, 0.86);
+}
+
+.studyRoomMember__status {
+  font-weight: 900;
+  font-size: 12px;
+  color: rgba(30, 41, 59, 0.55);
+}
+
+.studyRoomAction {
+  margin-top: 12px;
+  width: 100%;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(37, 99, 235, 0.10);
+  color: rgba(30, 64, 175, 0.86);
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.studyRoomAction i {
+  color: rgba(37, 99, 235, 0.92);
+}
+
+.studyRoomChatMessages {
+  height: 280px;
+  max-height: 40vh;
+  overflow: auto;
+  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.studyRoomChatMsg {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.studyRoomChatMsg--you {
+  flex-direction: row-reverse;
+}
+
+.studyRoomChatMsg__avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(148, 163, 184, 0.18);
+  color: rgba(30, 41, 59, 0.70);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.studyRoomChatMsg__bubble {
+  max-width: 100%;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.78);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.studyRoomChatMsg--you .studyRoomChatMsg__bubble {
+  background: rgba(37, 99, 235, 0.10);
+  border-color: rgba(37, 99, 235, 0.18);
+}
+
+.studyRoomChatMsg__text {
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1.35;
+  color: rgba(15, 23, 42, 0.84);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.studyRoomSticker {
+  width: 62px;
+  height: 62px;
+  object-fit: contain;
+  display: block;
+}
+
+.studyRoomChatQuick {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.studyRoomChip {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(15, 23, 42, 0.78);
+  font-weight: 900;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.studyRoomChip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.studyRoomChatComposer {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.studyRoomChatInput {
+  width: 100%;
+  resize: none;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.88);
+  padding: 10px 12px;
+  font-weight: 800;
+  color: rgba(15, 23, 42, 0.84);
+  outline: none;
+}
+
+.studyRoomChatInput:disabled {
+  opacity: 0.62;
+}
+
+.studyRoomChatSend {
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(37, 99, 235, 0.92);
+  color: rgba(255, 255, 255, 0.96);
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.studyRoomChatSend:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .studyFocusRoom__timerBlock {
@@ -1819,6 +2573,13 @@ body[data-subview="study-room"].focus-strict .shell {
 }
 
 @media (max-width: 900px) {
+  .studyRoomLayout {
+    grid-template-columns: 1fr;
+  }
+  .studyRoomSide {
+    position: static;
+    top: auto;
+  }
   .studyFocusRoom__stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2215,6 +2976,22 @@ body[data-subview="study-room"].focus-strict .shell {
   background: rgba(255, 255, 255, 0.14);
 }
 
+.notesAutoSaveToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notesAutoSaveToggle--on {
+  background: rgba(120, 255, 190, 0.14);
+  border-color: rgba(160, 255, 210, 0.26);
+  color: rgba(235, 255, 246, 0.96);
+}
+
+.notesAutoSaveToggle--on:hover {
+  background: rgba(120, 255, 190, 0.18);
+}
+
 .notesPrimaryBtn--danger {
   background: rgba(255, 80, 80, 0.20);
   border-color: rgba(255, 120, 120, 0.32);
@@ -2573,6 +3350,20 @@ body[data-subview="study-room"].focus-strict .shell {
 
 .notesPreviewBody--html {
   white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.notesPreviewBody--html a {
+  color: rgba(170, 225, 255, 0.95);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.notesPreviewBody--html a:hover {
+  color: rgba(210, 245, 255, 0.98);
 }
 
 .notesPreviewBody--html h1,
@@ -2702,6 +3493,111 @@ body[data-subview="study-room"].focus-strict .shell {
   color: rgba(255, 255, 255, 0.46);
 }
 
+/* Hold-to-open HUD (Quick Settings) - uses a notification-like ring countdown. */
+.qsHoldHost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10001;
+}
+
+.qsHoldPill {
+  pointer-events: none;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transform: translateY(-6px) scale(0.96);
+  opacity: 0;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.qsHoldHost:not([hidden]) .qsHoldPill {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.qsHoldRing {
+  position: absolute;
+  inset: -2px;
+  width: calc(100% + 4px);
+  height: calc(100% + 4px);
+  pointer-events: none;
+}
+
+.qsHoldRingPath {
+  stroke: rgba(168, 85, 247, 0.75);
+  stroke-width: 3;
+  stroke-linecap: round;
+  fill: none;
+  stroke-dasharray: 100 0;
+  animation: qsHoldCountdown var(--qs-hold-duration, 650ms) linear forwards;
+}
+
+.qsHoldKey {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.25);
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.qsHoldText {
+  min-width: 0;
+  line-height: 1.05;
+}
+
+.qsHoldTitle {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.qsHoldSub {
+  margin-top: 2px;
+  font-weight: 800;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.70);
+}
+
+@keyframes qsHoldCountdown {
+  from {
+    stroke-dasharray: 100 0;
+  }
+  to {
+    stroke-dasharray: 0 100;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qsHoldPill {
+    transition: opacity 140ms ease;
+    transform: none;
+  }
+  .qsHoldHost:not([hidden]) .qsHoldPill {
+    transform: none;
+  }
+  .qsHoldRingPath {
+    animation: none;
+  }
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .shell {
@@ -2768,6 +3664,15 @@ body[data-subview="study-room"].focus-strict .shell {
 
   .gridContainerRightLeft,
   .gridContainerRightRight {
+    width: 100%;
+    height: auto;
+  }
+
+  .dashQuestWrap {
+    width: 100%;
+    height: auto;
+  }
+  .dashWidgetsWrap {
     width: 100%;
     height: auto;
   }
@@ -2886,5 +3791,16 @@ body[data-subview="study-room"].focus-strict .shell {
     width: 26px;
     height: 26px;
   }
-}
 
+  body[data-subview="battle-arena"] .arenaDock {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 10px 10px;
+    border-radius: 18px;
+  }
+
+  body[data-subview="battle-arena"] .arenaDockMeta {
+    max-width: 92vw;
+  }
+}

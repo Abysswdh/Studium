@@ -323,6 +323,30 @@ export default function SchedulesGrid() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const pendingDay = sessionStorage.getItem("studium:schedules_pending_day") || "";
+      if (/^\d{4}-\d{2}-\d{2}$/.test(pendingDay)) {
+        setSelected(pendingDay);
+        const d = new Date(`${pendingDay}T00:00:00`);
+        if (!Number.isNaN(d.getTime())) setMonth(startOfMonth(d));
+      }
+      sessionStorage.removeItem("studium:schedules_pending_day");
+    } catch {
+      // ignore
+    }
+
+    try {
+      const raw = sessionStorage.getItem("studium:schedules_pending_filter") || "";
+      const allowed = raw === "all" || raw === "quest" || raw === "personal" || raw === "high" || raw === "medium" || raw === "low";
+      if (allowed) setFilter(raw as any);
+      sessionStorage.removeItem("studium:schedules_pending_filter");
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
     if (!addOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setAddOpen(false);

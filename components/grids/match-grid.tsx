@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { appData } from "@/lib/app-data";
 
 type ShellUser = { id: number; displayName: string; avatarUrl: string };
 type Props = { user: ShellUser };
@@ -25,30 +26,19 @@ type ModalId =
   | "dangerClearSettings"
   | "dangerFactoryReset";
 
-const NAV_ITEMS: Array<{ id: ViewId; label: string; icon: string }> = [
-  { id: "dashboard", label: "Dashboard", icon: "fa-gauge" },
-  { id: "notes", label: "Notes", icon: "fa-note-sticky" },
-  { id: "quest", label: "Quest", icon: "fa-map" },
-  { id: "schedules", label: "Schedule", icon: "fa-calendar-days" },
-  { id: "study", label: "Study Room", icon: "fa-book-open" },
-  { id: "battle", label: "Battle", icon: "fa-fire" },
-  { id: "match", label: "Options", icon: "fa-gear" },
-];
+const NAV_ITEMS: Array<{ id: ViewId; label: string; icon: string }> = appData.navigation.items.map((it) => ({
+  id: it.id as ViewId,
+  label: it.label,
+  icon: it.icon,
+}));
 
-const TINT_PRESETS: Array<{ label: string; rgb: string }> = [
-  { label: "Blue", rgb: "90 155 255" },
-  { label: "Aqua", rgb: "95 230 255" },
-  { label: "Purple", rgb: "195 140 255" },
-  { label: "Green", rgb: "90 220 150" },
-  { label: "Orange", rgb: "255 170 90" },
-  { label: "Red", rgb: "255 110 110" },
-  { label: "White", rgb: "255 255 255" },
-];
+const TINT_PRESETS: Array<{ label: string; rgb: string }> = appData.ui.tintPresets.map((p) => ({ label: p.label, rgb: p.rgb }));
 
 const LS_NAV_ORDER = "studium:nav_order";
 const LS_DENSITY = "studium:ui_density";
 const LS_NOTIF_BASE = "studium:qs_notifications";
 const LS_PROFILE_BASE = "studium:profile_override";
+const PREF_EVENT = "studium:account_prefs_updated";
 
 function scopedAccountKey(base: string, userId: number) {
   return userId > 0 ? `${base}:u${userId}` : base;
@@ -202,16 +192,16 @@ export default function MatchGrid({ user }: Props) {
   const LS_NOTIF = scopedAccountKey(LS_NOTIF_BASE, user.id);
   const LS_PROFILE = scopedAccountKey(LS_PROFILE_BASE, user.id);
   const [modal, setModal] = useState<ModalId | null>(null);
-  const [navOrder, setNavOrder] = useState<ViewId[]>(NAV_ITEMS.map((x) => x.id));
+  const [navOrder, setNavOrder] = useState<ViewId[]>((appData.navigation.defaultOrder as ViewId[]) ?? NAV_ITEMS.map((x) => x.id));
   const [tintView, setTintView] = useState<ViewId>("dashboard");
-  const [density, setDensity] = useState<"comfort" | "compact">("comfort");
-  const [notificationsOn, setNotificationsOn] = useState(true);
+  const [density, setDensity] = useState<"comfort" | "compact">(appData.ui.densityDefault);
+  const [notificationsOn, setNotificationsOn] = useState(!!appData.ui.notificationsDefaultEnabled);
   const [profileName, setProfileName] = useState(user.displayName);
-  const [profileEmail, setProfileEmail] = useState("");
+  const [profileEmail, setProfileEmail] = useState(appData.profile.email || "");
   const [profileAvatar, setProfileAvatar] = useState(user.avatarUrl);
 
   const [draftName, setDraftName] = useState(user.displayName);
-  const [draftEmail, setDraftEmail] = useState("");
+  const [draftEmail, setDraftEmail] = useState(appData.profile.email || "");
   const [draftAvatar, setDraftAvatar] = useState(user.avatarUrl);
   const [draftPass, setDraftPass] = useState("");
   const [draftPass2, setDraftPass2] = useState("");
@@ -419,7 +409,31 @@ export default function MatchGrid({ user }: Props) {
   }, [density]);
 
   useEffect(() => {
+    const sync = () => setNotificationsOn(safeLocalGet(LS_NOTIF) !== "0");
+    const on = () => sync();
+    try {
+      window.addEventListener(PREF_EVENT, on);
+      window.addEventListener("storage", on);
+    } catch {
+      // ignore
+    }
+    return () => {
+      try {
+        window.removeEventListener(PREF_EVENT, on);
+        window.removeEventListener("storage", on);
+      } catch {
+        // ignore
+      }
+    };
+  }, [LS_NOTIF]);
+
+  useEffect(() => {
     safeLocalSet(LS_NOTIF, notificationsOn ? "1" : "0");
+    try {
+      window.dispatchEvent(new Event(PREF_EVENT));
+    } catch {
+      // ignore
+    }
   }, [notificationsOn]);
 
   const persistNavOrder = (next: ViewId[]) => {
@@ -1098,35 +1112,47 @@ export default function MatchGrid({ user }: Props) {
   return (
     <>
       <div
-        className="grid h-auto w-full min-h-[360px] grid-cols-1 gap-[var(--shell-gap)] min-[641px]:grid-cols-2 min-[901px]:h-full min-[901px]:grid-cols-[minmax(0,1.05fr)_minmax(0,1.35fr)_minmax(0,0.58fr)_minmax(0,1fr)]"
+        className="grid h-auto w-full min-h-[360px] grid-cols-1 gap-[var(--shell-gap)] min-[720px]:grid-cols-2 min-[1200px]:h-full min-[1200px]:grid-cols-[minmax(0,1.05fr)_minmax(0,1.35fr)_minmax(0,0.82fr)_minmax(0,1fr)]"
         aria-label="Options grid"
       >
         {/* tiles (popups only) */}
-        <section className="grid min-h-0 min-w-0 grid-rows-[auto_auto_auto_1fr] gap-[var(--shell-gap)]" aria-label="System">
-          <button type="button" className={panelButtonClass()} data-focus="match.system.nav" onClick={openModal("navOrder")}>
-            <div className="cardInner">
-              <div className="cardKicker">System</div>
-              <div className="cardTitle">Navigation order</div>
-              <div className="cardMeta">Reorder main tabs</div>
-            </div>
-          </button>
-          <button type="button" className={panelButtonClass()} data-focus="match.system.tint" onClick={openModal("pageColor")}>
-            <div className="cardInner">
-              <div className="cardKicker">System</div>
-              <div className="cardTitle">Page color</div>
-              <div className="cardMeta">Tint per screen</div>
-            </div>
-          </button>
-          <button type="button" className={panelButtonClass()} data-focus="match.system.density" onClick={openModal("density")}>
-            <div className="cardInner">
-              <div className="cardKicker">System</div>
-              <div className="cardTitle">UI density</div>
-              <div className="cardMeta">{density === "compact" ? "Compact" : "Comfort"}</div>
-            </div>
-          </button>
-          <button type="button" className={panelButtonClass()} data-focus="match.system.about" onClick={openModal("about")}>
+        <section className="flex min-h-0 min-w-0 flex-col gap-[10px]" aria-label="System and about">
+          <div className="dashSectionHead">
+            <div className="dashSectionTitle">System</div>
+          </div>
+
+          <div className="grid gap-[var(--shell-gap)]" aria-label="System actions">
+            <button type="button" className={panelButtonClass()} data-focus="match.system.nav" onClick={openModal("navOrder")}>
+              <div className="cardInner">
+                <div className="cardTitle">Navigation order</div>
+                <div className="cardMeta">Reorder main tabs</div>
+              </div>
+            </button>
+            <button type="button" className={panelButtonClass()} data-focus="match.system.tint" onClick={openModal("pageColor")}>
+              <div className="cardInner">
+                <div className="cardTitle">Page color</div>
+                <div className="cardMeta">Tint per screen</div>
+              </div>
+            </button>
+            <button type="button" className={panelButtonClass()} data-focus="match.system.density" onClick={openModal("density")}>
+              <div className="cardInner">
+                <div className="cardTitle">UI density</div>
+                <div className="cardMeta">{density === "compact" ? "Compact" : "Comfort"}</div>
+              </div>
+            </button>
+          </div>
+
+          <div className="dashSectionHead">
+            <div className="dashSectionTitle">About</div>
+          </div>
+
+          <button
+            type="button"
+            className={panelButtonClass("flex-1 min-h-0")}
+            data-focus="match.system.about"
+            onClick={openModal("about")}
+          >
             <div className="cardInner justify-start gap-3">
-              <div className="cardKicker">About</div>
               <div className="cardTitle">Studium</div>
               <div className="text-sm font-[800] text-white/70">Studium Focus Mode prototype.</div>
               <div className="mt-auto text-xs font-[900] text-white/55">View: {currentView}</div>
@@ -1134,103 +1160,116 @@ export default function MatchGrid({ user }: Props) {
           </button>
         </section>
 
-        <section className="grid min-h-0 min-w-0 grid-rows-[1.2fr_auto_auto_auto] gap-[var(--shell-gap)]" aria-label="Account">
-          <button
-            type="button"
-            className={panelButtonClass()}
-            data-focus="match.account.profile"
-            onClick={openModal("accountProfile")}
-            aria-label="Edit account profile"
-          >
-            <div className="cardInner justify-start gap-4">
-              <div className="cardKicker">Account</div>
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 overflow-hidden rounded-[18px] border border-white/14 bg-black/25">
-                  <img src={profileAvatar} alt="" className="h-full w-full object-cover" />
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-lg font-[900] text-white/92">{profileName}</div>
-                  <div className="text-xs font-[900] text-white/55">
-                    {profileEmail ? profileEmail : user.id === 0 ? "Guest" : "Signed in"}
+        <section className="flex min-h-0 min-w-0 flex-col gap-[10px]" aria-label="Account">
+          <div className="dashSectionHead">
+            <div className="dashSectionTitle">Account</div>
+          </div>
+
+          <div className="grid min-h-0 flex-1 grid-rows-[1.2fr_auto_auto_auto] gap-[var(--shell-gap)]" aria-label="Account actions">
+            <button
+              type="button"
+              className={panelButtonClass()}
+              data-focus="match.account.profile"
+              onClick={openModal("accountProfile")}
+              aria-label="Edit account profile"
+            >
+              <div className="cardInner justify-start gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 overflow-hidden rounded-[18px] border border-white/14 bg-black/25">
+                    <img src={profileAvatar} alt="" className="h-full w-full object-cover" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-lg font-[900] text-white/92">{profileName}</div>
+                    <div className="text-xs font-[900] text-white/55">
+                      {profileEmail ? profileEmail : user.id === 0 ? "Guest" : "Signed in"}
+                    </div>
                   </div>
                 </div>
+                <div className="mt-auto text-xs font-[900] text-white/55">Edit username, email, password, avatar.</div>
               </div>
-              <div className="mt-auto text-xs font-[900] text-white/55">Edit username, email, password, avatar.</div>
-            </div>
-          </button>
-          <button type="button" className={panelButtonClass()} data-focus="match.account.sync" onClick={openModal("accountSync")}>
-            <div className="cardInner">
-              <div className="cardKicker">Account</div>
-              <div className="cardTitle">Sync</div>
-              <div className="cardMeta">Backup & restore</div>
-            </div>
-          </button>
-          <button type="button" className={panelButtonClass()} data-focus="match.account.privacy" onClick={openModal("accountPrivacy")}>
-            <div className="cardInner">
-              <div className="cardKicker">Account</div>
-              <div className="cardTitle">Privacy</div>
-              <div className="cardMeta">Local-only flags</div>
-            </div>
-          </button>
-          <button type="button" className={panelButtonClass()} data-focus="match.account.notifications" onClick={openModal("accountNotifications")}>
-            <div className="cardInner">
-              <div className="cardKicker">Account</div>
-              <div className="cardTitle">Notifications</div>
-              <div className="cardMeta">{notificationsOn ? "On" : "Off"}</div>
-            </div>
-          </button>
+            </button>
+            <button type="button" className={panelButtonClass()} data-focus="match.account.sync" onClick={openModal("accountSync")}>
+              <div className="cardInner">
+                <div className="cardTitle">Sync</div>
+                <div className="cardMeta">Backup & restore</div>
+              </div>
+            </button>
+            <button type="button" className={panelButtonClass()} data-focus="match.account.privacy" onClick={openModal("accountPrivacy")}>
+              <div className="cardInner">
+                <div className="cardTitle">Privacy</div>
+                <div className="cardMeta">Local-only flags</div>
+              </div>
+            </button>
+            <button type="button" className={panelButtonClass()} data-focus="match.account.notifications" onClick={openModal("accountNotifications")}>
+              <div className="cardInner">
+                <div className="cardTitle">Notifications</div>
+                <div className="cardMeta">{notificationsOn ? "On" : "Off"}</div>
+              </div>
+            </button>
+          </div>
         </section>
 
-        <section className="grid min-h-0 min-w-0 grid-rows-4 gap-[var(--shell-gap)]" aria-label="Utility">
-          <button type="button" className={panelButtonClass()} data-focus="match.util.import" onClick={openModal("utilityImport")}>
-            <div className="cardInner">
-              <div className="cardKicker">Utility</div>
-              <div className="cardTitle">Import</div>
-              <div className="cardMeta">Load settings JSON</div>
-            </div>
-          </button>
-          <button type="button" className={panelButtonClass()} data-focus="match.util.export" onClick={openModal("utilityExport")}>
-            <div className="cardInner">
-              <div className="cardKicker">Utility</div>
-              <div className="cardTitle">Export</div>
-              <div className="cardMeta">Download settings JSON</div>
-            </div>
-          </button>
-          <button type="button" className={panelButtonClass()} data-focus="match.util.keybinds" onClick={openModal("utilityKeybinds")}>
-            <div className="cardInner">
-              <div className="cardKicker">Utility</div>
-              <div className="cardTitle">Keybinds</div>
-              <div className="cardMeta">Arrows | Esc | Enter</div>
-            </div>
-          </button>
-          <button type="button" className={panelButtonClass()} data-focus="match.util.diagnostics" onClick={openModal("utilityDiagnostics")}>
-            <div className="cardInner">
-              <div className="cardKicker">Utility</div>
-              <div className="cardTitle">Diagnostics</div>
-              <div className="cardMeta">Env | storage | flags</div>
-            </div>
-          </button>
+        <section className="flex min-h-0 min-w-0 flex-col gap-[10px]" aria-label="Setup">
+          <div className="dashSectionHead">
+            <div className="dashSectionTitle">Setup</div>
+          </div>
+
+          <div className="grid min-h-0 flex-1 grid-rows-4 gap-[var(--shell-gap)]" aria-label="Setup actions">
+            <button type="button" className={panelButtonClass()} data-focus="match.util.import" onClick={openModal("utilityImport")}>
+              <div className="cardInner">
+                <div className="cardTitle">Import</div>
+                <div className="cardMeta">Load settings JSON</div>
+              </div>
+            </button>
+            <button type="button" className={panelButtonClass()} data-focus="match.util.export" onClick={openModal("utilityExport")}>
+              <div className="cardInner">
+                <div className="cardTitle">Export</div>
+                <div className="cardMeta">Download settings JSON</div>
+              </div>
+            </button>
+            <button type="button" className={panelButtonClass()} data-focus="match.util.keybinds" onClick={openModal("utilityKeybinds")}>
+              <div className="cardInner">
+                <div className="cardTitle">Keybinds</div>
+                <div className="cardMeta">Arrows | Esc | Enter</div>
+              </div>
+            </button>
+            <button type="button" className={panelButtonClass()} data-focus="match.util.diagnostics" onClick={openModal("utilityDiagnostics")}>
+              <div className="cardInner">
+                <div className="cardTitle">Diagnostics</div>
+                <div className="cardMeta">Env | storage | flags</div>
+              </div>
+            </button>
+          </div>
         </section>
 
-        <section className="grid min-h-0 min-w-0 grid-rows-[1fr_auto] gap-[var(--shell-gap)]" aria-label="Context and danger zone">
-          <div className="panelItem gridCard min-h-0 overflow-hidden rounded-[18px]" data-focus="match.context" tabIndex={0}>
+        <section className="flex min-h-0 min-w-0 flex-col gap-[10px]" aria-label="Your settings and danger zone">
+          <div className="dashSectionHead">
+            <div className="dashSectionTitle">Your Settings</div>
+          </div>
+
+          <div className="panelItem gridCard min-h-0 flex-1 overflow-hidden rounded-[18px]" data-focus="match.context" tabIndex={0}>
             <div className="cardInner justify-start gap-3">
-              <div className="cardKicker">Options</div>
               <div className="cardTitle">Context</div>
               <div className="cardMeta">All changes happen via popups.</div>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-[var(--shell-gap)] min-[901px]:grid-cols-2 min-[901px]:grid-rows-2" aria-label="Danger zone actions">
+
+          <div className="dashSectionHead">
+            <div className="dashSectionTitle">Danger Zone</div>
+          </div>
+
+          <div
+            className="grid grid-cols-1 gap-[var(--shell-gap)] min-[901px]:grid-cols-2 min-[901px]:grid-rows-2"
+            aria-label="Danger zone actions"
+          >
             <button type="button" className={panelButtonClass("optionsDanger")} data-focus="match.danger.signout" onClick={openModal("dangerSignOut")}>
               <div className="cardInner">
-                <div className="cardKicker">Danger zone</div>
                 <div className="cardTitle">Sign out</div>
                 <div className="cardMeta">End session</div>
               </div>
             </button>
             <button type="button" className={panelButtonClass("optionsDangerExit")} data-focus="match.danger.exit" onClick={openModal("dangerExitFocus")}>
               <div className="cardInner">
-                <div className="cardKicker">Danger zone</div>
                 <div className="cardTitle">Exit Studium Focus Mode</div>
                 <div className="cardMeta">Back to landing</div>
               </div>
@@ -1242,7 +1281,6 @@ export default function MatchGrid({ user }: Props) {
               onClick={openModal("dangerClearSettings")}
             >
               <div className="cardInner">
-                <div className="cardKicker">Danger zone</div>
                 <div className="cardTitle">Clear settings</div>
                 <div className="cardMeta">Wipe UI prefs</div>
               </div>
@@ -1254,7 +1292,6 @@ export default function MatchGrid({ user }: Props) {
               onClick={openModal("dangerFactoryReset")}
             >
               <div className="cardInner">
-                <div className="cardKicker">Danger zone</div>
                 <div className="cardTitle">Factory reset</div>
                 <div className="cardMeta">Wipe local data</div>
               </div>

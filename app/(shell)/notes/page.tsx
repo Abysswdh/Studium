@@ -1,11 +1,14 @@
 import NotesHub from "../../../components/notes/notes-hub";
 import ViewMarker from "../../../components/view-marker";
+import { Suspense } from "react";
 
 export default function Page() {
   return (
     <>
-      <ViewMarker view="notes" label="Notes" desc="Capture quick notes tied to your quests and sessions." />
-      <NotesHub />
+      <ViewMarker view="notes" />
+      <Suspense fallback={null}>
+        <NotesHub />
+      </Suspense>
     </>
   );
 }

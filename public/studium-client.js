@@ -103,6 +103,7 @@ function navSwitchLocked() {
   try {
     const p = window.location && window.location.pathname ? String(window.location.pathname) : "";
     if (p.startsWith("/notes/new")) return true;
+    if (document.body && document.body.dataset && document.body.dataset.subview === "battle-arena") return true;
     if (p.startsWith("/study-room")) {
       // Only lock nav switching when strict mode is enabled (Study Room should still be navigable otherwise).
       return document.body && document.body.classList ? document.body.classList.contains("study-strict") : false;
@@ -633,6 +634,7 @@ try {
   function runBootSequence(opts) {
     const mode = (opts && opts.mode) || "enter"; // enter | nav
     const showWelcome = !!(opts && opts.showWelcome);
+    const playSound = !!(opts && opts.playSound);
 
     const fadeMs = Math.max(240, Number((opts && opts.fadeMs) || (mode === "nav" ? 680 : 5000)));
     const logoMs = Math.max(160, Number((opts && opts.logoMs) || (mode === "nav" ? 320 : 1000)));
@@ -668,6 +670,16 @@ try {
       document.documentElement.classList.add("booting");
     } catch {
       // ignore
+    }
+
+    if (playSound) {
+      try {
+        const api = window.SFX;
+        const muted = typeof api?.isMuted === "function" ? api.isMuted() : false;
+        if (!muted && typeof api?.playBoot === "function") api.playBoot();
+      } catch {
+        // ignore
+      }
     }
 
     requestAnimationFrame(() => {
@@ -756,11 +768,67 @@ try {
   const drawer = document.getElementById("profileDrawer");
   const closeBtn = document.getElementById("profileCloseBtn");
   const qsProfileBtn = document.getElementById("qsProfileBtn");
+  const qsProfilePanel = document.getElementById("qsProfilePanel");
+  const qsProfileCloseBtn = document.getElementById("qsProfileCloseBtn");
+  const qsProfileEditBtn = document.getElementById("qsProfileEditBtn");
+  const qsProfileMoreBtn = document.getElementById("qsProfileMoreBtn");
+  const qsProfileStatusToggle = document.getElementById("qsProfileStatusToggle");
   const qsNotifBtn = document.getElementById("qsNotifBtn");
+  const qsNotifPanel = document.getElementById("qsNotifPanel");
+  const qsNotifCloseBtn = document.getElementById("qsNotifCloseBtn");
+  const qsNotifSettingsBtn = document.getElementById("qsNotifSettingsBtn");
+  const qsNotifToggle = document.getElementById("qsNotifToggle");
   const qsNotifPill = document.getElementById("qsNotifPill");
   const qsQuestBtn = document.getElementById("qsQuestBtn");
+  const qsScheduleShortcutBtn = document.getElementById("qsScheduleShortcutBtn");
+  const qsStudyShortcutBtn = document.getElementById("qsStudyShortcutBtn");
+  const qsQuestPanel = document.getElementById("qsQuestPanel");
+  const qsQuestCloseBtn = document.getElementById("qsQuestCloseBtn");
+  const qsQuestOpenBtn = document.getElementById("qsQuestOpenBtn");
+  const qsQuestList = document.getElementById("qsQuestList");
+  const qsQuestEmpty = document.getElementById("qsQuestEmpty");
+  const qsQuestSummaryTitle = document.getElementById("qsQuestSummaryTitle");
+  const qsQuestSummarySub = document.getElementById("qsQuestSummarySub");
+  const qsSchedulePanel = document.getElementById("qsSchedulePanel");
+  const qsScheduleCloseBtn = document.getElementById("qsScheduleCloseBtn");
+  const qsScheduleOpenBtn = document.getElementById("qsScheduleOpenBtn");
+  const qsScheduleCalendarList = document.getElementById("qsScheduleCalendarList");
+  const qsScheduleList = document.getElementById("qsScheduleList");
+  const qsScheduleEmpty = document.getElementById("qsScheduleEmpty");
+  const qsScheduleSummaryTitle = document.getElementById("qsScheduleSummaryTitle");
+  const qsScheduleSummarySub = document.getElementById("qsScheduleSummarySub");
+  const qsStudyPanel = document.getElementById("qsStudyPanel");
+  const qsStudyCloseBtn = document.getElementById("qsStudyCloseBtn");
+  const qsStudyOpenBtn = document.getElementById("qsStudyOpenBtn");
+  const qsStudyStartBtn = document.getElementById("qsStudyStartBtn");
+  const qsStudyMinutesSub = document.getElementById("qsStudyMinutesSub");
   const qsBattleBtn = document.getElementById("qsBattleBtn");
+  const qsBattlePanel = document.getElementById("qsBattlePanel");
+  const qsBattleCloseBtn = document.getElementById("qsBattleCloseBtn");
+  const qsBattleOpenBtn = document.getElementById("qsBattleOpenBtn");
+  const qsBattleModeBtn = document.getElementById("qsBattleModeBtn");
+  const qsBattleStatEloVal = document.getElementById("qsBattleStatEloVal");
+  const qsBattleStatRankVal = document.getElementById("qsBattleStatRankVal");
+  const qsBattleStatWinrateVal = document.getElementById("qsBattleStatWinrateVal");
+  const qsBattleStatXpVal = document.getElementById("qsBattleStatXpVal");
+  const qsBattleQuestSub = document.getElementById("qsBattleQuestSub");
+  const qsBattleQuestList = document.getElementById("qsBattleQuestList");
+  const qsBattleQuestEmpty = document.getElementById("qsBattleQuestEmpty");
+  const qsBattleLbList = document.getElementById("qsBattleLbList");
   const qsNotesBtn = document.getElementById("qsNotesBtn");
+  const qsNotesPanel = document.getElementById("qsNotesPanel");
+  const qsNotesCloseBtn = document.getElementById("qsNotesCloseBtn");
+  const qsNotesOpenBtn = document.getElementById("qsNotesOpenBtn");
+  const qsNotesSummaryTitle = document.getElementById("qsNotesSummaryTitle");
+  const qsNotesSummarySub = document.getElementById("qsNotesSummarySub");
+  const qsNotesFolderList = document.getElementById("qsNotesFolderList");
+  const qsNotesFolderEmpty = document.getElementById("qsNotesFolderEmpty");
+  const qsNotesTagList = document.getElementById("qsNotesTagList");
+  const qsNotesTagEmpty = document.getElementById("qsNotesTagEmpty");
+  const qsNotesAllList = document.getElementById("qsNotesAllList");
+  const qsNotesAllEmpty = document.getElementById("qsNotesAllEmpty");
+  const qsNotesRecentList = document.getElementById("qsNotesRecentList");
+  const qsNotesRecentEmpty = document.getElementById("qsNotesRecentEmpty");
   const qsHomeBtn = document.getElementById("qsHomeBtn");
   const qsSettingsBtn = document.getElementById("qsSettingsBtn");
   const qsAdvanced = document.getElementById("qsAdvanced");
@@ -888,12 +956,150 @@ try {
   const LS_SFXVOL = "studium:qs_sfx_volume";
   const LS_FS = "studium:pref_fullscreen";
   const LS_WALL = "studium:qs_wallpapers";
-  const LS_NOTIF = "studium:qs_notifications";
+  const LS_NOTIF_BASE = "studium:qs_notifications";
   const LS_MUTE_ALL = "studium:qs_mute_all";
   const LS_MUSIC_ON = "studium:qs_music_on";
   const LS_MUSIC_VOL = "studium:qs_music_volume";
   const LS_MUSIC_IDX = "studium:qs_music_index";
   const LS_QS_ADV = "studium:qs_advanced_open";
+  const LS_QS_PROFILE_STATUS = "studium:qs_profile_status_on";
+  const LS_QUESTS_BASE = "studium:quests_v1";
+  const LS_EVENTS_BASE = "studium:events_v1";
+  const LS_NOTES_BASE = "studium:notes:v1";
+  const LS_STUDY_FOCUS_STATE_BASE = "studium:study_focus_room:v1";
+  const PREF_EVENT = "studium:account_prefs_updated";
+
+  const QS_MOBILE_MAX = 900;
+  const isMobileQs = () => typeof window !== "undefined" && window.innerWidth <= QS_MOBILE_MAX;
+
+  const qsPanels = {
+    profile: { panel: qsProfilePanel, btn: qsProfileBtn },
+    notif: { panel: qsNotifPanel, btn: qsNotifBtn },
+    quest: { panel: qsQuestPanel, btn: qsQuestBtn },
+    schedule: { panel: qsSchedulePanel, btn: qsScheduleShortcutBtn },
+    study: { panel: qsStudyPanel, btn: qsStudyShortcutBtn },
+    battle: { panel: qsBattlePanel, btn: qsBattleBtn },
+    notes: { panel: qsNotesPanel, btn: qsNotesBtn },
+  };
+
+  let activeQsPanel = null;
+  const panelCloseTimers = new Map();
+
+  const isQsPanelOpen = (name) => {
+    const panel = qsPanels[name]?.panel;
+    if (!panel) return false;
+    if (panel.hidden) return false;
+    if (!document.body.classList.contains("qs-panel-open")) return false;
+    if (activeQsPanel && activeQsPanel === name) return true;
+    return document.body.classList.contains(`qs-${name}-open`);
+  };
+
+  const isAnyQsPanelOpen = () => !!activeQsPanel && isQsPanelOpen(activeQsPanel);
+
+  const syncProfileStatusToggle = () => {
+    if (!qsProfileStatusToggle) return;
+    const on = safeLocalGet(LS_QS_PROFILE_STATUS) !== "0";
+    qsProfileStatusToggle.checked = on;
+  };
+
+  const clearPanelCloseTimer = (name) => {
+    const t = panelCloseTimers.get(name);
+    if (t) clearTimeout(t);
+    panelCloseTimers.delete(name);
+  };
+
+  const openQsPanel = (name, { focusFirst = true } = {}) => {
+    const panel = qsPanels[name]?.panel;
+    if (!panel) return;
+
+    if (activeQsPanel && activeQsPanel !== name) closeQsPanel(activeQsPanel, { focusBtn: false });
+    clearPanelCloseTimer(name);
+
+    activeQsPanel = name;
+    panel.hidden = false;
+    panel.setAttribute("aria-hidden", "false");
+
+    if (name === "profile") syncProfileStatusToggle();
+    if (name === "notif") syncNotifUi();
+    if (name === "quest") syncQuestUi();
+    if (name === "schedule") syncScheduleUi();
+    if (name === "study") syncStudyUi();
+    if (name === "battle") syncBattleUi();
+    if (name === "notes") syncNotesUi();
+
+    if (isMobileQs()) {
+      try {
+        closeDrawer({ focusProfile: false, immediate: true });
+      } catch {
+        // ignore
+      }
+      if (overlay) overlay.hidden = true;
+    } else if (overlay) overlay.hidden = false;
+
+    requestAnimationFrame(() => {
+      document.body.classList.add("qs-panel-open", `qs-${name}-open`);
+      panel.classList.add("qsPanel--open");
+      if (!focusFirst) return;
+      const first = panel.querySelector("[data-tab], button, input, select, textarea, [tabindex='0']");
+      if (!first) return;
+      try {
+        first.focus({ preventScroll: true });
+      } catch {
+        first.focus();
+      }
+    });
+  };
+
+  const closeQsPanel = (name, { focusBtn = true } = {}) => {
+    const panel = qsPanels[name]?.panel;
+    if (!panel) return;
+    const isActive = activeQsPanel === name;
+    if (isActive) activeQsPanel = null;
+
+    document.body.classList.remove(`qs-${name}-open`);
+    document.body.classList.remove("qs-panel-open");
+
+    panel.classList.remove("qsPanel--open");
+    panel.setAttribute("aria-hidden", "true");
+
+    clearPanelCloseTimer(name);
+    const t = setTimeout(() => {
+      if (!document.body.classList.contains(`qs-${name}-open`)) panel.hidden = true;
+    }, 340);
+    panelCloseTimers.set(name, t);
+
+    if (overlay) {
+      setTimeout(() => {
+        if (!document.body.classList.contains("drawer-open") && !document.body.classList.contains("qs-panel-open")) overlay.hidden = true;
+      }, 340);
+    }
+
+    const btn = qsPanels[name]?.btn;
+    if (focusBtn && btn) {
+      requestAnimationFrame(() => {
+        try {
+          btn.focus({ preventScroll: true });
+        } catch {
+          btn.focus();
+        }
+      });
+    }
+  };
+
+  const closeActiveQsPanel = ({ focusBtn = true } = {}) => {
+    if (!activeQsPanel) return;
+    closeQsPanel(activeQsPanel, { focusBtn });
+  };
+
+  const openProfilePanel = (opts) => {
+    document.body.classList.add("qs-profile-open");
+    openQsPanel("profile", opts);
+  };
+
+  const closeProfilePanel = (opts = {}) => {
+    closeQsPanel("profile", { focusBtn: opts.focusProfileBtn !== false });
+    document.body.classList.remove("qs-profile-open");
+  };
 
   const setAdvancedOpen = (open, { persist = false, focusFirst = false } = {}) => {
     if (!qsAdvanced || !qsSettingsBtn) return;
@@ -916,12 +1122,824 @@ try {
   };
 
   const syncNotifUi = () => {
-    if (!qsNotifBtn) return;
-    const on = safeLocalGet(LS_NOTIF) !== "0";
-    qsNotifBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    const scoped = scopedUserKey(LS_NOTIF_BASE);
+    let raw = safeLocalGet(scoped);
+    if (raw == null && scoped !== LS_NOTIF_BASE) raw = safeLocalGet(LS_NOTIF_BASE);
+    if (raw != null && scoped !== LS_NOTIF_BASE && safeLocalGet(scoped) == null) safeLocalSet(scoped, raw);
+    const on = raw !== "0";
+    if (qsNotifBtn) qsNotifBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    if (qsNotifToggle) qsNotifToggle.checked = on;
     if (qsNotifPill) {
       qsNotifPill.textContent = on ? "On" : "Off";
       qsNotifPill.classList.toggle("qsMenuPill--off", !on);
+    }
+  };
+
+  // Ensure QS notification state matches persisted settings (and migrate legacy key).
+  syncNotifUi();
+
+  function currentUserId() {
+    try {
+      const root = document.querySelector(".shellRoot");
+      const raw = (root && root.dataset ? root.dataset.userId : "") || (document.body && document.body.dataset ? document.body.dataset.userId : "") || "";
+      const id = Number(raw);
+      return Number.isFinite(id) && id > 0 ? id : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function scopedUserKey(base) {
+    const uid = currentUserId();
+    return uid ? `${base}:u${uid}` : base;
+  }
+
+  const readQuests = () => {
+    const raw = safeLocalGet(scopedUserKey(LS_QUESTS_BASE));
+    if (!raw) return [];
+    try {
+      const v = JSON.parse(raw);
+      return Array.isArray(v) ? v : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const readEvents = () => {
+    const raw = safeLocalGet(scopedUserKey(LS_EVENTS_BASE));
+    if (!raw) return [];
+    try {
+      const v = JSON.parse(raw);
+      return Array.isArray(v) ? v : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const isQuestDone = (q) => {
+    const stages = q && Array.isArray(q.stages) ? q.stages : [];
+    if (!stages.length) return false;
+    return stages.every((s) => !!(s && s.done));
+  };
+
+  const formatDue = (iso) => {
+    if (!iso) return "";
+    try {
+      const d = new Date(String(iso));
+      if (Number.isNaN(d.getTime())) return "";
+      return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    } catch {
+      return "";
+    }
+  };
+
+  const syncQuestUi = () => {
+    if (!qsQuestList) return;
+    const quests = readQuests().filter((q) => q && q.id && !isQuestDone(q));
+    quests.sort((a, b) => {
+      const ad = a && a.dueAt ? new Date(String(a.dueAt)).getTime() : Number.POSITIVE_INFINITY;
+      const bd = b && b.dueAt ? new Date(String(b.dueAt)).getTime() : Number.POSITIVE_INFINITY;
+      if (ad !== bd) return ad - bd;
+      const au = a && a.createdAt ? new Date(String(a.createdAt)).getTime() : 0;
+      const bu = b && b.createdAt ? new Date(String(b.createdAt)).getTime() : 0;
+      return bu - au;
+    });
+
+    const shown = quests.slice(0, 6);
+    qsQuestList.innerHTML = "";
+
+    if (qsQuestEmpty) {
+      const empty = shown.length === 0;
+      qsQuestEmpty.hidden = !empty;
+      qsQuestEmpty.setAttribute("aria-hidden", empty ? "false" : "true");
+    }
+
+    if (qsQuestSummaryTitle) qsQuestSummaryTitle.textContent = `Active quests${quests.length ? ` (${quests.length})` : ""}`;
+    if (qsQuestSummarySub) qsQuestSummarySub.textContent = shown.length ? "Tap a quest to open details." : "Create a quest to start earning XP and streaks.";
+
+    shown.forEach((q, idx) => {
+      const title = String(q.title || "Untitled").trim() || "Untitled";
+      const context = String(q.context || "").trim();
+      const stages = Array.isArray(q.stages) ? q.stages : [];
+      const done = stages.filter((s) => s && s.done).length;
+      const total = stages.length;
+      const due = formatDue(q.dueAt);
+      const metaParts = [];
+      if (context) metaParts.push(context);
+      if (total) metaParts.push(`${done}/${total} stages`);
+      if (due) metaParts.push(`Due ${due}`);
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "qsQuestItem headerAction";
+      btn.setAttribute("role", "listitem");
+      btn.setAttribute("data-quest-id", String(q.id));
+      btn.setAttribute("aria-label", `Open quest ${title}`);
+      btn.setAttribute("data-focus", `drawer.quest.${idx + 1}`);
+
+      const main = document.createElement("span");
+      main.className = "qsQuestItemMain";
+
+      const t = document.createElement("span");
+      t.className = "qsQuestItemTitle";
+      t.textContent = title;
+
+      const m = document.createElement("span");
+      m.className = "qsQuestItemMeta";
+      m.textContent = metaParts.join(" • ");
+
+      const ch = document.createElement("span");
+      ch.className = "qsQuestItemChevron";
+      ch.setAttribute("aria-hidden", "true");
+      ch.innerHTML = '<i class="fa-solid fa-chevron-right" aria-hidden="true"></i>';
+
+      main.appendChild(t);
+      main.appendChild(m);
+      btn.appendChild(main);
+      btn.appendChild(ch);
+      qsQuestList.appendChild(btn);
+    });
+  };
+
+  const fmtDayKey = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${dd}`;
+  };
+
+  const fmtDayLabel = (d, idx) => {
+    try {
+      if (idx === 0) return "Today";
+      if (idx === 1) return "Tomorrow";
+      const wd = d.toLocaleDateString(undefined, { weekday: "short" });
+      const md = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      return `${wd}, ${md}`;
+    } catch {
+      return fmtDayKey(d);
+    }
+  };
+
+  const fmtTime = (iso) => {
+    if (!iso) return "";
+    try {
+      const d = new Date(String(iso));
+      if (Number.isNaN(d.getTime())) return "";
+      return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return "";
+    }
+  };
+
+  const syncScheduleUi = () => {
+    if (!qsScheduleList) return;
+
+    const events = readEvents().filter((e) => e && e.id && e.startAt);
+    const bucket = new Map();
+
+    const nowTs = Date.now();
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const horizon = new Date(now);
+    horizon.setDate(now.getDate() + 30);
+    const horizonTs = horizon.getTime();
+
+    let upcomingTotal = 0;
+    let upcomingQuest = 0;
+    let upcomingPersonal = 0;
+    let nextAll = null;
+    let nextQuest = null;
+    let nextPersonal = null;
+    for (const e of events) {
+      try {
+        const d = new Date(String(e.startAt));
+        if (Number.isNaN(d.getTime())) continue;
+
+        const ts = d.getTime();
+        if (ts >= nowTs && ts < horizonTs) {
+          upcomingTotal += 1;
+          const isQuest = !!e.questId;
+          if (isQuest) upcomingQuest += 1;
+          else upcomingPersonal += 1;
+
+          if (!nextAll || ts < nextAll.ts) nextAll = { ts, e };
+          if (isQuest) {
+            if (!nextQuest || ts < nextQuest.ts) nextQuest = { ts, e };
+          } else {
+            if (!nextPersonal || ts < nextPersonal.ts) nextPersonal = { ts, e };
+          }
+        }
+
+        const key = fmtDayKey(d);
+        const list = bucket.get(key) || [];
+        list.push(e);
+        bucket.set(key, list);
+      } catch {
+        // ignore
+      }
+    }
+
+    const fmtNext = (rec) => {
+      if (!rec?.e?.startAt) return "";
+      try {
+        const d = new Date(String(rec.e.startAt));
+        if (Number.isNaN(d.getTime())) return "";
+        const day = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+        return `Next ${day} â€¢ ${time}`;
+      } catch {
+        return "";
+      }
+    };
+
+    if (qsScheduleCalendarList) qsScheduleCalendarList.innerHTML = "";
+
+    if (qsScheduleCalendarList) {
+      const items = [
+        { filter: "all", title: "All calendars", count: upcomingTotal, next: fmtNext(nextAll) },
+        { filter: "quest", title: "Quest milestones", count: upcomingQuest, next: fmtNext(nextQuest) },
+        { filter: "personal", title: "Personal", count: upcomingPersonal, next: fmtNext(nextPersonal) },
+      ];
+      items.forEach((it, idx) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "qsQuestItem headerAction qsScheduleItem";
+        btn.setAttribute("role", "listitem");
+        btn.setAttribute("data-schedule-filter", it.filter);
+        btn.setAttribute("aria-label", `Open schedule: ${it.title}`);
+        btn.setAttribute("data-focus", `drawer.schedule.cal.${idx + 1}`);
+
+        const main = document.createElement("span");
+        main.className = "qsQuestItemMain";
+
+        const t = document.createElement("span");
+        t.className = "qsQuestItemTitle";
+        t.textContent = it.title;
+
+        const m = document.createElement("span");
+        m.className = "qsQuestItemMeta";
+        m.textContent = `${it.count} event${it.count === 1 ? "" : "s"} (30d)${it.next ? ` â€¢ ${it.next}` : ""}`;
+
+        const ch = document.createElement("span");
+        ch.className = "qsQuestItemChevron";
+        ch.setAttribute("aria-hidden", "true");
+        ch.innerHTML = '<i class="fa-solid fa-chevron-right" aria-hidden="true"></i>';
+
+        main.appendChild(t);
+        main.appendChild(m);
+        btn.appendChild(main);
+        btn.appendChild(ch);
+        qsScheduleCalendarList.appendChild(btn);
+      });
+    }
+
+    const start = new Date(now);
+    qsScheduleList.innerHTML = "";
+
+    const daysToShow = [];
+    for (let i = 0; i < 30; i++) {
+      const day = new Date(start);
+      day.setDate(start.getDate() + i);
+      const key = fmtDayKey(day);
+      const list = bucket.get(key) || [];
+      if ((i === 0 && upcomingTotal > 0) || list.length > 0) daysToShow.push({ day, key, list, idx: i });
+      if (daysToShow.length >= 7) break;
+    }
+
+    for (let i = 0; i < daysToShow.length; i++) {
+      const item = daysToShow[i];
+      const day = item.day;
+      const key = item.key;
+      const list = item.list;
+      const labelIdx = item.idx;
+      list.sort((a, b) => {
+        const at = a && a.startAt ? new Date(String(a.startAt)).getTime() : 0;
+        const bt = b && b.startAt ? new Date(String(b.startAt)).getTime() : 0;
+        return at - bt;
+      });
+
+      const count = list.length;
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "qsQuestItem headerAction qsScheduleItem";
+      btn.setAttribute("role", "listitem");
+      btn.setAttribute("data-schedule-day", key);
+      btn.setAttribute("aria-label", `Open schedule for ${fmtDayLabel(day, labelIdx)}`);
+      btn.setAttribute("data-focus", `drawer.schedule.day.${i + 1}`);
+
+      const main = document.createElement("span");
+      main.className = "qsQuestItemMain";
+
+      const t = document.createElement("span");
+      t.className = "qsQuestItemTitle";
+      t.textContent = fmtDayLabel(day, labelIdx);
+
+      const m = document.createElement("span");
+      m.className = "qsQuestItemMeta";
+      const nextTime = count ? fmtTime(list[0]?.startAt) : "";
+      m.textContent = count ? `${count} event${count === 1 ? "" : "s"}${nextTime ? ` • Next ${nextTime}` : ""}` : "No events";
+
+      const ch = document.createElement("span");
+      ch.className = "qsQuestItemChevron";
+      ch.setAttribute("aria-hidden", "true");
+      ch.innerHTML = '<i class="fa-solid fa-chevron-right" aria-hidden="true"></i>';
+
+      main.appendChild(t);
+      main.appendChild(m);
+      btn.appendChild(main);
+      btn.appendChild(ch);
+      qsScheduleList.appendChild(btn);
+    }
+
+    if (qsScheduleSummaryTitle) qsScheduleSummaryTitle.textContent = `Calendar${upcomingTotal ? ` (${upcomingTotal})` : ""}`;
+    if (qsScheduleSummarySub) qsScheduleSummarySub.textContent = upcomingTotal ? "Tap a day to open your schedule." : "No events scheduled for the next 30 days.";
+
+    if (qsScheduleEmpty) {
+      const empty = upcomingTotal === 0;
+      qsScheduleEmpty.hidden = !empty;
+      qsScheduleEmpty.setAttribute("aria-hidden", empty ? "false" : "true");
+    }
+  };
+
+  const fmtRelative = (ts) => {
+    const t = Number(ts || 0);
+    if (!Number.isFinite(t) || t <= 0) return "";
+    const delta = Math.max(0, Date.now() - t);
+    const min = Math.floor(delta / 60000);
+    if (min < 1) return "just now";
+    if (min < 60) return `${min}m ago`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}h ago`;
+    const d = Math.floor(hr / 24);
+    return `${d}d ago`;
+  };
+
+  const readScopedRaw = (base) => {
+    const scoped = scopedUserKey(base);
+    const scopedVal = safeLocalGet(scoped);
+    if (scopedVal != null) return { scoped, raw: scopedVal };
+    if (scoped !== base) {
+      const legacyVal = safeLocalGet(base);
+      if (legacyVal != null) return { scoped, raw: legacyVal, legacy: true };
+    }
+    return { scoped, raw: null };
+  };
+
+  const ensureScoped = (base) => {
+    const { scoped, raw, legacy } = readScopedRaw(base);
+    if (!legacy) return raw;
+    if (raw == null) return null;
+    safeLocalSet(scoped, raw);
+    return raw;
+  };
+
+  const syncStudyUi = () => {
+    if (!qsStudyMinutesSub) return;
+    const raw = ensureScoped(LS_STUDY_FOCUS_STATE_BASE);
+    let sec = 0;
+    let sessions = 0;
+    if (raw) {
+      try {
+        const v = JSON.parse(raw);
+        sec = Number(v?.studySecondsToday ?? 0) || 0;
+        sessions = Number(v?.sessionsToday ?? 0) || 0;
+      } catch {
+        // ignore
+      }
+    }
+    const minutes = Math.floor(Math.max(0, sec) / 60);
+    qsStudyMinutesSub.textContent = `You have studied for ${minutes} minute${minutes === 1 ? "" : "s"} today${sessions ? ` \u2022 ${sessions} session${sessions === 1 ? "" : "s"}` : ""}.`;
+  };
+
+  const readNotesStore = () => {
+    const raw = ensureScoped(LS_NOTES_BASE);
+    if (!raw) return { notes: [], folderCatalog: [], tagCatalog: [] };
+    try {
+      const v = JSON.parse(raw);
+      return {
+        notes: Array.isArray(v?.notes) ? v.notes : [],
+        folderCatalog: Array.isArray(v?.folderCatalog) ? v.folderCatalog : [],
+        tagCatalog: Array.isArray(v?.tagCatalog) ? v.tagCatalog : [],
+      };
+    } catch {
+      return { notes: [], folderCatalog: [], tagCatalog: [] };
+    }
+  };
+
+  const syncNotesUi = () => {
+    const store = readNotesStore();
+    const notes = Array.isArray(store.notes) ? store.notes : [];
+    const folders = Array.isArray(store.folderCatalog) ? store.folderCatalog : [];
+    const tags = Array.isArray(store.tagCatalog) ? store.tagCatalog : [];
+
+    const activeNotes = notes.filter((n) => n && !n.deletedAt && !n.hiddenAt);
+
+    if (qsNotesSummaryTitle) qsNotesSummaryTitle.textContent = `Notes${activeNotes.length ? ` (${activeNotes.length})` : ""}`;
+    if (qsNotesSummarySub) qsNotesSummarySub.textContent = activeNotes.length ? "Tap an item to open Notes." : "Create a note to start capturing ideas.";
+
+    if (qsNotesFolderList) qsNotesFolderList.innerHTML = "";
+    if (qsNotesTagList) qsNotesTagList.innerHTML = "";
+    if (qsNotesRecentList) qsNotesRecentList.innerHTML = "";
+
+    const folderCounts = new Map();
+    for (const n of activeNotes) {
+      const fid = typeof n?.folder === "string" ? n.folder : "";
+      if (!fid) continue;
+      folderCounts.set(fid, (folderCounts.get(fid) || 0) + 1);
+    }
+
+    const tagCounts = new Map();
+    for (const n of activeNotes) {
+      const list = Array.isArray(n?.tags) ? n.tags : [];
+      for (const tid of list) {
+        const id = String(tid || "").trim();
+        if (!id) continue;
+        tagCounts.set(id, (tagCounts.get(id) || 0) + 1);
+      }
+    }
+
+    const mkJumpItem = ({ title, meta, focusKey, label, noteId }) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "qsQuestItem headerAction qsNotesItem";
+      btn.setAttribute("role", "listitem");
+      btn.setAttribute("data-notes-jump", "1");
+      btn.setAttribute("aria-label", label || `Open notes for ${title}`);
+      if (focusKey) btn.setAttribute("data-focus", focusKey);
+      if (noteId) btn.setAttribute("data-note-id", String(noteId));
+
+      const main = document.createElement("span");
+      main.className = "qsQuestItemMain";
+
+      const t = document.createElement("span");
+      t.className = "qsQuestItemTitle";
+      t.textContent = title;
+
+      const m = document.createElement("span");
+      m.className = "qsQuestItemMeta";
+      m.textContent = meta || "";
+
+      const ch = document.createElement("span");
+      ch.className = "qsQuestItemChevron";
+      ch.setAttribute("aria-hidden", "true");
+      ch.innerHTML = '<i class="fa-solid fa-chevron-right" aria-hidden="true"></i>';
+
+      main.appendChild(t);
+      main.appendChild(m);
+      btn.appendChild(main);
+      btn.appendChild(ch);
+      return btn;
+    };
+
+    if (qsNotesFolderList) {
+      const shown = folders
+        .map((f) => {
+          const id = String(f?.id || "").trim();
+          const label = String(f?.label || id || "Folder").trim();
+          const count = folderCounts.get(id) || 0;
+          return { id, label, count };
+        })
+        .filter((x) => x.id && x.count > 0)
+        .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+        .slice(0, 4);
+
+      shown.forEach((f, idx) => {
+        qsNotesFolderList.appendChild(
+          mkJumpItem({
+            title: f.label,
+            meta: `${f.count} note${f.count === 1 ? "" : "s"}`,
+            focusKey: `drawer.notes.folder.${idx + 1}`,
+            label: `Open notes folder ${f.label}`,
+          }),
+        );
+      });
+      if (qsNotesFolderEmpty) {
+        const empty = shown.length === 0;
+        qsNotesFolderEmpty.hidden = !empty;
+        qsNotesFolderEmpty.setAttribute("aria-hidden", empty ? "false" : "true");
+      }
+    }
+
+    if (qsNotesTagList) {
+      const shown = tags
+        .map((t) => {
+          const id = String(t?.id || "").trim();
+          const label = String(t?.label || id || "Tag").trim();
+          const count = tagCounts.get(id) || 0;
+          return { id, label, count };
+        })
+        .filter((x) => x.id && x.count > 0)
+        .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+        .slice(0, 4);
+
+      shown.forEach((t, idx) => {
+        qsNotesTagList.appendChild(
+          mkJumpItem({
+            title: t.label,
+            meta: `${t.count} note${t.count === 1 ? "" : "s"}`,
+            focusKey: `drawer.notes.tag.${idx + 1}`,
+            label: `Open notes tag ${t.label}`,
+          }),
+        );
+      });
+      if (qsNotesTagEmpty) {
+        const empty = shown.length === 0;
+        qsNotesTagEmpty.hidden = !empty;
+        qsNotesTagEmpty.setAttribute("aria-hidden", empty ? "false" : "true");
+      }
+    }
+
+    if (qsNotesAllList) {
+      const list = activeNotes
+        .slice()
+        .sort((a, b) => {
+          const au = Number(a?.createdAt ?? 0) || 0;
+          const bu = Number(b?.createdAt ?? 0) || 0;
+          if (bu !== au) return bu - au;
+          const au2 = Number(a?.updatedAt ?? 0) || 0;
+          const bu2 = Number(b?.updatedAt ?? 0) || 0;
+          return bu2 - au2;
+        })
+        .slice(0, 6);
+
+      list.forEach((n, idx) => {
+        const title = String(n?.title || "Untitled").trim() || "Untitled";
+        const ts = Number(n?.createdAt ?? n?.updatedAt ?? 0) || 0;
+        const fid = typeof n?.folder === "string" ? n.folder : "";
+        const folderLabel = fid ? (folders.find((f) => String(f?.id) === fid)?.label || fid) : "";
+        const meta = `${ts ? `Created ${fmtRelative(ts)}` : "Created"}${folderLabel ? ` â€¢ ${folderLabel}` : ""}`;
+        qsNotesAllList.appendChild(
+          mkJumpItem({
+            title,
+            meta,
+            focusKey: `drawer.notes.note.${idx + 1}`,
+            label: `Open note ${title}`,
+            noteId: n?.id,
+          }),
+        );
+      });
+
+      if (qsNotesAllEmpty) {
+        const empty = list.length === 0;
+        qsNotesAllEmpty.hidden = !empty;
+        qsNotesAllEmpty.setAttribute("aria-hidden", empty ? "false" : "true");
+      }
+    }
+
+    if (qsNotesRecentList) {
+      const cutoff = Date.now() - 6 * 60 * 60 * 1000;
+      const rec = activeNotes
+        .slice()
+        .sort((a, b) => {
+          const au = Number(a?.updatedAt ?? a?.createdAt ?? 0) || 0;
+          const bu = Number(b?.updatedAt ?? b?.createdAt ?? 0) || 0;
+          return bu - au;
+        })
+        .filter((n) => {
+          const ts = Number(n?.updatedAt ?? n?.createdAt ?? 0) || 0;
+          return ts >= cutoff;
+        })
+        .slice(0, 5);
+
+      rec.forEach((n, idx) => {
+        const title = String(n?.title || "Untitled").trim() || "Untitled";
+        const ts = Number(n?.updatedAt ?? n?.createdAt ?? 0) || 0;
+        qsNotesRecentList.appendChild(
+          mkJumpItem({
+            title,
+            meta: ts ? `Updated ${fmtRelative(ts)}` : "Recently updated",
+            focusKey: `drawer.notes.recent.${idx + 1}`,
+            label: `Open note ${title}`,
+            noteId: n?.id,
+          }),
+        );
+      });
+
+      if (qsNotesRecentEmpty) {
+        const empty = rec.length === 0;
+        qsNotesRecentEmpty.hidden = !empty;
+        qsNotesRecentEmpty.setAttribute("aria-hidden", empty ? "false" : "true");
+      }
+    }
+  };
+
+  const fmtNum = (n) => {
+    try {
+      return Number(n).toLocaleString();
+    } catch {
+      return String(n);
+    }
+  };
+
+  const DUMMY_BATTLE_LB = [
+    { id: "u1", name: "Abyss", xp: 6240, elo: 1420, tag: "B29" },
+    { id: "u2", name: "Putra", xp: 5180, elo: 1350, tag: "B29" },
+    { id: "u3", name: "Nara", xp: 4820, elo: 1288, tag: "B29" },
+    { id: "u4", name: "Raka", xp: 4550, elo: 1210, tag: "B29" },
+    { id: "u5", name: "Salsa", xp: 4390, elo: 1194, tag: "B29" },
+  ];
+
+  let battleLbCache = null;
+  let battleLbCacheAt = 0;
+  let battleLbInflight = null;
+
+  const renderBattleLeaderboard = (entries) => {
+    if (!qsBattleLbList) return;
+    qsBattleLbList.innerHTML = "";
+
+    const list = Array.isArray(entries) ? entries : [];
+    if (list.length === 0) {
+      const row = document.createElement("div");
+      row.className = "qsBattleLbRow";
+      row.setAttribute("role", "listitem");
+      row.setAttribute("aria-label", "No leaderboard data");
+      row.textContent = "No leaderboard data yet.";
+      qsBattleLbList.appendChild(row);
+      return;
+    }
+
+    list.forEach((e, i) => {
+      const row = document.createElement("div");
+      row.className = "qsBattleLbRow";
+      row.setAttribute("role", "listitem");
+      row.setAttribute("aria-label", `Rank ${i + 1} ${e.name}`);
+
+      const r = document.createElement("div");
+      r.className = "qsBattleLbRank";
+      r.textContent = `#${i + 1}`;
+
+      const main = document.createElement("div");
+      main.className = "qsBattleLbMain";
+
+      const name = document.createElement("div");
+      name.className = "qsBattleLbName";
+      name.textContent = e.name;
+
+      const meta = document.createElement("div");
+      meta.className = "qsBattleLbMeta";
+      meta.textContent = `${fmtNum(e.xp)} XP â€¢ ${fmtNum(e.elo)} ELO`;
+
+      const tag = document.createElement("div");
+      tag.className = "qsBattleLbTag";
+      tag.textContent = e.tag || "â€”";
+
+      main.appendChild(name);
+      main.appendChild(meta);
+      row.appendChild(r);
+      row.appendChild(main);
+      row.appendChild(tag);
+      qsBattleLbList.appendChild(row);
+    });
+  };
+
+  const ensureBattleLeaderboard = async () => {
+    const now = Date.now();
+    if (battleLbCache && now - battleLbCacheAt < 60_000) return battleLbCache;
+    if (battleLbInflight) return battleLbInflight;
+
+    if (typeof fetch !== "function") {
+      battleLbCache = { entries: DUMMY_BATTLE_LB };
+      battleLbCacheAt = now;
+      return battleLbCache;
+    }
+
+    battleLbInflight = (async () => {
+      try {
+        const res = await fetch("/api/battle/leaderboard?sort=xp&limit=5", { credentials: "include" });
+        const json = await res.json();
+        const entries = Array.isArray(json?.entries) ? json.entries : [];
+        const normalized = entries.map((x) => ({
+          id: String(x?.id || ""),
+          name: String(x?.name || "Unknown"),
+          xp: Number(x?.xp ?? 0) || 0,
+          elo: Number(x?.elo ?? 0) || 0,
+          tag: String(x?.tag || "â€”"),
+        }));
+
+        battleLbCache = { entries: normalized.length ? normalized : DUMMY_BATTLE_LB };
+        battleLbCacheAt = Date.now();
+        return battleLbCache;
+      } catch {
+        battleLbCache = { entries: DUMMY_BATTLE_LB };
+        battleLbCacheAt = Date.now();
+        return battleLbCache;
+      } finally {
+        battleLbInflight = null;
+      }
+    })();
+
+    return battleLbInflight;
+  };
+
+  const syncBattleUi = () => {
+    const elo = 1350;
+    const rank = "Silver II";
+    const winrate = "62%";
+    const battleXp = "+240";
+
+    if (qsBattleStatEloVal) qsBattleStatEloVal.textContent = fmtNum(elo);
+    if (qsBattleStatRankVal) qsBattleStatRankVal.textContent = rank;
+    if (qsBattleStatWinrateVal) qsBattleStatWinrateVal.textContent = winrate;
+    if (qsBattleStatXpVal) qsBattleStatXpVal.textContent = battleXp;
+
+    if (qsBattleLbList) {
+      qsBattleLbList.innerHTML = "";
+      (battleLbCache && Array.isArray(battleLbCache.entries) ? battleLbCache.entries : DUMMY_BATTLE_LB).forEach((e, i) => {
+        const row = document.createElement("div");
+        row.className = "qsBattleLbRow";
+        row.setAttribute("role", "listitem");
+        row.setAttribute("aria-label", `Rank ${i + 1} ${e.name}`);
+
+        const r = document.createElement("div");
+        r.className = "qsBattleLbRank";
+        r.textContent = `#${i + 1}`;
+
+        const main = document.createElement("div");
+        main.className = "qsBattleLbMain";
+
+        const name = document.createElement("div");
+        name.className = "qsBattleLbName";
+        name.textContent = e.name;
+
+        const meta = document.createElement("div");
+        meta.className = "qsBattleLbMeta";
+        meta.textContent = `${fmtNum(e.xp)} XP • ${fmtNum(e.elo)} ELO`;
+
+        const tag = document.createElement("div");
+        tag.className = "qsBattleLbTag";
+        tag.textContent = e.tag;
+
+        main.appendChild(name);
+        main.appendChild(meta);
+        row.appendChild(r);
+        row.appendChild(main);
+        row.appendChild(tag);
+        qsBattleLbList.appendChild(row);
+      });
+
+      ensureBattleLeaderboard().then((data) => {
+        if (!isQsPanelOpen("battle")) return;
+        const entries = data && Array.isArray(data.entries) ? data.entries : DUMMY_BATTLE_LB;
+        renderBattleLeaderboard(entries);
+      });
+    }
+
+    if (qsBattleQuestList) {
+      const quests = readQuests().filter((q) => q && q.id && !isQuestDone(q));
+      const shown = quests.slice(0, 2);
+      qsBattleQuestList.innerHTML = "";
+
+      if (qsBattleQuestEmpty) {
+        const empty = shown.length === 0;
+        qsBattleQuestEmpty.hidden = !empty;
+        qsBattleQuestEmpty.setAttribute("aria-hidden", empty ? "false" : "true");
+      }
+
+      if (qsBattleQuestSub) {
+        qsBattleQuestSub.textContent = quests.length
+          ? `Recommendations from your active quests (${quests.length}).`
+          : "Create a quest to get battle recommendations.";
+      }
+
+      shown.forEach((q, idx) => {
+        const title = String(q.title || "Untitled").trim() || "Untitled";
+        const dueMs = q && q.dueAt ? new Date(String(q.dueAt)).getTime() : Number.POSITIVE_INFINITY;
+        const days = Number.isFinite(dueMs) ? (dueMs - Date.now()) / 86_400_000 : Number.POSITIVE_INFINITY;
+        const dueSoon = Number.isFinite(days) && days <= 7;
+        const recMode = dueSoon ? "Ranked" : "Practice";
+        const reward = dueSoon ? "+120 XP" : "10m";
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "qsBattleQuestItem headerAction";
+        btn.setAttribute("role", "listitem");
+        btn.setAttribute("data-quest-id", String(q.id));
+        btn.setAttribute("aria-label", `Open battle based on ${title}`);
+        btn.setAttribute("data-focus", `drawer.battle.quest.${idx + 1}`);
+
+        const wrap = document.createElement("span");
+        wrap.style.minWidth = "0";
+
+        const t = document.createElement("div");
+        t.className = "qsBattleQuestItemTitle";
+        t.textContent = title;
+
+        const m = document.createElement("div");
+        m.className = "qsBattleQuestItemMeta";
+        m.textContent = `Recommended: ${recMode} • ${reward}`;
+
+        const ch = document.createElement("span");
+        ch.className = "qsBattleQuestItemChevron";
+        ch.setAttribute("aria-hidden", "true");
+        ch.innerHTML = '<i class="fa-solid fa-chevron-right" aria-hidden="true"></i>';
+
+        wrap.appendChild(t);
+        wrap.appendChild(m);
+        btn.appendChild(wrap);
+        btn.appendChild(ch);
+        qsBattleQuestList.appendChild(btn);
+      });
     }
   };
 
@@ -1258,6 +2276,11 @@ try {
   let closeTimer = null;
   const openDrawer = () => {
     if (!drawer || !overlay) return;
+    try {
+      closeActiveQsPanel({ focusBtn: false });
+    } catch {
+      // ignore
+    }
     enterHeaderMode();
     if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
     hideViewInfo();
@@ -1325,14 +2348,20 @@ try {
     }, 20);
   };
 
-  const closeDrawer = ({ focusProfile = true } = {}) => {
+  const closeDrawer = ({ focusProfile = true, immediate = false } = {}) => {
     if (!drawer || !overlay) return;
     document.body.classList.remove("drawer-open");
     drawer.setAttribute("aria-hidden", "true");
 
     if (closeTimer) clearTimeout(closeTimer);
-    closeTimer = setTimeout(() => {
+    if (immediate) {
       overlay.hidden = true;
+      drawer.hidden = true;
+      return;
+    }
+
+    closeTimer = setTimeout(() => {
+      if (!document.body.classList.contains("drawer-open") && !document.body.classList.contains("qs-panel-open")) overlay.hidden = true;
       drawer.hidden = true;
     }, 340);
 
@@ -1372,16 +2401,85 @@ try {
   if (qsNotifBtn) {
     qsNotifBtn.addEventListener("click", () => {
       if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
-      setPendingFocus("match.account.notifications");
-      navShortcut("/match");
+      if (isQsPanelOpen("notif")) closeQsPanel("notif", { focusBtn: true });
+      else openQsPanel("notif", { focusFirst: true });
     });
   }
 
   if (qsProfileBtn) {
     qsProfileBtn.addEventListener("click", () => {
       if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
-      setPendingFocus("match.account.profile");
-      navShortcut("/match");
+      if (isQsPanelOpen("profile")) closeProfilePanel({ focusProfileBtn: true });
+      else openProfilePanel({ focusFirst: true });
+    });
+  }
+
+  if (qsProfileCloseBtn) {
+    qsProfileCloseBtn.addEventListener("click", () => {
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      closeProfilePanel({ focusProfileBtn: true });
+    });
+  }
+
+  if (qsNotifCloseBtn) {
+    qsNotifCloseBtn.addEventListener("click", () => {
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      closeQsPanel("notif", { focusBtn: true });
+    });
+  }
+
+  if (qsQuestCloseBtn) {
+    qsQuestCloseBtn.addEventListener("click", () => {
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      closeQsPanel("quest", { focusBtn: true });
+    });
+  }
+
+  if (qsScheduleCloseBtn) {
+    qsScheduleCloseBtn.addEventListener("click", () => {
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      closeQsPanel("schedule", { focusBtn: true });
+    });
+  }
+
+  if (qsStudyCloseBtn) {
+    qsStudyCloseBtn.addEventListener("click", () => {
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      closeQsPanel("study", { focusBtn: true });
+    });
+  }
+
+  if (qsBattleCloseBtn) {
+    qsBattleCloseBtn.addEventListener("click", () => {
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      closeQsPanel("battle", { focusBtn: true });
+    });
+  }
+
+  if (qsNotesCloseBtn) {
+    qsNotesCloseBtn.addEventListener("click", () => {
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      closeQsPanel("notes", { focusBtn: true });
+    });
+  }
+
+  if (qsProfileStatusToggle) {
+    qsProfileStatusToggle.addEventListener("change", () => {
+      const on = !!qsProfileStatusToggle.checked;
+      safeLocalSet(LS_QS_PROFILE_STATUS, on ? "1" : "0");
+    });
+  }
+
+  if (qsNotifToggle) {
+    qsNotifToggle.addEventListener("change", () => {
+      const on = !!qsNotifToggle.checked;
+      safeLocalSet(scopedUserKey(LS_NOTIF_BASE), on ? "1" : "0");
+      syncNotifUi();
+      try {
+        window.dispatchEvent(new Event(PREF_EVENT));
+      } catch {
+        // ignore
+      }
     });
   }
 
@@ -1394,12 +2492,13 @@ try {
       // ignore
     }
     if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
-    closeDrawer({ focusProfile: false });
+    closeActiveQsPanel({ focusBtn: false });
+    closeDrawer({ focusProfile: false, immediate: isMobileQs() });
     setTimeout(() => {
       try {
-        const seg = String(href || "").split("?")[0].split("#")[0].replace(/^\//, "");
-        if (seg && typeof window.studiumRoutePush === "function") {
-          window.studiumRoutePush(seg);
+        const full = String(href || "").trim();
+        if (full && typeof window.studiumRoutePush === "function") {
+          window.studiumRoutePush(full);
           return;
         }
       } catch {
@@ -1409,12 +2508,209 @@ try {
     }, 120);
   };
 
-  if (qsQuestBtn) qsQuestBtn.addEventListener("click", () => navShortcut("/quest"));
-  if (qsBattleBtn) qsBattleBtn.addEventListener("click", () => navShortcut("/battle"));
-  if (qsNotesBtn) qsNotesBtn.addEventListener("click", () => navShortcut("/notes"));
+  if (qsQuestBtn)
+    qsQuestBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      if (isQsPanelOpen("quest")) closeQsPanel("quest", { focusBtn: true });
+      else openQsPanel("quest", { focusFirst: true });
+    });
+  if (qsScheduleShortcutBtn)
+    qsScheduleShortcutBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      if (isQsPanelOpen("schedule")) closeQsPanel("schedule", { focusBtn: true });
+      else openQsPanel("schedule", { focusFirst: true });
+    });
+  if (qsStudyShortcutBtn)
+    qsStudyShortcutBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      if (isQsPanelOpen("study")) closeQsPanel("study", { focusBtn: true });
+      else openQsPanel("study", { focusFirst: true });
+    });
+  if (qsBattleBtn)
+    qsBattleBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      if (isQsPanelOpen("battle")) closeQsPanel("battle", { focusBtn: true });
+      else openQsPanel("battle", { focusFirst: true });
+    });
+  if (qsNotesBtn)
+    qsNotesBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      if (isQsPanelOpen("notes")) closeQsPanel("notes", { focusBtn: true });
+      else openQsPanel("notes", { focusFirst: true });
+    });
   if (qsHomeBtn) qsHomeBtn.addEventListener("click", () => navShortcut("/dashboard"));
 
   if (qsSettingsBtn) qsSettingsBtn.addEventListener("click", () => navShortcut("/match"));
+
+  if (qsProfileEditBtn) {
+    qsProfileEditBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      setPendingFocus("match.account.profile");
+      navShortcut("/match");
+    });
+  }
+
+  if (qsProfileMoreBtn) {
+    qsProfileMoreBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      setPendingFocus("match.account.profile");
+      navShortcut("/match");
+    });
+  }
+
+  if (qsNotifSettingsBtn) {
+    qsNotifSettingsBtn.addEventListener("click", () => {
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      setPendingFocus("match.account.notifications");
+      navShortcut("/match");
+    });
+  }
+
+  if (qsQuestOpenBtn) qsQuestOpenBtn.addEventListener("click", () => navShortcut("/quest"));
+  if (qsScheduleOpenBtn) qsScheduleOpenBtn.addEventListener("click", () => navShortcut("/schedules"));
+  if (qsStudyOpenBtn) qsStudyOpenBtn.addEventListener("click", () => navShortcut("/study"));
+  if (qsBattleOpenBtn) qsBattleOpenBtn.addEventListener("click", () => navShortcut("/battle"));
+  if (qsNotesOpenBtn) qsNotesOpenBtn.addEventListener("click", () => navShortcut("/notes"));
+  if (qsBattleModeBtn) qsBattleModeBtn.addEventListener("click", () => navShortcut("/battle"));
+  if (qsStudyStartBtn)
+    qsStudyStartBtn.addEventListener("click", () => {
+      try {
+        const items = Array.from(document.querySelectorAll(".navItem"));
+        const idx = items.findIndex((el) => el && el.dataset && el.dataset.page === "study");
+        if (idx >= 0 && window.navApi && typeof window.navApi.focus === "function") {
+          window.navApi.focus(idx);
+          return;
+        }
+      } catch {
+        // ignore
+      }
+
+      try {
+        sessionStorage.setItem("studium:pending_nav_focus", "study");
+      } catch {}
+      navShortcut("/study");
+    });
+
+  if (qsQuestList) {
+    qsQuestList.addEventListener("click", (e) => {
+      const t = e.target;
+      const btn = t && t.closest ? t.closest("[data-quest-id]") : null;
+      if (!btn) return;
+      const id = btn.getAttribute("data-quest-id") || "";
+      if (!id) return;
+      navShortcut(`/quest?quest=${encodeURIComponent(id)}&detail=1`);
+    });
+  }
+
+  if (qsScheduleList) {
+    qsScheduleList.addEventListener("click", (e) => {
+      const t = e.target;
+      const btn = t && t.closest ? t.closest("[data-schedule-day]") : null;
+      if (!btn) return;
+      const key = btn.getAttribute("data-schedule-day") || "";
+      try {
+        if (key) sessionStorage.setItem("studium:schedules_pending_day", key);
+        sessionStorage.removeItem("studium:schedules_pending_filter");
+      } catch {}
+      setPendingFocus("schedules.agenda");
+      navShortcut("/schedules");
+    });
+  }
+
+  if (qsScheduleCalendarList) {
+    qsScheduleCalendarList.addEventListener("click", (e) => {
+      const t = e.target;
+      const btn = t && t.closest ? t.closest("[data-schedule-filter]") : null;
+      if (!btn) return;
+      const filter = btn.getAttribute("data-schedule-filter") || "all";
+      try {
+        sessionStorage.setItem("studium:schedules_pending_day", fmtDayKey(new Date()));
+        sessionStorage.setItem("studium:schedules_pending_filter", filter);
+      } catch {}
+      setPendingFocus("schedules.agenda");
+      navShortcut("/schedules");
+    });
+  }
+
+  const attachNotesJump = (root) => {
+    if (!root) return;
+    root.addEventListener("click", (e) => {
+      const t = e.target;
+      const btn = t && t.closest ? t.closest("[data-notes-jump]") : null;
+      if (!btn) return;
+      const noteId = btn.getAttribute && btn.getAttribute("data-note-id");
+      if (noteId) {
+        navShortcut(`/notes/new?fullscreen=1&note=${encodeURIComponent(noteId)}`);
+        return;
+      }
+      navShortcut("/notes");
+    });
+  };
+  attachNotesJump(qsNotesFolderList);
+  attachNotesJump(qsNotesTagList);
+  attachNotesJump(qsNotesAllList);
+  attachNotesJump(qsNotesRecentList);
+
+  if (qsBattleQuestList) {
+    qsBattleQuestList.addEventListener("click", (e) => {
+      const t = e.target;
+      const btn = t && t.closest ? t.closest("[data-quest-id]") : null;
+      if (!btn) return;
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      setPendingFocus("battle.questBased");
+      navShortcut("/battle");
+    });
+  }
+
+  try {
+    window.addEventListener("studium:planner_updated", () => {
+      if (isQsPanelOpen("quest")) syncQuestUi();
+      if (isQsPanelOpen("schedule")) syncScheduleUi();
+      if (isQsPanelOpen("battle")) syncBattleUi();
+    });
+    window.addEventListener("storage", () => {
+      if (isQsPanelOpen("quest")) syncQuestUi();
+      if (isQsPanelOpen("schedule")) syncScheduleUi();
+      if (isQsPanelOpen("battle")) syncBattleUi();
+    });
+    window.addEventListener(PREF_EVENT, () => {
+      syncNotifUi();
+    });
+  } catch {
+    // ignore
+  }
+
+  const setProfileTab = (tab) => {
+    if (!qsProfilePanel) return;
+    const btns = Array.from(qsProfilePanel.querySelectorAll("[data-tab]"));
+    btns.forEach((b) => b.setAttribute("aria-selected", b.getAttribute("data-tab") === tab ? "true" : "false"));
+
+    const panes = Array.from(qsProfilePanel.querySelectorAll("[data-pane]"));
+    panes.forEach((p) => {
+      const on = p.getAttribute("data-pane") === tab;
+      p.hidden = !on;
+      p.setAttribute("aria-hidden", on ? "false" : "true");
+      if (on) {
+        try {
+          p.scrollTop = 0;
+        } catch {
+          // ignore
+        }
+      }
+    });
+  };
+
+  if (qsProfilePanel) {
+    qsProfilePanel.addEventListener("click", (e) => {
+      const t = e.target;
+      const btn = t && t.closest ? t.closest("[data-tab]") : null;
+      if (!btn) return;
+      const tab = btn.getAttribute("data-tab") || "";
+      if (!tab) return;
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      setProfileTab(tab);
+    });
+  }
 
   if (toggleMusicBtn) {
     toggleMusicBtn.addEventListener("click", () => {
@@ -1611,12 +2907,14 @@ try {
   if (overlay)
     overlay.addEventListener("click", () => {
       if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
-      closeDrawer({ focusProfile: true });
+      if (isAnyQsPanelOpen()) closeActiveQsPanel({ focusBtn: true });
+      else closeDrawer({ focusProfile: true });
     });
   if (closeBtn)
     closeBtn.addEventListener("click", () => {
       if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
-      closeDrawer({ focusProfile: true });
+      if (isAnyQsPanelOpen()) closeActiveQsPanel({ focusBtn: true });
+      else closeDrawer({ focusProfile: true });
     });
 
   // Apply persisted audio mute immediately (so SFX/music match before opening the drawer).
@@ -1628,8 +2926,12 @@ try {
   };
 
   const drawerFocusables = () => {
-    if (!drawer) return [];
-    const els = Array.from(drawer.querySelectorAll("button,input,select,textarea,[tabindex='0']"));
+    const roots = [];
+    if (drawer) roots.push(drawer);
+    const activePanel = activeQsPanel ? qsPanels[activeQsPanel]?.panel : null;
+    if (activePanel && !activePanel.hidden) roots.push(activePanel);
+
+    const els = roots.flatMap((root) => Array.from(root.querySelectorAll("button,input,select,textarea,[tabindex='0']")));
     return els.filter((el) => {
       if (el.hasAttribute("disabled")) return false;
       if (el.getAttribute("aria-hidden") === "true") return false;
@@ -1656,10 +2958,246 @@ try {
 
   window.profileDrawerApi = {
     open: openDrawer,
-    close: closeDrawer,
+    close: () => {
+      if (isAnyQsPanelOpen()) {
+        closeActiveQsPanel({ focusBtn: false });
+        return;
+      }
+      closeDrawer({ focusProfile: true });
+    },
     isOpen: () => document.body.classList.contains("drawer-open"),
     focusables: drawerFocusables,
   };
+
+  window.qsPanelApi = {
+    isOpen: () => document.body.classList.contains("qs-panel-open"),
+    active: () => activeQsPanel,
+    open: (name, opts) => openQsPanel(String(name || ""), opts),
+    close: (opts) => closeActiveQsPanel(opts),
+  };
+
+  window.qsProfilePanelApi = {
+    isOpen: () => isQsPanelOpen("profile"),
+    open: openProfilePanel,
+    close: closeProfilePanel,
+  };
+
+  window.studiumMusicApi = {
+    isEnabled: () => !!music.enabled,
+    toggleEnabled: () => setMusicEnabled(!music.enabled),
+    playPause: async () => {
+      setMusicEnabled(true);
+      loadPlaylistOnce();
+      if (!qsMusicAudio) return;
+      await ensureMusicGraph();
+      if (!qsMusicAudio.getAttribute("src")) applyTrack(music.index, { autoplay: false });
+      applyMusicGain();
+      try {
+        if (qsMusicAudio.paused) {
+          const p = qsMusicAudio.play();
+          if (p && typeof p.catch === "function") p.catch(() => {});
+        } else qsMusicAudio.pause();
+      } catch {
+        // ignore
+      }
+      setPlayIcon(!qsMusicAudio.paused);
+    },
+  };
+})();
+
+(function initQuickSettingsHoldShortcut() {
+  const HOLD_MS = 650;
+  const host = document.getElementById("qsHoldHost");
+  const pill = document.getElementById("qsHoldPill");
+  const ring = document.getElementById("qsHoldRingPath");
+  if (!host || !pill || !ring) return;
+
+  const setVisible = (on) => {
+    host.hidden = !on;
+    try {
+      document.body.classList.toggle("qs-hold-active", !!on);
+      document.documentElement.style.setProperty("--qs-hold-duration", `${HOLD_MS}ms`);
+    } catch {
+      // ignore
+    }
+    if (!on) return;
+
+    try {
+      pill.style.setProperty("--qs-hold-duration", `${HOLD_MS}ms`);
+    } catch {
+      // ignore
+    }
+
+    // Restart ring animation.
+    try {
+      ring.style.animation = "none";
+      ring.getBoundingClientRect();
+      ring.style.animation = "";
+    } catch {
+      // ignore
+    }
+  };
+
+  const canStart = () => {
+    if (document.body.classList.contains("booting")) return false;
+    if (document.body.classList.contains("drawer-open")) return false;
+    if (document.body.classList.contains("qs-panel-open")) return false;
+    if (typeof getZone === "function" && getZone() === "modal") return false;
+    if (isTypingTarget(document.activeElement)) return false;
+    return true;
+  };
+
+  const openDrawer = () => {
+    try {
+      if (window.profileDrawerApi?.open) return void window.profileDrawerApi.open();
+    } catch {
+      // ignore
+    }
+    try {
+      const btn = document.getElementById("userMenuBtn");
+      if (btn) btn.click();
+    } catch {
+      // ignore
+    }
+  };
+
+  let holding = false;
+  let t = null;
+
+  const cancel = () => {
+    holding = false;
+    if (t) clearTimeout(t);
+    t = null;
+    setVisible(false);
+  };
+
+  const start = () => {
+    if (holding) return;
+    if (!canStart()) return;
+    holding = true;
+    setVisible(true);
+    t = setTimeout(() => {
+      cancel();
+      openDrawer();
+    }, HOLD_MS);
+  };
+
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.defaultPrevented) return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.repeat) return;
+      const key = String(e.key || "").toLowerCase();
+      if (key !== "m") return;
+      start();
+    },
+    true
+  );
+
+  document.addEventListener(
+    "keyup",
+    (e) => {
+      const key = String(e.key || "").toLowerCase();
+      if (key !== "m") return;
+      cancel();
+    },
+    true
+  );
+
+  window.addEventListener("blur", cancel, { passive: true });
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+      if (document.hidden) cancel();
+    },
+    { passive: true }
+  );
+})();
+
+(function initArenaDock() {
+  const dock = document.getElementById("arenaDock");
+  if (!dock) return;
+  const pauseBtn = document.getElementById("arenaPauseBtn");
+  const musicBtn = document.getElementById("arenaMusicBtn");
+  const surrenderBtn = document.getElementById("arenaSurrenderBtn");
+  const quitBtn = document.getElementById("arenaQuitBtn");
+
+  const isArena = () => document.body && document.body.dataset && document.body.dataset.subview === "battle-arena";
+
+  const call = (fn) => {
+    try {
+      const api = window.arenaApi;
+      if (!api || typeof api[fn] !== "function") return false;
+      api[fn]();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  if (pauseBtn)
+    pauseBtn.addEventListener("click", () => {
+      if (!isArena()) return;
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      call("togglePause");
+    });
+
+  if (surrenderBtn)
+    surrenderBtn.addEventListener("click", () => {
+      if (!isArena()) return;
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      call("requestSurrender");
+    });
+
+  if (musicBtn)
+    musicBtn.addEventListener("click", () => {
+      if (!isArena()) return;
+      if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+      try {
+        if (window.studiumMusicApi?.playPause) window.studiumMusicApi.playPause();
+        else if (window.studiumMusicApi?.toggleEnabled) window.studiumMusicApi.toggleEnabled();
+      } catch {
+        // ignore
+      }
+    });
+
+  if (quitBtn)
+    quitBtn.addEventListener("click", (e) => {
+      if (!isArena()) return;
+      // In arena, always confirm exit (handled by React modal).
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
+      call("requestExitConfirm");
+    });
+})();
+
+(function initArenaEscapeConfirm() {
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.defaultPrevented) return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const key = e.key;
+      if (key !== "Escape" && key !== "Esc") return;
+      if (!document.body || document.body.dataset.subview !== "battle-arena") return;
+
+      // Let modal/drawer close handlers work first.
+      if (document.body.classList.contains("drawer-open")) return;
+      if (document.body.classList.contains("modal-open")) return;
+      if (isTypingTarget(document.activeElement)) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        window.arenaApi?.requestExitConfirm?.();
+      } catch {
+        // ignore
+      }
+    },
+    true
+  );
 })();
 
 (function initNavbar() {
@@ -2055,7 +3593,7 @@ try {
     routine: "routine.now",
     quest: "quest.slot1",
     schedules: "schedules.agenda",
-    notes: "notes.inbox",
+    notes: "notes.tab.all",
     study: "study.launcher",
     pomodoro: "pomodoro.timer",
     battle: "battle.lobby",
@@ -2064,11 +3602,29 @@ try {
   };
 
   const overrideByView = {
-    notes: {
-      "notes.inbox:right": "notes.preview",
-      "notes.preview:left": "notes.recent1",
-    },
     battle: {
+      "battle.stats:down": "battle.questBased",
+      "battle.questBased:up": "battle.stats",
+
+      "battle.stats:right": "battle.lobby",
+      "battle.questBased:right": "battle.casual",
+
+      "battle.lobby:up": "battle.stats",
+      "battle.lobby:left": "battle.stats",
+      "battle.lobby:down": "battle.casual",
+      "battle.lobby:right": "battle.leaderboard",
+
+      "battle.casual:up": "battle.lobby",
+      "battle.casual:down": "battle.practice",
+      "battle.casual:left": "battle.questBased",
+      "battle.casual:right": "battle.leaderboard",
+
+      "battle.practice:up": "battle.casual",
+      "battle.practice:down": "battle.leaderboard",
+      "battle.practice:left": "battle.questBased",
+      "battle.practice:right": "battle.leaderboard",
+
+      "battle.leaderboard:left": "battle.lobby",
       "battle.leaderboard:down": "battle.lb.scope.global",
     },
   };
@@ -2122,10 +3678,12 @@ try {
 
   const getZone = () => {
     if (document.body.classList.contains("drawer-open")) return "drawer";
+    if (document.body.classList.contains("qs-panel-open")) return "drawer";
     if (document.body.classList.contains("modal-open")) return "modal";
     const ae = document.activeElement;
     if (ae?.closest?.(".studiumModal")) return "modal";
     if (ae?.closest?.("#profileDrawer")) return "drawer";
+    if (ae?.closest?.(".qsPanel")) return "drawer";
     if (ae?.id === "userMenuBtn" || ae?.id === "viewLabel") return "header";
     if (ae?.closest?.("#routeOutlet") && (ae?.getAttribute?.("data-focus") || ae?.classList?.contains("gridCard") || ae?.closest?.(".gridCard")))
       return "grid";
@@ -2176,6 +3734,48 @@ try {
   const centerOf = (rect) => ({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
 
   const overlap1d = (a1, a2, b1, b2) => Math.max(0, Math.min(a2, b2) - Math.max(a1, b1));
+
+  const NOTES_COL_SEL =
+    '[aria-label="Folders column"],[aria-label="Tags column"],[aria-label="All notes column"],[aria-label="Preview column"],[aria-label="Notes sidebar"],[aria-label="Notes list"],[aria-label="Note preview"]';
+
+  const notesColOf = (el) => {
+    if (!el || typeof el.closest !== "function") return null;
+    return el.closest(NOTES_COL_SEL);
+  };
+
+  const notesColOrder = () => {
+    const outlet = document.getElementById("routeOutlet");
+    if (!outlet) return [];
+
+    const editor = [
+      outlet.querySelector('[aria-label="Notes sidebar"]'),
+      outlet.querySelector('[aria-label="Notes list"]'),
+      outlet.querySelector('[aria-label="Note preview"]'),
+    ].filter(Boolean);
+    if (editor.length >= 2) return editor;
+
+    return [
+      outlet.querySelector('[aria-label="Folders column"]'),
+      outlet.querySelector('[aria-label="Tags column"]'),
+      outlet.querySelector('[aria-label="All notes column"]'),
+      outlet.querySelector('[aria-label="Preview column"]'),
+    ].filter(Boolean);
+  };
+
+  const closestByY = (candidates, y) => {
+    let best = null;
+    let bestDist = Infinity;
+    for (const el of candidates) {
+      const r = el.getBoundingClientRect();
+      const cy = r.top + r.height / 2;
+      const d = Math.abs(cy - y);
+      if (d < bestDist) {
+        bestDist = d;
+        best = el;
+      }
+    }
+    return best;
+  };
 
   let gridRectCache = null;
   let gridCacheTimer = null;
@@ -2267,6 +3867,11 @@ try {
 
   const ensureVisibleSmooth = (el) => {
     if (!el) return;
+    try {
+      if (typeof el.scrollIntoView === "function") el.scrollIntoView({ block: "nearest", inline: "nearest" });
+    } catch {
+      // ignore
+    }
     const r = el.getBoundingClientRect();
     const pad = 120;
     const vh = window.innerHeight;
@@ -2280,6 +3885,30 @@ try {
     const curHasKey = !!curRaw?.getAttribute?.("data-focus") || !!curRaw?.classList?.contains?.("gridCard");
     const cur = curHasKey ? curRaw : curRaw?.closest?.(".gridCard") || curRaw;
     const fromKey = cur?.getAttribute?.('data-focus') || curRaw?.getAttribute?.('data-focus') || '';
+
+    // Battle leaderboard: allow exiting to the main battle grid even though we scope
+    // navigation to elements inside the leaderboard card when it contains focus.
+    if (view === "battle" && typeof fromKey === "string" && fromKey.startsWith("battle.lb.")) {
+      if (dir === "left") {
+        const moved = focusByKey("battle.lobby");
+        if (moved) {
+          if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
+          applyRovingTabindex(document.activeElement);
+          ensureVisibleSmooth(document.activeElement);
+        }
+        return moved;
+      }
+      if (dir === "up") {
+        const moved = focusByKey("battle.leaderboard");
+        if (moved) {
+          if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
+          applyRovingTabindex(document.activeElement);
+          ensureVisibleSmooth(document.activeElement);
+        }
+        return moved;
+      }
+    }
+
     const override = overrideByView?.[view]?.[fromKey + ':' + dir];
     
     if (override) {
@@ -2293,6 +3922,49 @@ try {
     }
 
     const { primary, fallback } = gridCandidateSets();
+
+    // Notes: constrain up/down within the current column, and make left/right switch columns.
+    if (view === "notes") {
+      const curEl = cur || curRaw;
+      const curCol = notesColOf(curEl);
+      if (curCol && (dir === "left" || dir === "right")) {
+        const cols = notesColOrder();
+        const idx = cols.indexOf(curCol);
+        const nextCol = cols[idx + (dir === "right" ? 1 : -1)];
+        if (nextCol) {
+          const cy = centerOf(curEl.getBoundingClientRect()).y;
+          const pool = gridCandidatesAll().filter((el) => nextCol.contains(el));
+          const best = closestByY(pool, cy) || pool[0] || null;
+          if (best) {
+            const moved = focusEl(best);
+            if (moved) {
+              if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
+              applyRovingTabindex(best);
+              ensureVisibleSmooth(best);
+            }
+            return moved;
+          }
+        }
+      }
+
+      if (curCol && (dir === "up" || dir === "down")) {
+        const scopedPrimary = primary.filter((el) => curCol.contains(el));
+        const scopedFallback = fallback.filter((el) => curCol.contains(el));
+        const next = spatialNext(cur, dir, scopedPrimary.length ? scopedPrimary : primary) || (fallback !== primary ? spatialNext(cur, dir, scopedFallback.length ? scopedFallback : fallback) : null);
+        if (!next) {
+          if (dir === "up" || dir === "down") lastXMemory = null;
+          return false;
+        }
+        const moved = focusEl(next);
+        if (moved) {
+          if (typeof SFX?.playGridMove === "function") SFX.playGridMove();
+          applyRovingTabindex(next);
+          ensureVisibleSmooth(next);
+        }
+        return moved;
+      }
+    }
+
     const next = spatialNext(cur, dir, primary) || (fallback !== primary ? spatialNext(cur, dir, fallback) : null);
     if (!next) {
        if (dir === 'up' || dir === 'down') lastXMemory = null;
@@ -2332,6 +4004,9 @@ try {
       const zone = getZone();
       const ae = document.activeElement;
       const typing = isTypingTarget(ae);
+
+      // Notes preview: allow up/down arrows to scroll the content instead of navigating focus.
+      if (!typing && (key === "ArrowUp" || key === "ArrowDown") && ae?.closest?.(".notesPreviewBody")) return;
 
       // Don't steal arrow keys from typing targets (let caret/value navigation work).
       // Escape is still handled for closing modals/drawers.
@@ -2413,6 +4088,14 @@ try {
 
         if (key === "Escape") {
           if (typeof SFX?.playHeaderMove === "function") SFX.playHeaderMove();
+          if (window.qsPanelApi?.isOpen?.()) {
+            window.qsPanelApi.close?.({ focusBtn: true });
+            return;
+          }
+          if (window.qsProfilePanelApi?.isOpen?.()) {
+            window.qsProfilePanelApi.close?.({ focusProfileBtn: true });
+            return;
+          }
           window.profileDrawerApi?.close?.();
           focusById("userMenuBtn");
           return;
@@ -2479,6 +4162,21 @@ try {
           if (valueControl && (key === "ArrowUp" || key === "ArrowDown")) return;
         }
 
+        // Activate focused grid item (Enter/Space). Our grid-mode handler
+        // prevents defaults for navigation keys, which would otherwise block
+        // native button/link activation.
+        if ((key === "Enter" || key === " ") && !isTypingTarget(ae)) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const clickTarget =
+            ae?.closest?.('button, a[href], [role="button"], [role="link"], input[type="checkbox"], input[type="radio"]') || ae;
+          try {
+            clickTarget?.click?.();
+          } catch {}
+          return;
+        }
+
         e.preventDefault();
         e.stopPropagation();
 
@@ -2498,7 +4196,9 @@ try {
         if (key === "ArrowDown") {
           const moved = moveInGrid("down");
           if (!moved) {
+            if (getView() === "notes") return;
             if (document.body.classList.contains("quest-detail")) return;
+            if (document.body && document.body.dataset && document.body.dataset.subview === "battle-arena") return;
             if (typeof SFX?.playSwitch === "function") SFX.playSwitch();
             focusNav();
           }
@@ -2507,7 +4207,10 @@ try {
 
         if (key === "ArrowUp") {
           const moved = moveInGrid("up");
-          if (!moved) focusHeaderFromGrid();
+          if (!moved) {
+            if (getView() === "notes") return;
+            focusHeaderFromGrid();
+          }
           return;
         }
         if (key === "ArrowLeft") return void moveInGrid("left");
@@ -2553,13 +4256,18 @@ try {
     return false;
   };
 
+  const EDGE_PX = 22;
+  const EDGE_SWIPE_DX = 86;
+
   let tracking = false;
+  let gesture = null; // "nav" | "qs_edge"
   let sx = 0;
   let sy = 0;
   let st = 0;
 
   const reset = () => {
     tracking = false;
+    gesture = null;
     sx = 0;
     sy = 0;
     st = 0;
@@ -2575,7 +4283,12 @@ try {
       if (shouldIgnoreTarget(e.target)) return;
 
       const t = e.touches[0];
+      const isArena = document.body?.dataset?.subview === "battle-arena";
+      const edge = t.clientX <= EDGE_PX;
+      if (isArena && !edge) return;
+
       tracking = true;
+      gesture = isArena ? "qs_edge" : "nav";
       sx = t.clientX;
       sy = t.clientY;
       st = Date.now();
@@ -2593,12 +4306,27 @@ try {
       const dx = t.clientX - sx;
       const dy = t.clientY - sy;
       const dt = Date.now() - st;
+      const g = gesture;
       reset();
 
       // Horizontal swipe only (avoid vertical scroll).
       if (Math.abs(dx) < 60) return;
       if (Math.abs(dx) < Math.abs(dy) * 1.2) return;
       if (dt > 900) return; // too slow: likely scroll/drag
+
+      // Battle Arena: left-edge swipe opens Quick Settings.
+      if (g === "qs_edge") {
+        if (dx < EDGE_SWIPE_DX) return;
+        if (document.body.classList.contains("drawer-open")) return;
+        try {
+          if (window.profileDrawerApi?.open) window.profileDrawerApi.open();
+          else document.getElementById("userMenuBtn")?.click?.();
+        } catch {
+          // ignore
+        }
+        return;
+      }
+
       if (navSwitchLocked()) return;
 
       const dir = dx < 0 ? 1 : -1; // swipe left -> next

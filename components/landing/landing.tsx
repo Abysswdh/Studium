@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Waves from "../reactbits/Waves";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/auth/demo";
 
 function clsx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -13,6 +14,15 @@ function clsx(...parts: Array<string | false | null | undefined>) {
 export default function Landing() {
   const router = useRouter();
   const [entering, setEntering] = useState(false);
+  const [demoModalOpen, setDemoModalOpen] = useState(false);
+  const [demoSubmitting, setDemoSubmitting] = useState(false);
+  const [demoError, setDemoError] = useState<string>("");
+  const [demoFullName, setDemoFullName] = useState("");
+  const [demoAge, setDemoAge] = useState("");
+  const [demoBirthDate, setDemoBirthDate] = useState("");
+  const [demoGmail, setDemoGmail] = useState("");
+  const [demoPrefBattles, setDemoPrefBattles] = useState(true);
+  const [demoPrefGuild, setDemoPrefGuild] = useState(true);
 
   useEffect(() => {
     document.body.classList.add("nav-mode");
@@ -66,6 +76,13 @@ export default function Landing() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       if (e.repeat) return;
+      if (demoModalOpen) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setDemoModalOpen(false);
+        }
+        return;
+      }
 
       if (e.key === "Enter" || e.key.toLowerCase() === "e") {
         e.preventDefault();
@@ -76,7 +93,58 @@ export default function Landing() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entering]);
+  }, [entering, demoModalOpen]);
+
+  const submitDemoOnboarding = async () => {
+    if (demoSubmitting) return;
+    setDemoError("");
+
+    const fullName = demoFullName.trim();
+    const gmail = demoGmail.trim().toLowerCase();
+    const age = Number(String(demoAge || "").trim());
+    const birthDate = String(demoBirthDate || "").trim();
+
+    const invalid =
+      !fullName ||
+      fullName.length < 2 ||
+      !gmail ||
+      !gmail.includes("@") ||
+      !Number.isFinite(age) ||
+      age < 5 ||
+      age > 120 ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(birthDate);
+
+    if (invalid) {
+      if (!fullName || fullName.length < 2) setDemoError("Nama lengkap minimal 2 karakter.");
+      else if (!gmail || !gmail.includes("@")) setDemoError("Gmail tidak valid.");
+      else if (!Number.isFinite(age) || age < 5 || age > 120) setDemoError("Umur tidak valid.");
+      else setDemoError("Tanggal lahir tidak valid.");
+      return;
+    }
+
+    setDemoSubmitting(true);
+    try {
+      localStorage.setItem("studium:demo:signed_in", "1");
+      localStorage.setItem(
+        "studium:demo:profile:v1",
+        JSON.stringify({
+          fullName,
+          gmail,
+          age,
+          birthDate,
+          prefersBattles: demoPrefBattles,
+          prefersGuild: demoPrefGuild,
+          updatedAt: Date.now(),
+        })
+      );
+    } catch {
+      // ignore
+    }
+
+    setDemoModalOpen(false);
+    setDemoSubmitting(false);
+    void enterTo("/dashboard");
+  };
 
   const featureCards = useMemo(
     () => [
@@ -186,9 +254,10 @@ export default function Landing() {
               href="/register"
               onClick={(e) => {
                 e.preventDefault();
-                void enterTo("/register");
+                setDemoError("");
+                setDemoModalOpen(true);
               }}
-              className="hidden rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-[900] text-white/85 transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/45 md:inline-flex"
+              className="inline-flex rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-[900] text-white/85 transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/45"
             >
               Register
             </Link>
@@ -202,6 +271,152 @@ export default function Landing() {
             </button>
           </div>
         </header>
+
+        {demoModalOpen ? (
+          <div
+            className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-4 backdrop-blur-md"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Demo onboarding"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setDemoModalOpen(false);
+            }}
+          >
+            <div className="w-full max-w-lg rounded-3xl border border-white/12 bg-gradient-to-b from-[#0b1020]/95 via-black/92 to-black/88 p-5 shadow-[0_30px_120px_rgba(0,0,0,0.6)]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-xs font-[900] tracking-[0.22em] text-white/60">DEMO ONBOARDING</div>
+                  <div className="mt-2 text-2xl font-[900] tracking-[-0.02em] text-white/90">
+                    Halo,{" "}
+                    <span className="bg-gradient-to-r from-cyan-200 via-violet-200 to-fuchsia-200 bg-clip-text text-transparent">Demo</span>.
+                  </div>
+                  <div className="mt-2 text-sm font-[800] text-white/70">
+                    Isi profil singkat dulu, tetap masuk pakai akun demo.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/12 bg-white/5 text-white/80 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/45"
+                  aria-label="Close"
+                  onClick={() => setDemoModalOpen(false)}
+                >
+                  <i className="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+              </div>
+
+              {demoError ? (
+                <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-[800] text-red-100/90">
+                  {demoError}
+                </div>
+              ) : null}
+
+              <div className="mt-4 grid grid-cols-1 gap-4">
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-[900] tracking-wide text-white/70">Nama lengkap</span>
+                  <input
+                    value={demoFullName}
+                    onChange={(e) => setDemoFullName(e.target.value)}
+                    type="text"
+                    autoComplete="name"
+                    className="h-11 rounded-xl border border-white/10 bg-black/30 px-4 text-sm font-[800] text-white/90 outline-none focus:ring-2 focus:ring-white/35"
+                    placeholder="Nama lengkap kamu"
+                  />
+                </label>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-xs font-[900] tracking-wide text-white/70">Umur</span>
+                    <input
+                      value={demoAge}
+                      onChange={(e) => setDemoAge(e.target.value)}
+                      type="number"
+                      min={5}
+                      max={120}
+                      inputMode="numeric"
+                      className="h-11 rounded-xl border border-white/10 bg-black/30 px-4 text-sm font-[800] text-white/90 outline-none focus:ring-2 focus:ring-white/35"
+                      placeholder="17"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-xs font-[900] tracking-wide text-white/70">Tanggal lahir</span>
+                    <input
+                      value={demoBirthDate}
+                      onChange={(e) => setDemoBirthDate(e.target.value)}
+                      type="date"
+                      className="h-11 rounded-xl border border-white/10 bg-black/30 px-4 text-sm font-[800] text-white/90 outline-none focus:ring-2 focus:ring-white/35"
+                    />
+                  </label>
+                </div>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-[900] tracking-wide text-white/70">Gmail</span>
+                  <input
+                    value={demoGmail}
+                    onChange={(e) => setDemoGmail(e.target.value)}
+                    type="email"
+                    autoComplete="email"
+                    className="h-11 rounded-xl border border-white/10 bg-black/30 px-4 text-sm font-[800] text-white/90 outline-none focus:ring-2 focus:ring-white/35"
+                    placeholder="nama@gmail.com"
+                  />
+                </label>
+
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                  <div className="text-xs font-[900] tracking-[0.18em] text-white/60">PREFERENSI</div>
+                  <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setDemoPrefBattles((v) => !v)}
+                      className={clsx(
+                        "flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-white/45",
+                        demoPrefBattles ? "border-cyan-200/25 bg-cyan-200/10" : "border-white/10 bg-black/20"
+                      )}
+                      aria-pressed={demoPrefBattles}
+                    >
+                      <div>
+                        <div className="text-sm font-[900] text-white/90">Battle</div>
+                        <div className="text-xs font-[800] text-white/60">Mode 1v1 buat nambah semangat.</div>
+                      </div>
+                      <div className={clsx("h-6 w-11 rounded-full border border-white/10 p-[3px]", demoPrefBattles ? "bg-cyan-200/25" : "bg-white/10")}>
+                        <div className={clsx("h-5 w-5 rounded-full bg-white transition", demoPrefBattles ? "translate-x-5" : "translate-x-0")} />
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDemoPrefGuild((v) => !v)}
+                      className={clsx(
+                        "flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-white/45",
+                        demoPrefGuild ? "border-violet-200/25 bg-violet-200/10" : "border-white/10 bg-black/20"
+                      )}
+                      aria-pressed={demoPrefGuild}
+                    >
+                      <div>
+                        <div className="text-sm font-[900] text-white/90">Study room</div>
+                        <div className="text-xs font-[800] text-white/60">Co-focus bareng teman/guild.</div>
+                      </div>
+                      <div className={clsx("h-6 w-11 rounded-full border border-white/10 p-[3px]", demoPrefGuild ? "bg-violet-200/25" : "bg-white/10")}>
+                        <div className={clsx("h-5 w-5 rounded-full bg-white transition", demoPrefGuild ? "translate-x-5" : "translate-x-0")} />
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={demoSubmitting}
+                  onClick={() => void submitDemoOnboarding()}
+                  className="inline-flex h-11 items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-200 via-violet-200 to-fuchsia-200 px-6 text-sm font-[900] text-black transition hover:brightness-95 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-white/60"
+                >
+                  {demoSubmitting ? "Menyimpan..." : "Lanjutkan pakai akun demo"}
+                </button>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-xs font-[800] text-white/65">
+                  Demo login: <span className="text-white/85">{DEMO_EMAIL}</span> / <span className="text-white/85">{DEMO_PASSWORD}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <main id="top" className="grid grid-cols-1 items-start gap-10 md:grid-cols-[1.05fr_0.95fr] md:gap-12">
           <section className="flex flex-col gap-6">
@@ -256,45 +471,19 @@ export default function Landing() {
             </div>
           </section>
 
-          <aside className="relative overflow-hidden rounded-3xl border border-white/12 bg-white/10 p-6 shadow-[0_30px_120px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
+          <aside className="relative overflow-hidden rounded-3xl border border-white/12 bg-white/10 p-0 shadow-[0_30px_120px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
             <div className="absolute inset-0 opacity-75 [background:radial-gradient(700px_500px_at_20%_20%,rgba(34,211,238,0.20),transparent_60%),radial-gradient(900px_650px_at_75%_35%,rgba(168,85,247,0.20),transparent_60%),radial-gradient(900px_650px_at_60%_90%,rgba(251,191,36,0.10),transparent_60%)]" />
-            <div className="pointer-events-none absolute -right-10 -top-6 opacity-95">
-              <div className="floaty relative h-[220px] w-[220px] md:h-[260px] md:w-[260px]">
-                <Image src="/blockyPng/greetings.png" alt="" fill className="object-contain drop-shadow-[0_30px_80px_rgba(0,0,0,0.45)]" priority />
-              </div>
-            </div>
-            <div className="relative flex flex-col gap-5">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-[900] tracking-wide text-white/85">Today’s Routine</div>
-                <div className="rounded-full border border-white/12 bg-black/20 px-3 py-1 text-[11px] font-[900] text-white/70 backdrop-blur-xl">
-                  Demo
+            <div className="relative h-[340px] w-full md:h-[420px]" aria-hidden="true">
+              <div className="pointer-events-none absolute -right-12 -top-12 opacity-95">
+                <div className="floaty relative h-[380px] w-[380px] md:h-[480px] md:w-[480px]">
+                  <Image
+                    src="/blockyPng/greetings.png"
+                    alt=""
+                    fill
+                    className="object-contain drop-shadow-[0_40px_120px_rgba(0,0,0,0.55)]"
+                    priority
+                  />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { t: "Now", d: "Focus 25 | Calculus", xp: "+120 XP" },
-                  { t: "Next", d: "Battle warmup", xp: "+60 XP" },
-                  { t: "Later", d: "Capture notes", xp: "+40 XP" },
-                  { t: "Plan", d: "Guild co-focus", xp: "+80 XP" },
-                ].map((x) => (
-                  <div key={x.t} className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-xl">
-                    <div className="text-xs font-[900] text-white/60">{x.t}</div>
-                    <div className="mt-2 text-sm font-[900] text-white/90">{x.d}</div>
-                    <div className="mt-3 text-xs font-[900] text-white/55">{x.xp}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/25 px-4 py-3 backdrop-blur-xl">
-                <div className="flex items-center gap-3">
-                  <i className="fa-solid fa-fire-flame-curved text-white/80" aria-hidden="true"></i>
-                  <div>
-                    <div className="text-xs font-[900] text-white/55">Streak</div>
-                    <div className="text-sm font-[900] text-white/90">12 days</div>
-                  </div>
-                </div>
-                <div className="text-xs font-[900] text-white/60">Press Enter to start</div>
               </div>
             </div>
           </aside>

@@ -14,6 +14,11 @@ body.drawer-open .drawerOverlay {
   pointer-events: auto;
 }
 
+body.qs-panel-open .drawerOverlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .drawer {
   position: fixed;
   top: 18px;

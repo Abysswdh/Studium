@@ -16,6 +16,17 @@ html {
   :root.vt-schedules::view-transition-new(root) {
     mix-blend-mode: normal;
   }
+
+  :root.vt-study::view-transition-old(root) {
+    animation: questVtOut 220ms ease both;
+  }
+  :root.vt-study::view-transition-new(root) {
+    animation: questVtIn 220ms ease both;
+  }
+  :root.vt-study::view-transition-old(root),
+  :root.vt-study::view-transition-new(root) {
+    mix-blend-mode: normal;
+  }
 }
 
 /* Match Quest page view-transition motion. */
@@ -52,6 +63,14 @@ html {
   --shell-maxw: 1440px;
   /* Use the larger safe-area inset on both sides so padding stays symmetric. */
   --safe-inline: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+}
+
+/* Options is content-heavy: allow scroll even on desktop heights. */
+body[data-view="match"] #routeOutlet {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
+  overscroll-behavior: contain;
 }
 
 .shell {
@@ -93,6 +112,7 @@ html {
   grid-area: center;
   justify-self: center;
   min-width: 0;
+  position: relative;
 }
 
 .rightClockMenu {
@@ -124,6 +144,13 @@ html {
 .gridContainerRight,
 .gridContainerRightLeft {
   gap: var(--shell-gap);
+}
+
+/* Dashboard: avoid 50% width "dead space" when stacks wrap. */
+body[data-view="dashboard"] .dashBottomLeft,
+body[data-view="dashboard"] .dashBottomRight {
+  width: auto;
+  flex: 1 1 0;
 }
 
 .userName {
@@ -257,75 +284,76 @@ html {
     gap: 12px;
   }
 
-  /* Reduce vertical bloat: use aspect ratios instead of large min-heights. */
-  .gridContainer {
+  /* Dashboard: reduce vertical bloat using aspect ratios (keep other views on legacy ui.css rules). */
+  body[data-view="dashboard"] .gridContainer {
     min-height: 0;
     height: auto;
   }
 
-  .gridContainerLeft,
-  .gridContainerRight {
+  body[data-view="dashboard"] .gridContainerLeft,
+  body[data-view="dashboard"] .gridContainerRight {
     height: auto;
   }
 
-  .gridContainerLeftTop {
+  body[data-view="dashboard"] .gridContainerLeftTop {
     flex: 0 0 auto;
     min-height: 0;
     aspect-ratio: 21 / 9;
   }
 
-  .gridContainerLeftBottom {
+  body[data-view="dashboard"] .gridContainerLeftBottom {
     flex: 0 0 auto;
     min-height: 0;
   }
 
-  .gridContainerLeftBottomLeft,
-  .gridContainerLeftBottomRight {
+  body[data-view="dashboard"] .gridContainerLeftBottomLeft,
+  body[data-view="dashboard"] .gridContainerLeftBottomRight {
     height: auto;
     aspect-ratio: 3 / 2;
   }
 
-  .dashHero .cardInner {
+  body[data-view="dashboard"] .dashHero .cardInner {
     padding-right: clamp(140px, 34vw, 220px);
   }
 
-  .dashHeroMascot {
+  body[data-view="dashboard"] .dashHeroMascot {
     width: clamp(180px, 44vw, 320px);
     right: 0px;
     bottom: -74px;
   }
 
-  .dashQuickInner i {
+  body[data-view="dashboard"] .dashQuickInner i {
     font-size: clamp(22px, 5.8vw, 32px);
   }
 
-  .dashHeatmap {
+  body[data-view="dashboard"] .dashHeatmap {
     grid-template-columns: repeat(7, 16px);
     grid-template-rows: repeat(4, 16px);
     gap: 7px;
   }
 
-  .dashHeatCell {
+  body[data-view="dashboard"] .dashHeatCell {
     width: 16px;
     height: 16px;
     border-radius: 6px;
   }
 
-  .gridContainerRightLeftOne,
-  .gridContainerRightLeftTwo,
-  .gridContainerRightLeftThree,
-  .gridContainerRightLeftFour {
-    flex: 0 0 auto;
-    min-height: 0;
-    height: auto;
-    aspect-ratio: 3 / 2;
+  body[data-view="dashboard"] .streakMonth--dash {
+    --streak-cell: 10px;
+    --streak-gap: 3px;
   }
 
-  .gridContainerRightRight {
-    flex: 0 0 auto;
-    min-height: 0;
-    height: auto;
-    aspect-ratio: 21 / 10;
+  /* Dashboard: keep right-side cards from collapsing on tablet widths. */
+  body[data-view="dashboard"] .gridContainerRightLeftOne,
+  body[data-view="dashboard"] .gridContainerRightLeftTwo,
+  body[data-view="dashboard"] .gridContainerRightLeftThree,
+  body[data-view="dashboard"] .gridContainerRightLeftFour,
+  body[data-view="dashboard"] .dashQuestCard {
+    min-height: 140px;
+  }
+
+  body[data-view="dashboard"] .gridContainerRightRight {
+    min-height: 280px;
   }
 
   .footerHUD {
@@ -379,17 +407,17 @@ html {
     --nav-icon-size: clamp(18px, 5.2vw, 21px);
   }
 
-  /* Keep a 2-col quest grid longer; drop to 1-col only on very small screens. */
-  .gridContainerRightLeft {
+  /* Dashboard: keep a 2-col quest grid longer; drop to 1-col only on very small screens. */
+  body[data-view="dashboard"] .gridContainerRightLeft {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .gridContainerLeftBottom {
-    flex-direction: row;
-  }
-
-  body[data-view="dashboard"] .gridContainerLeftBottom {
-    flex-direction: column;
+  body[data-view="dashboard"] .gridContainerRightLeftOne,
+  body[data-view="dashboard"] .gridContainerRightLeftTwo,
+  body[data-view="dashboard"] .gridContainerRightLeftThree,
+  body[data-view="dashboard"] .gridContainerRightLeftFour,
+  body[data-view="dashboard"] .dashQuestCard {
+    min-height: 140px;
   }
 
   body[data-view="dashboard"] .dashHero .cardInner {
@@ -412,6 +440,11 @@ html {
     width: 13px;
     height: 13px;
     border-radius: 5px;
+  }
+
+  body[data-view="dashboard"] .streakMonth--dash {
+    --streak-cell: 9px;
+    --streak-gap: 3px;
   }
 
   body[data-view="dashboard"] .dashQuickInner i {
@@ -464,7 +497,7 @@ html {
   }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 320px) {
   .gridContainerLeftBottom {
     flex-direction: column;
   }
@@ -499,6 +532,23 @@ html {
 
   .shell {
     padding-bottom: calc(clamp(6px, 1.2vh, 12px) + env(safe-area-inset-bottom, 0px));
+  }
+
+  body[data-view="dashboard"] #routeOutlet {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+    overscroll-behavior: contain;
+  }
+
+  body[data-view="dashboard"] .gridContainer {
+    height: auto;
+    min-height: 0;
+  }
+
+  body[data-view="dashboard"] .gridContainerLeft,
+  body[data-view="dashboard"] .gridContainerRight {
+    height: auto;
   }
 
   .header {
@@ -597,5 +647,89 @@ html {
   .drawerToggle {
     padding: 9px 10px;
     border-radius: 12px;
+  }
+}
+
+@media (max-height: 900px) and (min-width: 521px) {
+  /* Dashboard: allow natural height when the window is short (prevents clipped widgets/tiles). */
+  body[data-view="dashboard"] .gridContainer {
+    height: auto;
+    min-height: 0;
+  }
+
+  body[data-view="dashboard"] .gridContainerLeft,
+  body[data-view="dashboard"] .gridContainerRight,
+  body[data-view="dashboard"] .dashQuestWrap,
+  body[data-view="dashboard"] .dashWidgetsWrap,
+  body[data-view="dashboard"] .gridContainerRightLeft,
+  body[data-view="dashboard"] .gridContainerRightRight {
+    height: auto;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Dashboard: keep content-driven heights (avoid clipped widgets due to aspect-ratio rules). */
+  body[data-view="dashboard"] .gridContainerRight {
+    flex-direction: column;
+  }
+
+  body[data-view="dashboard"] .dashQuestWrap,
+  body[data-view="dashboard"] .dashWidgetsWrap {
+    flex: 0 0 auto;
+  }
+
+  body[data-view="dashboard"] .gridContainerLeftTop {
+    aspect-ratio: auto;
+  }
+
+  body[data-view="dashboard"] .gridContainerRightLeftOne,
+  body[data-view="dashboard"] .gridContainerRightLeftTwo,
+  body[data-view="dashboard"] .gridContainerRightLeftThree,
+  body[data-view="dashboard"] .gridContainerRightLeftFour,
+  body[data-view="dashboard"] .gridContainerRightRight {
+    aspect-ratio: auto;
+    height: auto;
+  }
+
+  /* Keep cards from collapsing to ~0px height in the 520–900px range. */
+  body[data-view="dashboard"] .gridContainerRightLeftOne,
+  body[data-view="dashboard"] .gridContainerRightLeftTwo,
+  body[data-view="dashboard"] .gridContainerRightLeftThree,
+  body[data-view="dashboard"] .gridContainerRightLeftFour {
+    min-height: 140px;
+  }
+
+  body[data-view="dashboard"] .gridContainerRightRight {
+    min-height: 280px;
+  }
+
+  /* Dashboard: quests read better as a 2-col grid on touch widths. */
+  body[data-view="dashboard"] .gridContainerRightLeft {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+  }
+}
+
+@media (max-width: 740px) {
+  /* Dashboard: keep streak + shortcuts filling the row (no 50% width dead space). */
+  body[data-view="dashboard"] .gridContainerLeftBottom {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  body[data-view="dashboard"] .dashBottomLeft,
+  body[data-view="dashboard"] .dashBottomRight {
+    width: 100%;
+    flex: 1 1 320px;
+  }
+}
+
+@media (max-width: 520px) {
+  body[data-view="dashboard"] .dashBottomLeft,
+  body[data-view="dashboard"] .dashBottomRight {
+    flex-basis: 100%;
   }
 }

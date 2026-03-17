@@ -3,19 +3,9 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { bootstrapPlannerFromServer } from "./grids/planner-storage";
+import { appData } from "@/lib/app-data";
 
-const VIEW_META: Record<string, { label: string; desc: string }> = {
-  dashboard: { label: "Dashboard", desc: "Your daily snapshot: routine, quests, streaks, and widgets." },
-  routine: { label: "Routine", desc: "Now / Next / Later - turn deadlines into concrete steps." },
-  quest: { label: "Quest", desc: "Pick quests, set difficulty, earn XP & streaks." },
-  schedules: { label: "Schedule", desc: "Agenda + deadlines that feed your routine." },
-  notes: { label: "Notes", desc: "Capture quick notes tied to your quests and sessions." },
-  study: { label: "Study Room", desc: "Start a session: focus, review, and capture." },
-  pomodoro: { label: "Pomodoro", desc: "Timer + co-op focus sessions linked to tasks." },
-  battle: { label: "Battle", desc: "1v1 quizzes from a question bank. Win, rank up, repeat." },
-  guild: { label: "Guild", desc: "Group study rooms, co-focus, chat, accountability." },
-  match: { label: "Options", desc: "Settings, preferences, and app options." },
-};
+const VIEW_META = appData.views;
 
 const PLANNER_VIEWS = new Set(["dashboard", "routine", "quest", "schedules"]);
 
@@ -31,12 +21,26 @@ export default function RouteBridge() {
   const didMountRef = useRef(false);
 
   useEffect(() => {
-    (window as any).studiumRoutePush = (view: string) => {
-      const nextView = VIEW_META[view] ? view : "dashboard";
-      const href = `/${nextView}`;
+    (window as any).studiumRoutePush = (viewOrHref: string) => {
+      const raw = String(viewOrHref || "").trim();
+      const looksLikeHref = raw.startsWith("/") || raw.includes("?") || raw.includes("#");
+
+      let href = raw;
+      if (!looksLikeHref) {
+        const nextView = VIEW_META[raw] ? raw : "dashboard";
+        href = `/${nextView}`;
+      } else if (!href.startsWith("/")) {
+        href = `/${href}`;
+      }
+
+      const seg = href.split("?")[0].split("#")[0].split("/").filter(Boolean)[0] || "dashboard";
+      const nextView = seg === "study-room" ? "study" : seg;
+      const safeView = VIEW_META[nextView] ? nextView : "dashboard";
+      if (safeView === "dashboard" && nextView !== "dashboard") href = "/dashboard";
       const anyDoc = document as any;
       const currentView = document.body?.dataset?.view || "";
-      const wantsScheduleTransition = nextView === "schedules" || currentView === "schedules";
+      const wantsScheduleTransition = safeView === "schedules" || currentView === "schedules";
+      const wantsStudyTransition = safeView === "study" || currentView === "study";
 
       if (wantsScheduleTransition && typeof anyDoc?.startViewTransition === "function") {
         document.documentElement.classList.add("vt-schedules");
@@ -44,6 +48,20 @@ export default function RouteBridge() {
           router.push(href);
         });
         const cleanup = () => document.documentElement.classList.remove("vt-schedules");
+        try {
+          vt.finished.then(cleanup, cleanup);
+        } catch {
+          cleanup();
+        }
+        return;
+      }
+
+      if (wantsStudyTransition && typeof anyDoc?.startViewTransition === "function") {
+        document.documentElement.classList.add("vt-study");
+        const vt = anyDoc.startViewTransition(() => {
+          router.push(href);
+        });
+        const cleanup = () => document.documentElement.classList.remove("vt-study");
         try {
           vt.finished.then(cleanup, cleanup);
         } catch {
@@ -61,9 +79,29 @@ export default function RouteBridge() {
     didMountRef.current = true;
 
     document.body.dataset.view = view;
-    if (pathname.startsWith("/notes/new")) document.body.dataset.subview = "notes-editor";
+    if (pathname.startsWith("/battle/arena")) document.body.dataset.subview = "battle-arena";
+    else if (pathname.startsWith("/notes/new")) document.body.dataset.subview = "notes-editor";
+    else if (pathname.startsWith("/study-room/strict")) document.body.dataset.subview = "study-room-strict";
     else if (pathname.startsWith("/study-room")) document.body.dataset.subview = "study-room";
     else document.body.removeAttribute("data-subview");
+
+    // Ensure Study Room does not accidentally inherit legacy strict-mode body classes.
+    try {
+      const inStudy = pathname.startsWith("/study") || pathname.startsWith("/study-room");
+      const isStrict = pathname.startsWith("/study-room/strict");
+      if (inStudy && !isStrict) {
+        document.body.classList.remove("focus-strict", "study-strict");
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      const dock = document.getElementById("arenaDock");
+      if (dock) dock.hidden = !(pathname.startsWith("/battle/arena"));
+    } catch {
+      // ignore
+    }
     if (view === "quest" && typeof (window as any).setMode === "function") {
       try {
         sessionStorage.setItem("studium:nav_lock_until", String(Date.now() + 650));
@@ -109,6 +147,33 @@ export default function RouteBridge() {
       el.setAttribute("aria-selected", isActive ? "true" : "false");
     });
 
+    // Allow Quick Settings shortcuts to land the user on a specific navbar item.
+    try {
+      const pendingNav = sessionStorage.getItem("studium:pending_nav_focus") || "";
+      if (pendingNav) {
+        sessionStorage.removeItem("studium:pending_nav_focus");
+        requestAnimationFrame(() => {
+          try {
+            (window as any).setMode?.("nav");
+            const items = Array.from(document.querySelectorAll<HTMLElement>(".navItem"));
+            const target = items.find((el) => el?.dataset?.page === pendingNav) || null;
+            if (!target) return;
+            items.forEach((el) => el.classList.remove("focused"));
+            target.classList.add("focused");
+            try {
+              target.focus({ preventScroll: true } as any);
+            } catch {
+              target.focus?.();
+            }
+          } catch {
+            // ignore
+          }
+        });
+      }
+    } catch {
+      // ignore
+    }
+
     if (typeof (window as any).setWallpaperForView === "function") {
       (window as any).setWallpaperForView(view);
     }
@@ -125,7 +190,7 @@ export default function RouteBridge() {
 
     // Boot animation on Focus Mode entry (every time the shell mounts).
     try {
-      if (isFirst) requestBoot({ mode: "enter", showWelcome: true });
+      if (isFirst) requestBoot({ mode: "enter", showWelcome: true, playSound: true });
     } catch {
       // ignore
     }

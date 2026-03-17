@@ -1,6 +1,8 @@
 import CardChrome from "./grid-parts/card-chrome";
+import { appData } from "@/lib/app-data";
 
 export default function GuildGrid() {
+  const cards = appData.guild.grid.cards;
   return (
     <div className="gridContainer gridContainer--guild" aria-label="Guild grid">
       <div className="gridContainerLeft">
@@ -12,7 +14,7 @@ export default function GuildGrid() {
           role="button"
           aria-label="Guild overview"
         >
-          <CardChrome kicker="Guild" title="Orbit Squad" meta="5 online | 2 co-focus rooms" />
+          <CardChrome kicker={cards.leftTop.kicker} title={cards.leftTop.title} meta={cards.leftTop.meta} />
         </div>
         <div className="gridContainerLeftBottom">
           <div
@@ -23,7 +25,7 @@ export default function GuildGrid() {
             role="button"
             aria-label="Accountability"
           >
-            <CardChrome kicker="Accountability" title="Nudges: On" meta="Leave-early check | Gentle reminders" />
+            <CardChrome kicker={cards.accountability.kicker} title={cards.accountability.title} meta={cards.accountability.meta} />
           </div>
           <div
             className="gridContainerLeftBottomRight gridCard"
@@ -33,7 +35,7 @@ export default function GuildGrid() {
             role="button"
             aria-label="Start co-focus"
           >
-            <CardChrome kicker="Co-focus" title="Start a room" meta="25m | 50m | Custom" />
+            <CardChrome kicker={cards.startRoom.kicker} title={cards.startRoom.title} meta={cards.startRoom.meta} />
           </div>
         </div>
       </div>
@@ -48,7 +50,7 @@ export default function GuildGrid() {
             role="button"
             aria-label="Room 1"
           >
-            <CardChrome kicker="Room" title="Calculus grind" meta="3 members | 18m left" />
+            <CardChrome kicker={cards.rooms[0]?.kicker ?? "Room"} title={cards.rooms[0]?.title ?? "—"} meta={cards.rooms[0]?.meta ?? ""} />
           </div>
           <div
             className="gridContainerRightLeftTwo gridCard"
@@ -58,7 +60,7 @@ export default function GuildGrid() {
             role="button"
             aria-label="Room 2"
           >
-            <CardChrome kicker="Room" title="Chem review" meta="2 members | starting soon" />
+            <CardChrome kicker={cards.rooms[1]?.kicker ?? "Room"} title={cards.rooms[1]?.title ?? "—"} meta={cards.rooms[1]?.meta ?? ""} />
           </div>
           <div
             className="gridContainerRightLeftThree gridCard"
@@ -68,7 +70,7 @@ export default function GuildGrid() {
             role="button"
             aria-label="Guild event"
           >
-            <CardChrome kicker="Event" title="Guild vs Guild" meta="Tonight | 21:00" />
+            <CardChrome kicker={cards.rooms[2]?.kicker ?? "Event"} title={cards.rooms[2]?.title ?? "—"} meta={cards.rooms[2]?.meta ?? ""} />
           </div>
           <div
             className="gridContainerRightLeftFour gridCard"
@@ -78,7 +80,7 @@ export default function GuildGrid() {
             role="button"
             aria-label="Leaderboard"
           >
-            <CardChrome kicker="Rank" title="Weekly XP" meta="#3 | +1,240 XP" />
+            <CardChrome kicker={cards.rooms[3]?.kicker ?? "Rank"} title={cards.rooms[3]?.title ?? "—"} meta={cards.rooms[3]?.meta ?? ""} />
           </div>
         </div>
 
@@ -90,7 +92,7 @@ export default function GuildGrid() {
           role="button"
           aria-label="Chat and activity"
         >
-          <CardChrome kicker="Chat" title="Squad feed" meta="Mentions | Pings | Join links" />
+          <CardChrome kicker={cards.chat.kicker} title={cards.chat.title} meta={cards.chat.meta} />
         </div>
       </div>
     </div>
