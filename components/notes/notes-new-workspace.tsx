@@ -436,6 +436,13 @@ function stripHtmlQuick(html: string) {
     .trim();
 }
 
+function noteLooksEmpty(n: Note) {
+  const title = String(n.title || "").trim();
+  const bodyText = n.bodyFormat === "html" ? stripHtmlQuick(n.body) : String(n.body || "").trim();
+  const hasAsset = parseAssetIds(n.body || "").length > 0;
+  return title === "Untitled" && !bodyText && !hasAsset;
+}
+
 function parseAssetIds(body: string) {
   const re = /\[\[(image|audio):([a-zA-Z0-9_\-]+)\]\]/g;
   const ids = new Set<string>();
@@ -1865,6 +1872,25 @@ export default function NotesNewWorkspace() {
       return;
     }
     const uncommitted = uncommittedIdsRef.current.has(note.id);
+    if (uncommitted && autoSaveEnabled) {
+      // Auto-save ON: never show the leave prompt.
+      // If the draft is still empty, discard it. Otherwise, commit and persist.
+      if (noteLooksEmpty(note)) {
+        uncommittedIdsRef.current.delete(note.id);
+        setStore((prev) => ({
+          ...prev,
+          notes: prev.notes.filter((n) => n.id !== note.id),
+          lastDraftId: prev.lastDraftId === note.id ? null : prev.lastDraftId,
+        }));
+        router.push(href);
+        return;
+      }
+      uncommittedIdsRef.current.delete(note.id);
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+      persistCurrentStore({ includeUncommitted: true });
+      router.push(href);
+      return;
+    }
     if (!uncommitted) {
       if (autoSaveEnabled) {
         // best-effort flush pending autosave before leaving
