@@ -584,4 +584,35 @@
   .title {
     font-size: 20px;
   }
+
+  .notesPanelHead {
+    gap: 10px;
+    padding-bottom: 10px;
+  }
+
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .tabBtn {
+    flex: 0 0 auto;
+  }
+
+  .tabLabel span {
+    display: none;
+  }
+
+  :global(.notesSearchWrap) {
+    padding: 8px 10px;
+  }
 }

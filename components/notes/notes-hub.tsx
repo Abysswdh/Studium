@@ -794,7 +794,7 @@ export default function NotesHub() {
                     <span>Hidden</span>
                   </span>
                   <span className={styles.tabCount} aria-label="Hidden notes count is hidden">
-                    •
+                    {"\u2022"}
                   </span>
                 </button>
                 <button
