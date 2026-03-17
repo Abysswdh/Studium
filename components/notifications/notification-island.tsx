@@ -198,6 +198,15 @@ export default function NotificationIsland() {
             e.stopPropagation();
             closeNow();
           }}
+          onKeyDown={(e) => {
+            if (e.defaultPrevented) return;
+            const k = e.key;
+            if (k === "Escape" || k === "Esc" || k.toLowerCase() === "x") {
+              e.preventDefault();
+              e.stopPropagation();
+              closeNow();
+            }
+          }}
           className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/80 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/35"
           aria-label="Dismiss notification"
         >

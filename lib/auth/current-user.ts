@@ -1,13 +1,16 @@
 import { getDb } from "../sqlite";
 import { readSessionTokenAsync } from "./session";
 import type { User } from "./user";
+import { readUserCookieAsync } from "./user-cookie";
 
 export type CurrentUser = User | null;
 
 export async function getCurrentUser(): Promise<CurrentUser> {
   try {
+    const cookieUser = await readUserCookieAsync();
+
     const token = await readSessionTokenAsync();
-    if (!token) return null;
+    if (!token) return cookieUser;
 
     const db = getDb();
     const row = db
@@ -36,7 +39,7 @@ export async function getCurrentUser(): Promise<CurrentUser> {
       )
       .get(token) as any;
 
-    if (!row) return null;
+    if (!row) return cookieUser;
     return {
       id: Number(row.id),
       email: row.email ?? null,

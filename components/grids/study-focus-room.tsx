@@ -8,6 +8,7 @@ type Phase = "ready" | "focus" | "break";
 const LS_KEY = "studium:study_focus_room:v1";
 const CONFIG_KEY = "studium:study_focus_config:v1";
 const LOCAL_XP_KEY = "studium:local_xp:v1";
+const CHAT_KEY = "studium:study_room_chat:v1";
 
 function getScopedKey(base: string) {
   if (typeof document === "undefined") return base;
@@ -53,6 +54,22 @@ function localDayKey(d = new Date()) {
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
+}
+
+type ChatMessage = {
+  id: string;
+  at: number;
+  from: "you" | "system" | "buddy";
+  text?: string;
+  stickerSrc?: string;
+};
+
+function uid() {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
 }
 
 type StoredState = {
@@ -193,6 +210,9 @@ export default function StudyFocusRoom() {
   const [modal, setModal] = useState<null | "leave" | "reward">(null);
   const [claiming, setClaiming] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatDraft, setChatDraft] = useState("");
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const stateRef = useRef<StoredState>(state);
   stateRef.current = state;
 
@@ -261,6 +281,109 @@ export default function StudyFocusRoom() {
     ],
     [],
   );
+
+  const chatLocked = state.phase === "focus" && state.isRunning && state.strictMode;
+
+  const members = useMemo(() => {
+    const youStatus = state.phase === "break" ? "On break" : state.phase === "focus" && state.isRunning ? "Focusing" : "Idle";
+    return [
+      { id: "you", name: "You", status: youStatus, accent: "blue" as const },
+      { id: "buddy-1", name: "Nova", status: "Focusing", accent: "violet" as const },
+      { id: "buddy-2", name: "Kira", status: "On break", accent: "emerald" as const },
+    ];
+  }, [state.phase, state.isRunning]);
+
+  useEffect(() => {
+    const key = getScopedKey(CHAT_KEY);
+    const saved = safeLocalGet(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as ChatMessage[];
+        if (Array.isArray(parsed)) {
+          setChatMessages(
+            parsed
+              .map((m) => ({
+                id: String((m as any).id || uid()),
+                at: typeof (m as any).at === "number" ? (m as any).at : Date.now(),
+                from: (m as any).from === "you" || (m as any).from === "buddy" ? (m as any).from : "system",
+                text: typeof (m as any).text === "string" ? (m as any).text : undefined,
+                stickerSrc: typeof (m as any).stickerSrc === "string" ? (m as any).stickerSrc : undefined,
+              }))
+              .slice(-80),
+          );
+          return;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    setChatMessages([
+      {
+        id: uid(),
+        at: Date.now(),
+        from: "system",
+        text: "Welcome to Study Room. This chat is local (prototype) — perfect for UI testing.",
+      },
+    ]);
+  }, []);
+
+  useEffect(() => {
+    const key = getScopedKey(CHAT_KEY);
+    try {
+      safeLocalSet(key, JSON.stringify(chatMessages.slice(-80)));
+    } catch {
+      // ignore
+    }
+  }, [chatMessages]);
+
+  useEffect(() => {
+    const el = chatScrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [chatMessages.length]);
+
+  useEffect(() => {
+    if (!setup && !autoStart) return;
+    setChatMessages((prev) =>
+      [
+        ...prev,
+        {
+          id: uid(),
+          at: Date.now(),
+          from: "system" as const,
+          text: setup ? "Room setup opened." : "Auto-start enabled.",
+        },
+      ].slice(-80),
+    );
+  }, [setup, autoStart]);
+
+  const sendChat = (msg: Partial<ChatMessage>) => {
+    const cleanedText = String(msg.text || "").trim();
+    const cleanedSticker = typeof msg.stickerSrc === "string" ? msg.stickerSrc : undefined;
+    if (!cleanedText && !cleanedSticker) return;
+
+    setChatMessages((prev) =>
+      [
+        ...prev,
+        {
+          id: uid(),
+          at: Date.now(),
+          from: "you" as const,
+          text: cleanedText ? cleanedText.slice(0, 240) : undefined,
+          stickerSrc: cleanedSticker,
+        },
+      ].slice(-80),
+    );
+  };
+
+  const onChatSubmit = () => {
+    if (chatLocked) return;
+    const text = chatDraft.trim();
+    if (!text) return;
+    sendChat({ text });
+    setChatDraft("");
+  };
 
   useEffect(() => {
     // Load persisted state once.
@@ -519,170 +642,270 @@ export default function StudyFocusRoom() {
   const showTime = state.phase === "break" ? formatClock(state.remainingSec) : formatClock(state.remainingSec);
 
   return (
-    <section className="studyFocusRoom" aria-label="Study room focus mode">
-      <div className="studyFocusRoom__top">
-        <button type="button" className="studyFocusRoom__back" onClick={requestLeave} data-focus="study.focus.back" aria-label="Back">
-          <i className="fa-solid fa-arrow-left" aria-hidden="true" />
-          <span>Back</span>
-        </button>
-        <div className="studyFocusRoom__topMeta" aria-hidden="true">
-          <div className="studyFocusRoom__topTitle">Focus Room</div>
-          <div className="studyFocusRoom__topSub">{state.goals.length ? `${state.goals.length} goal(s)` : "No goals set"}</div>
-        </div>
-      </div>
-
-      <div className="studyFocusRoom__timerBlock">
-        <div className="studyFocusRoom__ring" aria-hidden="true">
-          <svg width={ringSize} height={ringSize} viewBox={`0 0 ${ringSize} ${ringSize}`}>
-            <circle
-              cx={center}
-              cy={center}
-              r={radius}
-              fill="none"
-              stroke="rgba(30, 41, 59, 0.10)"
-              strokeWidth={ringStroke}
-            />
-            <circle
-              cx={center}
-              cy={center}
-              r={radius}
-              fill="none"
-              stroke="rgba(59, 130, 246, 1)"
-              strokeWidth={ringStroke}
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={dashOffset}
-              transform={`rotate(180 ${center} ${center})`}
-            />
-            <circle cx={dot.x} cy={dot.y} r={5} fill="rgba(59, 130, 246, 1)" />
-          </svg>
-
-          <div className="studyFocusRoom__ringCenter">
-            <div className="studyFocusRoom__time">{showTime}</div>
-            <div className="studyFocusRoom__phase">{phaseLabel}</div>
+    <section className="studyFocusRoom studyFocusRoom--chat" aria-label="Study room focus mode">
+      <div className="studyRoomLayout">
+        <div className="studyRoomMain">
+          <div className="studyFocusRoom__top">
+            <button type="button" className="studyFocusRoom__back" onClick={requestLeave} data-focus="study.focus.back" aria-label="Back">
+              <i className="fa-solid fa-arrow-left" aria-hidden="true" />
+              <span>Back</span>
+            </button>
+            <div className="studyFocusRoom__topRight">
+              <div className="studyRoomMiniPill" title={chatLocked ? "Chat locked during strict focus" : "Chat available"}>
+                <i className={`fa-solid ${chatLocked ? "fa-lock" : "fa-comments"}`} aria-hidden="true" />
+                <span>{chatLocked ? "Strict Focus" : "Room Chat"}</span>
+              </div>
+              <div className="studyFocusRoom__topMeta">
+                <div className="studyFocusRoom__topTitle">Study Room</div>
+                <div className="studyFocusRoom__topSub">{state.goals.length ? `${state.goals.length} goal(s)` : "No goals set"}</div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div className="studyFocusRoom__controls">
-          <button
-            type="button"
-            className="studyFocusRoom__play"
-            onClick={toggleRun}
-            data-focus="study.focus.toggle"
-            aria-label={state.isRunning ? "Pause timer" : "Start timer"}
-          >
-            <i className={`fa-solid ${state.isRunning ? "fa-pause" : "fa-play"}`} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="studyFocusRoom__reset"
-            onClick={reset}
-            data-focus="study.focus.reset"
-            aria-label="Reset"
-          >
-            <i className="fa-solid fa-arrow-rotate-left" aria-hidden="true" />
-          </button>
-          {state.strictMode ? (
-            <div className="studyFocusRoom__badge" title="Strict mode enabled">
-              <i className="fa-solid fa-shield-halved" aria-hidden="true" /> Strict
+          <div className="studyFocusRoom__timerBlock">
+            <div className="studyFocusRoom__ring" aria-hidden="true">
+              <svg width={ringSize} height={ringSize} viewBox={`0 0 ${ringSize} ${ringSize}`}>
+                <circle
+                  cx={center}
+                  cy={center}
+                  r={radius}
+                  fill="none"
+                  stroke="rgba(30, 41, 59, 0.10)"
+                  strokeWidth={ringStroke}
+                />
+                <circle
+                  cx={center}
+                  cy={center}
+                  r={radius}
+                  fill="none"
+                  stroke="rgba(59, 130, 246, 1)"
+                  strokeWidth={ringStroke}
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={dashOffset}
+                  transform={`rotate(180 ${center} ${center})`}
+                />
+                <circle cx={dot.x} cy={dot.y} r={5} fill="rgba(59, 130, 246, 1)" />
+              </svg>
+
+              <div className="studyFocusRoom__ringCenter">
+                <div className="studyFocusRoom__time">{showTime}</div>
+                <div className="studyFocusRoom__phase">{phaseLabel}</div>
+              </div>
+            </div>
+
+            <div className="studyFocusRoom__controls">
+              <button
+                type="button"
+                className="studyFocusRoom__play"
+                onClick={toggleRun}
+                data-focus="study.focus.toggle"
+                aria-label={state.isRunning ? "Pause timer" : "Start timer"}
+              >
+                <i className={`fa-solid ${state.isRunning ? "fa-pause" : "fa-play"}`} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="studyFocusRoom__reset"
+                onClick={reset}
+                data-focus="study.focus.reset"
+                aria-label="Reset"
+              >
+                <i className="fa-solid fa-arrow-rotate-left" aria-hidden="true" />
+              </button>
+              {state.strictMode ? (
+                <div className="studyFocusRoom__badge" title="Strict mode enabled">
+                  <i className="fa-solid fa-shield-halved" aria-hidden="true" /> Strict
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="studyFocusRoom__stats" aria-label="Session stats">
+            <div className="studyFocusStat">
+              <div className="studyFocusStat__icon studyFocusStat__icon--blue" aria-hidden="true">
+                <i className="fa-solid fa-stopwatch" />
+              </div>
+              <div className="studyFocusStat__value">{state.sessionsToday}</div>
+              <div className="studyFocusStat__label">Sessions Today</div>
+            </div>
+
+            <div className="studyFocusStat">
+              <div className="studyFocusStat__icon studyFocusStat__icon--green" aria-hidden="true">
+                <i className="fa-solid fa-clock" />
+              </div>
+              <div className="studyFocusStat__value">{studyMinutesToday}m</div>
+              <div className="studyFocusStat__label">Study Time</div>
+            </div>
+
+            <div className="studyFocusStat">
+              <div className="studyFocusStat__icon studyFocusStat__icon--teal" aria-hidden="true">
+                <i className="fa-solid fa-battery-full" />
+              </div>
+              <div className="studyFocusStat__value">{energy}%</div>
+              <div className="studyFocusStat__label">Energy</div>
+              <div className="studyFocusStat__bar" aria-hidden="true">
+                <div className="studyFocusStat__barFill" style={{ width: `${energy}%` }} />
+              </div>
+            </div>
+
+            <div className="studyFocusStat">
+              <div className="studyFocusStat__icon studyFocusStat__icon--red" aria-hidden="true">
+                <i className="fa-solid fa-fire" />
+              </div>
+              <div className="studyFocusStat__value">{thisRunPoints}</div>
+              <div className="studyFocusStat__label">This Run</div>
+            </div>
+          </div>
+
+          {state.goals.length ? (
+            <div className="studyFocusRoom__goals" aria-label="Session goals">
+              <div className="studyFocusRoom__goalsTitle">
+                <i className="fa-solid fa-list-check" aria-hidden="true" /> Session Goals
+              </div>
+              <div className="studyFocusRoom__goalsList">
+                {state.goals.map((g, idx) => (
+                  <label key={`${idx}:${g}`} className="studyFocusGoal">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(state.goalsDone[idx])}
+                      onChange={(e) =>
+                        setState((prev) => {
+                          const next = { ...prev, goalsDone: [...prev.goalsDone] };
+                          next.goalsDone[idx] = e.target.checked;
+                          return next;
+                        })
+                      }
+                    />
+                    <span>{g}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="studyFocusRoom__goalActions">
+                <button
+                  type="button"
+                  className="studyFocusRoom__claim"
+                  onClick={() => setModal("reward")}
+                  disabled={!allGoalsDone || state.rewardClaimed}
+                  aria-disabled={!allGoalsDone || state.rewardClaimed}
+                  data-focus="study.focus.claim"
+                  aria-label="Claim XP reward"
+                  title={!state.goals.length ? "Set goals first" : !allGoalsDone ? "Complete all goals first" : state.rewardClaimed ? "Already claimed" : "Claim reward (local)"}
+                >
+                  <i className="fa-solid fa-gift" aria-hidden="true" />{" "}
+                  {state.rewardClaimed ? `Claimed +${state.rewardClaimedXp} XP (local)` : `Finish goals (+${rewardXp} XP local)`}
+                </button>
+              </div>
             </div>
           ) : null}
-        </div>
-      </div>
 
-      <div className="studyFocusRoom__stats" aria-label="Session stats">
-        <div className="studyFocusStat">
-          <div className="studyFocusStat__icon studyFocusStat__icon--blue" aria-hidden="true">
-            <i className="fa-solid fa-stopwatch" />
-          </div>
-          <div className="studyFocusStat__value">{state.sessionsToday}</div>
-          <div className="studyFocusStat__label">Sessions Today</div>
-        </div>
-
-        <div className="studyFocusStat">
-          <div className="studyFocusStat__icon studyFocusStat__icon--green" aria-hidden="true">
-            <i className="fa-solid fa-clock" />
-          </div>
-          <div className="studyFocusStat__value">{studyMinutesToday}m</div>
-          <div className="studyFocusStat__label">Study Time</div>
-        </div>
-
-        <div className="studyFocusStat">
-          <div className="studyFocusStat__icon studyFocusStat__icon--teal" aria-hidden="true">
-            <i className="fa-solid fa-battery-full" />
-          </div>
-          <div className="studyFocusStat__value">{energy}%</div>
-          <div className="studyFocusStat__label">Energy</div>
-          <div className="studyFocusStat__bar" aria-hidden="true">
-            <div className="studyFocusStat__barFill" style={{ width: `${energy}%` }} />
+          <div className="studyFocusRoom__tips" aria-label="Focus tips">
+            <div className="studyFocusRoom__tipsHeader">
+              <div className="studyFocusRoom__tipsTitle">
+                <i className="fa-solid fa-lightbulb" aria-hidden="true" /> Focus Tips
+              </div>
+            </div>
+            <div className="studyFocusRoom__tipsGrid">
+              {tips.map((t) => (
+                <div key={t.text} className="studyFocusTip">
+                  <i className={`fa-solid ${t.icon}`} aria-hidden="true" />
+                  <span>{t.text}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="studyFocusStat">
-          <div className="studyFocusStat__icon studyFocusStat__icon--red" aria-hidden="true">
-            <i className="fa-solid fa-fire" />
-          </div>
-          <div className="studyFocusStat__value">{thisRunPoints}</div>
-          <div className="studyFocusStat__label">This Run</div>
-        </div>
-      </div>
-
-      {state.goals.length ? (
-        <div className="studyFocusRoom__goals" aria-label="Session goals">
-          <div className="studyFocusRoom__goalsTitle">
-            <i className="fa-solid fa-list-check" aria-hidden="true" /> Session Goals
-          </div>
-          <div className="studyFocusRoom__goalsList">
-            {state.goals.map((g, idx) => (
-              <label key={`${idx}:${g}`} className="studyFocusGoal">
-                <input
-                  type="checkbox"
-                  checked={Boolean(state.goalsDone[idx])}
-                  onChange={(e) =>
-                    setState((prev) => {
-                      const next = { ...prev, goalsDone: [...prev.goalsDone] };
-                      next.goalsDone[idx] = e.target.checked;
-                      return next;
-                    })
-                  }
-                />
-                <span>{g}</span>
-              </label>
-            ))}
-          </div>
-
-          <div className="studyFocusRoom__goalActions">
+        <aside className="studyRoomSide" aria-label="Study room sidebar">
+          <div className="studyRoomCard" aria-label="Members">
+            <div className="studyRoomCard__header">
+              <div className="studyRoomCard__title">
+                <i className="fa-solid fa-users" aria-hidden="true" /> Members
+              </div>
+              <div className="studyRoomCard__meta">{members.length} online</div>
+            </div>
+            <div className="studyRoomMembers">
+              {members.map((m) => (
+                <div key={m.id} className="studyRoomMember">
+                  <span className={`studyRoomMember__dot studyRoomMember__dot--${m.accent}`} aria-hidden="true" />
+                  <div className="studyRoomMember__name">{m.name}</div>
+                  <div className="studyRoomMember__status">{m.status}</div>
+                </div>
+              ))}
+            </div>
             <button
               type="button"
-              className="studyFocusRoom__claim"
-              onClick={() => setModal("reward")}
-              disabled={!allGoalsDone || state.rewardClaimed}
-              aria-disabled={!allGoalsDone || state.rewardClaimed}
-              data-focus="study.focus.claim"
-              aria-label="Claim XP reward"
-              title={!state.goals.length ? "Set goals first" : !allGoalsDone ? "Complete all goals first" : state.rewardClaimed ? "Already claimed" : "Claim reward (local)"}
+              className="studyRoomAction"
+              onClick={() =>
+                setChatMessages((prev) =>
+                  [
+                    ...prev,
+                    { id: uid(), at: Date.now(), from: "system" as const, text: "Sync start (prototype): starting together in 3…2…1…" },
+                  ].slice(-80),
+                )
+              }
             >
-              <i className="fa-solid fa-gift" aria-hidden="true" />{" "}
-              {state.rewardClaimed ? `Claimed +${state.rewardClaimedXp} XP (local)` : `Finish goals (+${rewardXp} XP local)`}
+              <i className="fa-solid fa-arrows-rotate" aria-hidden="true" /> Sync start (demo)
             </button>
           </div>
-        </div>
-      ) : null}
 
-      <div className="studyFocusRoom__tips" aria-label="Focus tips">
-        <div className="studyFocusRoom__tipsHeader">
-          <div className="studyFocusRoom__tipsTitle">
-            <i className="fa-solid fa-lightbulb" aria-hidden="true" /> Focus Tips
-          </div>
-        </div>
-        <div className="studyFocusRoom__tipsGrid">
-          {tips.map((t) => (
-            <div key={t.text} className="studyFocusTip">
-              <i className={`fa-solid ${t.icon}`} aria-hidden="true" />
-              <span>{t.text}</span>
+          <div className="studyRoomCard" aria-label="Chat">
+            <div className="studyRoomCard__header">
+              <div className="studyRoomCard__title">
+                <i className="fa-solid fa-comments" aria-hidden="true" /> Chat
+              </div>
+              <div className="studyRoomCard__meta">{chatLocked ? "Locked" : "Open"}</div>
             </div>
-          ))}
-        </div>
+
+            <div ref={chatScrollRef} className="studyRoomChatMessages" role="log" aria-label="Chat messages">
+              {chatMessages.map((m) => (
+                <div key={m.id} className={["studyRoomChatMsg", m.from === "you" ? "studyRoomChatMsg--you" : ""].filter(Boolean).join(" ")}>
+                  <div className="studyRoomChatMsg__avatar" aria-hidden="true">
+                    <i className={`fa-solid ${m.from === "system" ? "fa-wand-sparkles" : "fa-robot"}`} />
+                  </div>
+                  <div className="studyRoomChatMsg__bubble">
+                    {m.stickerSrc ? <img className="studyRoomSticker" src={m.stickerSrc} alt="" aria-hidden="true" /> : null}
+                    {m.text ? <div className="studyRoomChatMsg__text">{m.text}</div> : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="studyRoomChatQuick" aria-label="Quick stickers">
+              <button type="button" className="studyRoomChip" onClick={() => sendChat({ stickerSrc: "/blockyPng/idle.png" })} disabled={chatLocked}>
+                <i className="fa-solid fa-face-smile" aria-hidden="true" /> Idle
+              </button>
+              <button type="button" className="studyRoomChip" onClick={() => sendChat({ stickerSrc: "/blockyPng/study.png" })} disabled={chatLocked}>
+                <i className="fa-solid fa-book" aria-hidden="true" /> Study
+              </button>
+              <button type="button" className="studyRoomChip" onClick={() => sendChat({ stickerSrc: "/blockyPng/battle.png" })} disabled={chatLocked}>
+                <i className="fa-solid fa-bolt" aria-hidden="true" /> Battle
+              </button>
+            </div>
+
+            <div className="studyRoomChatComposer" aria-label="Chat input">
+              <textarea
+                value={chatDraft}
+                onChange={(e) => setChatDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    onChatSubmit();
+                  }
+                }}
+                className="studyRoomChatInput"
+                placeholder={chatLocked ? "Chat locked during strict focus" : "Type a message…"}
+                disabled={chatLocked}
+                aria-disabled={chatLocked}
+                rows={2}
+              />
+              <button type="button" className="studyRoomChatSend" onClick={onChatSubmit} disabled={chatLocked || !chatDraft.trim()}>
+                <i className="fa-solid fa-paper-plane" aria-hidden="true" /> Send
+              </button>
+            </div>
+          </div>
+        </aside>
       </div>
 
       {modal ? (

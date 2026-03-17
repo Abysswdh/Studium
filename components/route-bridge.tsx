@@ -42,9 +42,17 @@ export default function RouteBridge() {
     didMountRef.current = true;
 
     document.body.dataset.view = view;
-    if (pathname.startsWith("/notes/new")) document.body.dataset.subview = "notes-editor";
+    if (pathname.startsWith("/battle/arena")) document.body.dataset.subview = "battle-arena";
+    else if (pathname.startsWith("/notes/new")) document.body.dataset.subview = "notes-editor";
     else if (pathname.startsWith("/study-room")) document.body.dataset.subview = "study-room";
     else document.body.removeAttribute("data-subview");
+
+    try {
+      const dock = document.getElementById("arenaDock");
+      if (dock) dock.hidden = !(pathname.startsWith("/battle/arena"));
+    } catch {
+      // ignore
+    }
     if (view === "quest" && typeof (window as any).setMode === "function") {
       try {
         sessionStorage.setItem("studium:nav_lock_until", String(Date.now() + 650));
@@ -106,7 +114,7 @@ export default function RouteBridge() {
 
     // Boot animation on Focus Mode entry (every time the shell mounts).
     try {
-      if (isFirst) requestBoot({ mode: "enter", showWelcome: true });
+      if (isFirst) requestBoot({ mode: "enter", showWelcome: true, playSound: true });
     } catch {
       // ignore
     }

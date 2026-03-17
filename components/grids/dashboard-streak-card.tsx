@@ -97,7 +97,7 @@ export default function DashboardStreakCard() {
           return <span key={s.dayKey} className={`dashHeatCell dashHeat--${lvl}`} title={title} />;
         })}
       </div>
-      <CardChrome kicker="Streak" title={`${Math.max(0, data.streakCurrent)} days`} meta={`Best ${Math.max(0, data.streakBest)} | Freeze 1 | Strikes 0`} />
+      <CardChrome title={`${Math.max(0, data.streakCurrent)} days`} meta={`Best ${Math.max(0, data.streakBest)} | Freeze 1 | Strikes 0`} />
     </div>
   );
 }

@@ -6,48 +6,12 @@
   position: relative;
 }
 
-.page::before {
-  content: "";
-  position: absolute;
-  inset: -24px;
-  pointer-events: none;
-  background:
-    radial-gradient(900px 520px at 18% 18%, rgb(var(--glass-tint) / 0.22), transparent 66%),
-    radial-gradient(720px 460px at 74% 28%, rgba(255, 255, 255, 0.10), transparent 68%),
-    radial-gradient(760px 520px at 72% 88%, rgba(0, 0, 0, 0.34), transparent 70%);
-  opacity: 0.95;
-}
-
-.page::after {
-  content: "";
-  position: absolute;
-  inset: -24px;
-  pointer-events: none;
-  opacity: 0.16;
-  background:
-    repeating-linear-gradient(
-      0deg,
-      rgba(255, 255, 255, 0.07) 0px,
-      rgba(255, 255, 255, 0.07) 1px,
-      transparent 1px,
-      transparent 34px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.07) 0px,
-      rgba(255, 255, 255, 0.07) 1px,
-      transparent 1px,
-      transparent 34px
-    );
-  mask-image: radial-gradient(circle at 50% 42%, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 70%);
-}
-
 .grid {
   flex: 1;
   min-height: 0;
   display: grid;
   grid-template-columns: 1.05fr 1.15fr 1.1fr;
-  grid-template-rows: 1fr 0.64fr;
+  grid-template-rows: 1fr 0.78fr;
   gap: var(--shell-gap);
   width: 100%;
   position: relative;
@@ -229,8 +193,11 @@
 }
 
 .statsGrid {
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -238,12 +205,15 @@
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(0, 0, 0, 0.14);
-  padding: 10px 10px;
+  padding: 14px 14px;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .statLabel {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   font-weight: 900;
@@ -254,7 +224,7 @@
   margin-top: 6px;
   font-family: var(--font-display);
   font-weight: 900;
-  font-size: 16px;
+  font-size: clamp(18px, 2.2vw, 24px);
   color: rgba(255, 255, 255, 0.92);
 }
 
@@ -327,9 +297,6 @@
     grid-column: 1;
     grid-row: auto;
   }
-  .midStack {
-    grid-template-columns: 1fr;
-  }
   .rankedMascot {
     width: min(210px, 62%);
     bottom: -22px;
@@ -337,5 +304,27 @@
   }
   .rankedCard .content {
     padding-right: clamp(148px, 38vw, 220px);
+  }
+  .content {
+    height: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .midStack {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .page {
+    height: auto;
+    min-height: 100%;
+  }
+
+  .grid {
+    flex: 0 0 auto;
+    min-height: auto;
+    align-content: start;
   }
 }

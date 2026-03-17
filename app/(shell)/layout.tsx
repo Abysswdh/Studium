@@ -47,6 +47,20 @@ export default async function ShellLayout({ children }: { children: React.ReactN
 
           <div className="headerCenter" aria-label="Notifications">
             <NotificationIsland />
+            <div className="qsHoldHost" id="qsHoldHost" hidden aria-hidden="true">
+              <div className="qsHoldPill" id="qsHoldPill" style={{ ["--qs-hold-duration" as any]: "650ms" }}>
+                <svg className="qsHoldRing" viewBox="0 0 360 64" preserveAspectRatio="none" aria-hidden="true">
+                  <rect className="qsHoldRingPath" id="qsHoldRingPath" pathLength={100} x="2" y="2" width="356" height="60" rx="30" ry="30" />
+                </svg>
+                <span className="qsHoldKey" aria-hidden="true">
+                  M
+                </span>
+                <div className="qsHoldText">
+                  <div className="qsHoldTitle">Quick settings</div>
+                  <div className="qsHoldSub">Hold to open</div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="rightClockMenu" aria-label="Clock">
@@ -100,7 +114,41 @@ export default async function ShellLayout({ children }: { children: React.ReactN
               <span>Options</span>
             </button>
           </div>
+
+          <div className="arenaDock" id="arenaDock" hidden aria-label="Arena controls">
+            <div className="arenaDockLeft">
+              <div className="arenaDockTitle">Arena</div>
+              <div className="arenaDockMeta" id="arenaDockMeta">
+                Ready
+              </div>
+            </div>
+
+          <div className="arenaDockKeys" aria-label="Answer keys">
+            <span className="arenaKey">A</span>
+            <span className="arenaKey">B</span>
+            <span className="arenaKey">C</span>
+            <span className="arenaKey">D</span>
+            <span className="arenaDockHint">or 1–4</span>
+            <span className="arenaKey">H</span>
+            <span className="arenaDockHint">hint</span>
+          </div>
+
+          <div className="arenaDockActions" aria-label="Arena actions">
+            <button className="arenaDockBtn headerAction" id="arenaPauseBtn" type="button" aria-label="Pause match">
+              Pause
+            </button>
+            <button className="arenaDockBtn headerAction" id="arenaMusicBtn" type="button" aria-label="Toggle music">
+              Music
+            </button>
+            <button className="arenaDockBtn arenaDockBtnDanger headerAction" id="arenaSurrenderBtn" type="button" aria-label="Surrender match">
+              Surrender
+            </button>
+            <a className="arenaDockBtn headerAction" id="arenaQuitBtn" href="/battle" aria-label="Exit arena">
+              Exit
+            </a>
+          </div>
         </div>
+      </div>
 
         <div className="footerHUD">
           <div className="appver">
@@ -133,6 +181,20 @@ export default async function ShellLayout({ children }: { children: React.ReactN
                   </span>
                 </div>
                 <div className="hudLabel">Navigate</div>
+              </div>
+
+              <div className="hudGroup" aria-label="Quick settings">
+                <div className="hudKeys" aria-hidden="true">
+                  <span className="hudKey hudKey--hold" id="hudHoldM">
+                    <svg className="hudHoldRing" viewBox="0 0 36 36" aria-hidden="true">
+                      <circle className="hudHoldRingPath" pathLength={100} cx="18" cy="18" r="16" />
+                    </svg>
+                    <span className="hudKeyText" aria-hidden="true">
+                      M
+                    </span>
+                  </span>
+                </div>
+                <div className="hudLabel">Hold quick settings</div>
               </div>
 
               <div className="hudGroup hudGroup--right" aria-label="Scroll Menu">
