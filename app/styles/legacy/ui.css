@@ -2723,6 +2723,22 @@ body[data-subview="study-room"].focus-strict .shell {
   background: rgba(255, 255, 255, 0.14);
 }
 
+.notesAutoSaveToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notesAutoSaveToggle--on {
+  background: rgba(120, 255, 190, 0.14);
+  border-color: rgba(160, 255, 210, 0.26);
+  color: rgba(235, 255, 246, 0.96);
+}
+
+.notesAutoSaveToggle--on:hover {
+  background: rgba(120, 255, 190, 0.18);
+}
+
 .notesPrimaryBtn--danger {
   background: rgba(255, 80, 80, 0.20);
   border-color: rgba(255, 120, 120, 0.32);
@@ -3081,6 +3097,20 @@ body[data-subview="study-room"].focus-strict .shell {
 
 .notesPreviewBody--html {
   white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.notesPreviewBody--html a {
+  color: rgba(170, 225, 255, 0.95);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.notesPreviewBody--html a:hover {
+  color: rgba(210, 245, 255, 0.98);
 }
 
 .notesPreviewBody--html h1,
