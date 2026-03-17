@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DEMO_EMAIL, DEMO_PASSWORD } from "../../../lib/auth/demo";
 
 export default function Page() {
@@ -10,6 +10,16 @@ export default function Page() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorText, setErrorText] = useState("");
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("studium:demo:signed_in") === "1") {
+        router.replace("/dashboard");
+      }
+    } catch {
+      // ignore
+    }
+  }, [router]);
 
   const signIn = () => {
     setErrorText("");
