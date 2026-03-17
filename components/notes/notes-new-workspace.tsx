@@ -865,7 +865,9 @@ export default function NotesNewWorkspace() {
       return;
     }
 
-    createDraft();
+    // Prevent the selection-sync effect from overriding draft selection in this same commit.
+    pendingOpenTargetRef.current = "__draft__";
+    pendingOpenTargetRef.current = createDraft() || "__draft__";
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deepLinkNoteId, forceNew, store.notes.length]);
 
@@ -899,7 +901,9 @@ export default function NotesNewWorkspace() {
       // ignore
     }
 
-    createDraft({ useTemplate: false });
+    // Prevent the selection-sync effect from overriding draft selection in this same commit.
+    pendingOpenTargetRef.current = "__forceNew__";
+    pendingOpenTargetRef.current = createDraft({ useTemplate: false }) || "__forceNew__";
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forceNew, searchToken]);
 
@@ -1203,6 +1207,8 @@ export default function NotesNewWorkspace() {
         // ignore
       }
     });
+
+    return id;
   };
 
   const toggleFavorite = () => {
