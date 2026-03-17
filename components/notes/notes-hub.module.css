@@ -392,7 +392,10 @@
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  padding-left: 2px;
+  padding-right: 12px;
   padding-bottom: 4px;
+  scroll-padding-inline: 2px 12px;
 }
 
 .tabs::-webkit-scrollbar {
